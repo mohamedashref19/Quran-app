@@ -1,0 +1,37 @@
+extends base
+
+block content
+  .container
+    h2.text-center.mb-4.text-gold 📅 ختمتي
+    
+    #active-khatmah.d-none
+      .card.border-0.shadow.p-4.text-center
+        h3#khatmah-name
+        .progress.my-3(style="height: 30px;")
+          #progress-bar.progress-bar.bg-success(role="progressbar" style="width: 0%") 0%
+        p.lead  <span id="daily-target" class="fw-bold text-danger"></span>.
+        p#khatmah-status-text.text-muted.mt-2 جاري تحميل مكان التوقف...
+        a.btn.btn-lg.btn-success.w-100.mt-3(href="/api/v1/quran/continue") 🚀 متابعة الختمة من حيث توقفت
+        
+        hr
+        h5 تحديث التقدم:
+        form#updateProgressForm.d-flex.justify-content-center.gap-2
+          select#currentSurah.form-select(style="width:180px" required)
+            option(value="" disabled selected) اختر السورة
+          input#currentAyah.form-control(type="number" placeholder="رقم الآية" style="width:100px" required)
+          button#specialBookmarkBtn.btn.btn-success(type="submit") 🔖 حفظ التقدم
+          
+
+        button#deleteKhatmahBtn.btn.btn-outline-danger.mt-3 إلغاء الختمة
+
+    #create-khatmah.d-none
+      .card.border-0.shadow.p-4
+        h3.text-center ابدأ ختمة جديدة
+        form#createKhatmahForm
+          .mb-3
+            label اسم الختمة
+            input#planName.form-control(type="text" placeholder="مثال: ختمة رمضان" required)
+          .mb-3
+            label المدة (بالأيام)
+            input#duration.form-control(type="number" placeholder="30" required)
+          button.btn.btn-aqra.w-100(type="submit") إنشاء الخطة

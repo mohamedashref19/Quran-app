@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Environment Variables (IMPORTANT!)
+.env
+config.env
+
+# Parcel Cache & Build
+.cache/
+.parcel-cache/
+dist/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS Generated Files
+.DS_Store
+Thumbs.db
+
+DevFolder/

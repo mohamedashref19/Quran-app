@@ -1,0 +1,440 @@
+/* =========================================
+   1. المتغيرات والإعدادات العامة (Global)
+   ========================================= */
+:root {
+    --main-green: #1e5f31;
+    --light-green: #e8f5e9;
+    --gold: #d4af37;
+    --dark-text: #2c3e50;
+    --light-bg: #f8f9fa;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&display=swap');
+
+@font-face {
+    font-family: 'Uthmanic';
+    src: url('../fonts/UthmanicHafs.otf') format('opentype');
+    font-display: swap;
+}
+
+body {
+    background-color: var(--light-bg);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow-x: hidden; /* لمنع التمرير الأفقي غير المرغوب فيه */
+}
+
+/* =========================================
+   2. أدوات مساعدة (Utilities & Buttons)
+   ========================================= */
+.bg-aqra {
+    background-color: var(--main-green) !important;
+}
+
+.text-aqra {
+    color: var(--main-green) !important;
+}
+
+.btn-aqra {
+    background-color: var(--main-green);
+    color: white;
+    border-radius: 50px;
+    padding: 10px 25px;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-aqra:hover {
+    background-color: #144022;
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(30, 95, 49, 0.3);
+}
+
+.hover-shadow {
+    transition: all 0.3s ease;
+}
+
+.hover-shadow:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15) !important;
+}
+
+/* =========================================
+   3. حاوية المصحف (Quran Container)
+   ========================================= */
+#ayahs-container {
+    background-color: #fff;
+    background-image: url('https://www.transparenttextures.com/patterns/cream-paper.png');
+    padding: 50px;
+    border: 1px solid #dcdcdc;
+    /* تأثير الكتاب */
+    border-right: 5px solid #eee; 
+    border-left: 2px solid #eee;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08) !important;
+    border-radius: 8px;
+    position: relative;
+    min-height: 600px;
+    margin-top: 30px;
+    margin-bottom: 50px;
+}
+
+/* إطار داخلي جمالي */
+#ayahs-container::before {
+    content: '';
+    position: absolute;
+    top: 15px; bottom: 15px; left: 15px; right: 15px;
+    border: 2px solid var(--gold);
+    border-radius: 4px;
+    pointer-events: none; /* للسماح بالنقر على النص */
+    opacity: 0.5;
+}
+
+/* =========================================
+   4. النصوص القرآنية (Typography)
+   ========================================= */
+.quran-text {
+    font-family: 'Amiri', 'Traditional Arabic', serif;
+    font-size: 28px;
+    line-height: 2.4;
+    color: #000;
+    text-align: justify; /* ضبط النص */
+    text-align-last: center;
+    direction: rtl;
+}
+
+/* تمييز الآيات */
+.ayah-clickable {
+    cursor: pointer;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    border-radius: 8px;
+    padding: 2px 4px;
+}
+
+.ayah-clickable:hover {
+    color: var(--main-green);
+    background-color: rgba(30, 95, 49, 0.08);
+}
+
+/* رقم الآية والأيقونات */
+.ayah-end-wrapper {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap; /* منع فصل الرقم عن الأيقونة */
+    margin: 0 5px;
+    user-select: none;
+}
+
+.ayah-end-symbol {
+    font-family: sans-serif;
+    font-size: 0.75em !important;
+    color: var(--gold);
+    border: 1px solid var(--gold);
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 5px;
+}
+
+/* =========================================
+   5. عناصر التحكم والتنقل (Controls)
+   ========================================= */
+#surah-name {
+    font-family: 'Amiri', serif;
+    background-color: #fff;
+    padding: 10px 40px;
+    border: 2px solid var(--gold);
+    border-radius: 15px;
+    color: var(--main-green);
+    font-weight: bold;
+    font-size: 1.5rem;
+    box-shadow: 0 2px 10px rgba(212, 175, 55, 0.2);
+}
+
+/* أسهم التنقل */
+.nav-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: white;
+    border: 1px solid #ddd;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    color: var(--main-green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+
+.nav-arrow:hover {
+    background: var(--main-green);
+    color: white;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.nav-prev { right: -60px; }
+.nav-next { left: -60px; }
+
+/* زر الختمة العائم */
+.khatmah-floating-btn {
+    position: fixed;
+    bottom: 30px;
+    left: 30px;
+    background-color: var(--main-green);
+    color: white;
+    padding: 12px 25px;
+    border-radius: 50px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    text-decoration: none;
+    font-family: 'Amiri', serif;
+    font-size: 1.1rem;
+    z-index: 999;
+    transition: transform 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.khatmah-floating-btn:hover {
+    transform: translateY(-5px);
+    background-color: #146c43;
+    color: white;
+}
+
+/* أيقونات التفاعل داخل النص */
+.bookmark-icon-btn, .listen-icon {
+    transition: transform 0.2s ease, color 0.2s ease;
+    font-size: 0.9em;
+    cursor: pointer;
+}
+
+.bookmark-icon-btn:hover, .listen-icon:hover {
+    transform: scale(1.3);
+}
+
+.fas.fa-bookmark { color: var(--gold) !important; }
+.far.fa-bookmark { color: #ccc; }
+.listen-icon:hover { color: var(--main-green) !important; }
+
+/* =========================================
+   6. واجهة المصحح الآلي (AI Recitation)
+   ========================================= */
+.recitation-result-box {
+    background-color: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 15px;
+    padding: 40px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+    min-height: 200px;
+    direction: rtl;
+    
+    /* تنسيق الخط للتصحيح */
+    font-family: 'Uthmanic', 'Amiri', serif !important;
+    font-size: 2.8rem !important;
+    line-height: 3.5 !important;
+    word-spacing: 10px;
+}
+
+/* ألوان حالات الكلمات */
+.word-correct { 
+    color: #198754; 
+    background-color: rgba(25, 135, 84, 0.05);
+    padding: 0 5px;
+    border-radius: 4px;
+}
+.word-wrong { 
+    color: #dc3545; 
+    text-decoration: underline wavy #dc3545;
+    text-underline-offset: 5px;
+    padding: 0 5px;
+}
+.word-missing { 
+    color: #999; 
+    opacity: 0.6; 
+    padding: 0 5px;
+}
+
+.ayah-circle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 35px;
+    height: 35px;
+    border: 2px solid var(--main-green);
+    border-radius: 50%;
+    font-size: 1rem;
+    margin: 0 10px;
+    color: var(--main-green);
+    font-weight: bold;
+    font-family: sans-serif;
+}
+
+/* زر الميكروفون */
+.mic-container button {
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+}
+
+.pulse-red {
+    animation: pulse-red-animation 1.5s infinite;
+    border-color: #dc3545 !important;
+    background-color: #fff;
+    color: #dc3545;
+}
+
+
+/* footer {
+    
+    
+    border-top: 4px solid var(--gold); 
+    box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+}
+
+footer a:hover {
+    color: #fff !important;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+    transition: all 0.3s ease;
+}
+.success2  {
+    --bs-text-opacity: 1;
+    color: rgb(0 255 137) !important;
+} */
+
+/* تنسيق الفوتر المصغر */
+footer {
+    border-top: 1px solid rgba(0,0,0,0.05) !important;
+    box-shadow: none !important; /* إلغاء الظل الثقيل */
+}
+
+/* رابط المطور بشكل أنيق وبسيط */
+.dev-link {
+    color: var(--main-green);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border-bottom: 1px dashed transparent;
+}
+
+.dev-link:hover {
+    color: #146c43;
+    border-bottom-color: #146c43;
+}
+
+/* أيقونات التواصل بشكل صغير وهادئ */
+.social-mini-links i {
+    font-size: 0.85rem;
+    transition: color 0.2s;
+}
+
+.social-mini-links i:hover {
+    color: var(--main-green) !important;
+}
+
+/* ضبط المسافات في الموبايل */
+@media (max-width: 768px) {
+    footer {
+        padding-bottom: 80px !important; /* مساحة لزر الختمة العائم عشان ميتغطاش */
+    }
+}
+
+
+
+@keyframes pulse-red-animation {
+    0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+    70% { box-shadow: 0 0 0 15px rgba(220, 53, 69, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+}
+
+/* =========================================
+   7. التجاوب مع الشاشات (Responsiveness)
+   ========================================= */
+
+/* شاشات التابلت (أقل من 992px) */
+@media (max-width: 992px) {
+    .nav-arrow {
+        display: none !important; /* إخفاء الأسهم الجانبية */
+    }
+    
+    #ayahs-container {
+        padding: 30px;
+        margin-top: 15px;
+    }
+
+    .quran-text {
+        font-size: 24px;
+        line-height: 2.2;
+    }
+}
+
+/* شاشات الموبايل (أقل من 768px) */
+@media (max-width: 768px) {
+    /* الحاوية الرئيسية */
+    #ayahs-container {
+        padding: 20px 15px; /* تقليل الحواف */
+        border-width: 1px; /* تخفيف الإطار */
+        min-height: auto;
+    }
+
+    /* إخفاء الإطار الداخلي الذهبي في الموبايل */
+    #ayahs-container::before {
+        display: none;
+    }
+
+    /* تصغير خط المصحف للقراءة */
+    .quran-text {
+        font-size: 20px;
+        line-height: 2.0;
+        text-align: right; /* أسهل للقراءة على الموبايل من Justify */
+        text-align-last: right;
+    }
+
+    /* تصغير خط نتيجة التصحيح */
+    .recitation-result-box {
+        font-size: 1.8rem !important;
+        line-height: 2.8 !important;
+        word-spacing: 5px;
+        padding: 15px;
+    }
+
+    /* تعديل عناصر التحكم العلوية */
+    #surah-name {
+        padding: 8px 20px;
+        font-size: 1.2rem;
+    }
+
+    /* زر الختمة */
+    .khatmah-floating-btn {
+        bottom: 20px;
+        left: 20px;
+        padding: 10px 15px;
+        font-size: 0.9rem;
+    }
+    
+    .khatmah-floating-btn i {
+        font-size: 1.2rem;
+    }
+
+    /* دوائر الآيات */
+    .ayah-end-symbol, .ayah-circle {
+        width: 25px;
+        height: 25px;
+        font-size: 0.7em !important;
+    }
+
+    /* أزرار التسجيل */
+    .record-section button {
+        width: 80px !important;
+        height: 80px !important;
+        padding: 1rem !important;
+    }
+    
+    .record-section i {
+        font-size: 2rem !important;
+    }
+}

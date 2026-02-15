@@ -1,0 +1,23 @@
+extends base
+
+block content
+  .row.justify-content-center
+    .col-md-6
+      .card.border-0.shadow.p-4
+        .card-body
+          h2.text-center.mb-4.text-success إنشاء حساب جديد
+          form#signupForm
+            .mb-3
+              label.form-label(for='name') الاسم بالكامل
+              input#name.form-control(type='text' placeholder='محمد أشرف' required)
+            .mb-3
+              label.form-label(for='email') البريد الإلكتروني
+              input#email.form-control(type='email' placeholder='name@example.com' required)
+            .mb-3
+              label.form-label(for='password') كلمة المرور
+              input#password.form-control(type='password' placeholder='••••••••' required minlength='8')
+            .mb-3
+              label.form-label(for='passwordConfirm') تأكيد كلمة المرور
+              input#passwordConfirm.form-control(type='password' placeholder='••••••••' required minlength='8')
+            
+            button.btn.btn-aqra.w-100.py-2(type='submit') إنشاء حساب

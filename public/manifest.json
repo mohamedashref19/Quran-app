@@ -1,0 +1,22 @@
+{
+  "name": "تطبيق اقرأ",
+  "short_name": "اقرأ",
+  "description": "رفيقك الرقمي لختم القرآن وتصحيح التلاوة بالذكاء الاصطناعي",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8f9fa",
+  "theme_color": "#1e5f31",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/img/icons/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/img/icons/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

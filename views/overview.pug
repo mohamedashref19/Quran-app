@@ -1,0 +1,58 @@
+extends base
+
+block content
+  //- Hero Section
+  .row.justify-content-center.text-center.mb-5
+    .col-lg-8
+      h1.display-4.fw-bold.text-success مرحباً بك في اقرأ 📖
+      p.lead.text-muted رفيقك الرقمي لختم القرآن، الاستماع للتلاوات، وتصحيح التلاوة بالذكاء الاصطناعي.
+      .mt-4
+        if !user
+          a.btn.btn-aqra.btn-lg.mx-2(href='/signup') إنشاء حساب جديد
+          a.btn.btn-outline-dark.btn-lg.mx-2(href='/login') تسجيل دخول
+        else
+          a.btn.btn-aqra.btn-lg.mx-2(href='/quran') 📖 ابدأ القراءة الآن
+
+  //- Features Grid
+  .row.g-4
+    .col-md-4
+      .card.border-0.shadow-sm.h-100.text-center.p-4.hover-shadow
+        .mb-3: i.fas.fa-book-open.fa-3x.text-success
+        h3.h4 المصحف الشريف
+        p.text-muted تصفح سور القرآن الكريم مع التفسير وحفظ العلامات.
+        a.btn.btn-sm.btn-outline-success.stretched-link(href='/quran') تصفح المصحف
+
+    .col-md-4
+      .card.border-0.shadow-sm.h-100.text-center.p-4.hover-shadow
+        .mb-3: i.fas.fa-headphones-alt.fa-3x.text-success
+        h3.h4 الاستماع للقراء
+        p.text-muted استمع لأعذب الأصوات مع خاصية التلاوة المستمرة.
+        a.btn.btn-sm.btn-outline-success.stretched-link(href='/reciters') استمع الآن
+
+    .col-md-4
+      .card.border-0.shadow-sm.h-100.text-center.p-4.hover-shadow
+        .mb-3: i.fas.fa-microphone-alt.fa-3x.text-gold
+        h3.h4 المصحح الآلي (AI)
+        p.text-muted اختبر تلاوتك وصحح أخطاءك باستخدام الذكاء الاصطناعي.
+        a.btn.btn-sm.btn-outline-warning.stretched-link(href='/check-recitation') جرب المصحح
+
+    .col-md-4
+      .card.border-0.shadow-sm.h-100.text-center.p-4.hover-shadow
+        .mb-3: i.fas.fa-calendar-check.fa-3x.text-success
+        h3.h4 نظام الختمة
+        p.text-muted خطط لختمتك وتابع تقدمك يومياً بسهولة.
+        a.btn.btn-sm.btn-outline-success.stretched-link(href='/my-khatmah') متابعة الختمة
+
+    .col-md-4
+      .card.border-0.shadow-sm.h-100.text-center.p-4.hover-shadow
+        .mb-3: i.fas.fa-mosque.fa-3x.text-success
+        h3.h4 مواقيت الصلاة
+        p.text-muted تعرف على مواقيت الصلاة حسب موقعك الجغرافي.
+        a.btn.btn-sm.btn-outline-success.stretched-link(href='/prayers') عرض المواقيت
+
+    .col-md-4
+      .card.border-0.shadow-sm.h-100.text-center.p-4.hover-shadow
+        .mb-3: i.fas.fa-bookmark.fa-3x.text-success
+        h3.h4 العلامات المحفوظة
+        p.text-muted ارجع للآيات التي توقفت عندها أو قمت بحفظها.
+        a.btn.btn-sm.btn-outline-success.stretched-link(href='/my-bookmarks') عرض المفضلة

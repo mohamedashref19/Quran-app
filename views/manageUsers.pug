@@ -1,0 +1,36 @@
+extends base
+
+block content
+  .container
+    .d-flex.justify-content-between.align-items-center.mb-4
+      h2.text-success 🛠️ إدارة المستخدمين
+      span.badge.bg-secondary عدد الأعضاء: #{users.length}
+
+    .card.border-0.shadow-sm
+      .card-body.p-0
+        .table-responsive
+          table.table.table-hover.align-middle.mb-0
+            thead.table-light
+              tr
+                th #
+                th المستخدم
+                th البريد الإلكتروني
+                th الصلاحية
+                th.text-end إجراءات
+            tbody
+              each user, i in users
+                tr
+                  td= i + 1
+                  td
+                    .d-flex.align-items-center
+                      img.rounded-circle.me-2(src=`/img/users/default.png` alt=user.name width="40" height="40")
+                      span.fw-bold= user.name
+                  td.text-muted= user.email
+                  td
+                    if user.role === 'admin'
+                      span.badge.bg-danger أدمن
+                    else
+                      span.badge.bg-success مستخدم
+                  td.text-end
+                    if user.role !== 'admin'
+                      button.btn.btn-sm.btn-outline-danger.delete-user-btn(data-id=user._id) 🗑️ حذف

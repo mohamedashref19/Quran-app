@@ -1,0 +1,54 @@
+extends base
+
+block content
+  .row
+    .col-md-4.mb-4
+      .card.border-0.shadow-sm
+        .card-body.text-center
+          img.rounded-circle.mb-3(src=`/img/users/default.png` alt=user.name width="100")
+          h4= user.name
+          p.badge.bg-success= user.role === 'admin' ? 'مدير النظام' : 'مستخدم'
+          
+          hr
+          .list-group.list-group-flush.text-end.p-0
+            a.list-group-item.list-group-item-action.d-flex.justify-content-between.align-items-center(href='/me' class=(title === 'إعدادات الحساب' ? 'active bg-success border-success' : ''))
+              span ⚙️ إعدادات الحساب
+              i.fas.fa-chevron-left.small
+            
+            a.list-group-item.list-group-item-action.d-flex.justify-content-between.align-items-center(href='/my-khatmah')
+              span 📅 ختمتي الحالية
+              i.fas.fa-chevron-left.small
+
+            a.list-group-item.list-group-item-action.d-flex.justify-content-between.align-items-center(href='/my-bookmarks')
+              span 🔖 العلامات المحفوظة
+              i.fas.fa-chevron-left.small
+
+    // محتوى الإعدادات (Form)
+    .col-md-8
+      .card.border-0.shadow-sm.p-4
+        h3.mb-4.text-success إعدادات الحساب
+        
+        form#updateUserForm.mb-5
+          .mb-3
+            label.form-label الاسم
+            input#name.form-control(type='text' value=`${user.name}` required)
+          .mb-3
+            label.form-label البريد الإلكتروني
+            input#email.form-control(type='email' value=`${user.email}` required)
+          button.btn.btn-aqra(type='submit') حفظ التغييرات
+
+        hr.my-4
+        
+        h3.mb-4.text-gold تغيير كلمة المرور
+        form#updatePasswordForm
+          .mb-3
+            label.form-label كلمة المرور الحالية
+            input#passwordCurrent.form-control(type='password' required placeholder="••••••••")
+          .mb-3
+            label.form-label كلمة المرور الجديدة
+            input#password.form-control(type='password' required placeholder="••••••••")
+          .mb-3
+            label.form-label تأكيد كلمة المرور
+            input#passwordConfirm.form-control(type='password' required placeholder="••••••••")
+          
+          button.btn.btn-dark.btn-save-password(type='submit') تحديث كلمة المرور

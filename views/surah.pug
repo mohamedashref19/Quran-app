@@ -1,0 +1,42 @@
+extends base
+
+block content
+  .container.py-5
+    .text-center.mb-4
+      //- عنوان السورة وزخرفة
+      .d-inline-block.position-relative
+        h1#surah-name.fw-bold.text-success.px-5.py-2(style="border: 2px solid #d4af37; border-radius: 15px; background: #fff;") جارى التحميل...
+      
+      //- أزرار التنقل العلوية (اختياري)
+      .mt-3.d-flex.justify-content-center.gap-2
+        a.btn.btn-outline-gold(href='/quran') 📖 الفهرس
+
+    //- جسم المصحف (الكتاب)
+    #quran-book.position-relative.mx-auto(style="max-width: 900px;")
+      
+      //- زر السابق (Previous)
+      button#prev-surah-btn.nav-arrow.nav-prev.d-none(title="السورة السابقة")
+        i.fas.fa-chevron-right
+
+      //- زر التالي (Next)
+      button#next-surah-btn.nav-arrow.nav-next.d-none(title="السورة التالية")
+        i.fas.fa-chevron-left
+
+      //- حاوية الآيات
+      #ayahs-container.shadow-lg
+        .text-center.py-5
+          .spinner-border.text-gold(role="status")
+            span.visually-hidden جاري التحميل...
+    
+    //- أزرار التنقل السفلية (للموبايل بشكل أوضح)
+    .d-flex.justify-content-between.mt-4.mx-auto(style="max-width: 900px;")
+      button#prev-surah-bottom.btn.btn-outline-success.d-none
+        i.fas.fa-arrow-right.me-2
+        span السورة السابقة
+      
+      button#next-surah-bottom.btn.btn-outline-success.d-none
+        span السورة التالية
+        i.fas.fa-arrow-left.ms-2
+    a.khatmah-floating-btn(href="/api/v1/quran/continue" title="اذهب لختمتي")
+      i.fas.fa-flag
+      span.ms-2 ختمتي     

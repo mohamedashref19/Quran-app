@@ -1,0 +1,34 @@
+extends base
+
+block content
+  .container.text-center.mt-5
+    h2.mb-4.text-success 🎤 المصحح الآلي الذكي
+    
+    .card.p-5.shadow-sm.border-0
+      .record-section.mb-4
+        .mic-container.mb-3
+          button#recordBtn.btn.btn-outline-success.rounded-circle.p-4(type="button" style="width: 100px; height: 100px; transition: all 0.3s ease;")
+            i#micIcon.fas.fa-microphone.fa-3x
+        h5#recordStatus.text-muted انقر على الميكروفون للبدء في التسجيل
+      
+      .row.mb-3.justify-content-center
+        .col-md-7
+          select#ai-surah-select.form-select.form-select-lg.mb-3(style="font-family: 'Amiri', serif;")
+            option(value="" selected disabled) اختر السورة...
+        .col-md-3
+          input#ai-start-ayah.form-control.form-control-lg(type="number", placeholder="من آية", min="1")
+        .col-md-3
+          input#ai-end-ayah.form-control.form-control-lg(type="number", placeholder="إلى آية", min="1")  
+      
+      .upload-alt.mt-3
+        input#audioFile.form-control.d-none(type="file" accept="audio/*")
+        button#triggerUpload.btn.btn-link.btn-sm.text-success(type="button") أو ارفع ملفاً صوتياً بدلاً من التسجيل
+        .mt-2
+          button#uploadBtn.btn.btn-primary.btn-sm.d-none(type="button")
+            i.fas.fa-upload.me-1
+            | إرسال الملف المختار للتصحيح
+      
+      #result-container.mt-5.d-none
+        hr
+        h4.text-dark.mb-4 التحليل الدقيق للتلاوة:
+        #ai-feedback.recitation-result-box

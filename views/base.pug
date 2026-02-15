@@ -1,0 +1,83 @@
+doctype html
+html(dir="rtl" lang="ar")
+  head
+    block head
+      meta(charset='UTF-8')
+      meta(name='viewport' content='width=device-width, initial-scale=1.0')
+      title Aqra | #{title}
+      link(rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css')
+      link(rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css')
+      link(rel="stylesheet", href="/css/style.css")
+      link(rel="shortcut icon", type="image/png", href="/img/title.png")
+      link(rel="manifest", href="/manifest.json")
+      meta(name="theme-color", content="#1e5f31")
+      link(rel="apple-touch-icon", href="/img/icons/icon-192.png")
+
+  body.d-flex.flex-column.min-vh-100
+    
+    // NAVIGATION
+    nav.navbar.navbar-expand-lg.navbar-dark.bg-aqra.shadow-sm
+      .container
+        a.navbar-brand.fw-bold(href='/') 📖 تطبيق اقرأ
+        button.navbar-toggler(type='button' data-bs-toggle='collapse' data-bs-target='#navbarNav')
+          span.navbar-toggler-icon
+        
+        #navbarNav.collapse.navbar-collapse
+          ul.navbar-nav.ms-auto
+            if user
+              li.nav-item: a.nav-link(href='/me') 👤 حسابي
+              if user.role === 'admin'
+                li.nav-item: a.nav-link.text-warning(href='/manage-users') 🛠️ لوحة الأدمن
+              li.nav-item: a.nav-link(href='#' id='logoutBtn') تسجيل خروج
+            else
+              li.nav-item: a.nav-link(href='/login') تسجيل دخول
+              li.nav-item: a.nav-link(href='/signup') إنشاء حساب
+
+    // CONTENT
+    .container.my-5
+      block content
+
+    script.
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/service-worker.js')
+            .then(function(registration) {
+              console.log('ServiceWorker registration successful');
+            }, function(err) {
+              console.log('ServiceWorker registration failed: ', err);
+            });
+        });
+      }
+
+    footer.bg-white.border-top.py-3.mt-auto
+      .container
+        .row.align-items-center.flex-column-reverse.flex-md-row
+          .col-md-6.text-center.text-md-end
+            .d-flex.align-items-center.justify-content-center.justify-content-md-start
+              img.me-2(src="/img/title.png" alt="Aqra Logo" style="width: 18px; height: 18px; opacity: 0.8;")
+              p.mb-0.text-muted.fw-light(style="font-size: 0.85rem;")
+                | جميع الحقوق محفوظة لـ 
+                strong.text-success تطبيق اقرأ 
+                | &copy; 
+                span#current-year
+
+          .col-md-6.text-center.text-md-start.mb-2.mb-md-0
+            div.d-flex.align-items-center.justify-content-center.justify-content-md-start.gap-2
+              p.mb-0.text-muted(style="font-size: 0.85rem;") تم التطوير بواسطة 
+              a.text-dark.text-decoration-none.fw-bold(href='https://mohamed-ashraf-backend.netlify.app/' target='_blank') Mohamed Ashraf
+              
+              span.text-muted.mx-1 |
+              
+              a.text-secondary.social-link(href="https://github.com/mohamedashref19" target='_blank'): i.fab.fa-github
+              a.text-secondary.social-link(href="https://www.linkedin.com/in/mohamed-ashraf-dev/" target='_blank'): i.fab.fa-linkedin-in
+
+    // SCRIPTS
+    script(src='https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js')
+    script(src="https://cdn.jsdelivr.net/npm/sweetalert2@11")
+    script(src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js')
+    script(src='https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js')
+    script(src='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js')
+    script(src='/js/bundle.js')
+
+    script.
+      document.getElementById('current-year').textContent = new Date().getFullYear();

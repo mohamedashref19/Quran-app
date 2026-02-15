@@ -1,0 +1,12 @@
+extends base
+
+block content
+  .container.text-center.mt-5
+    h2.text-success.mb-4 🕌 مواقيت الصلاة
+    .card.border-0.shadow.p-4.mx-auto(style="max-width: 600px;")
+      h4#location-name.mb-3 جاري تحديد موقعك...
+      h5#hijri-date.text-muted.mb-4
+      
+      .list-group#prayers-list
+        .spinner-border.text-success.mx-auto(role="status")
+          span.visually-hidden جاري التحميل...

@@ -1,0 +1,10 @@
+extends base
+
+block content
+  .container.text-center.mt-5
+    h1.mb-4.text-success المصحف الشريف 📖
+    #surahs-container.row.g-3
+      .spinner-border.text-success(role="status")
+    a.khatmah-floating-btn(href="/api/v1/quran/continue" title="اذهب لختمتي")
+      i.fas.fa-flag
+      span.ms-2 ختمتي  
