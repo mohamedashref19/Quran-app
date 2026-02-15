@@ -20,3 +20,6 @@ yarn-error.log*
 Thumbs.db
 
 DevFolder/
+
+public/audio/uploads/*
+!public/audio/uploads/.gitkeep
