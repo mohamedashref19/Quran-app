@@ -49,13 +49,18 @@ export async function loadQuranPage(pageNumber) {
   try {
     const res = await axios.get(`/api/v1/quran/page/${pageNumber}`);
     const { ayahs, khatmah } = res.data.data;
-    currentPage = parseInt(pageNumber);
-
+    
+    const pageNum = parseInt(pageNumber);
+    currentPage = pageNum; 
     let userBookmarks = [];
     try {
       const bookmarkRes = await axios.get('/api/v1/bookmarks');
       userBookmarks = bookmarkRes.data.data.bookmarks; 
-    } catch (err) {  }
+    } catch (err) { }
+
+    if (ayahs.length > 0) {
+        document.title = `${ayahs[0].surahNameAr} - صفحة ${pageNum}`;
+    }
 
     const titleElem = document.getElementById('surah-name');
     if (titleElem) titleElem.innerText = `${ayahs[0].surahNameAr || '...'}`; 
@@ -108,10 +113,15 @@ export async function loadQuranPage(pageNumber) {
         `;
     });
 
-    fullTextHTML += '</div><div class="text-center mt-3 text-muted small">- ' + currentPage + ' -</div>';
+    fullTextHTML += '</div><div class="text-center mt-3 text-muted small">- ' + pageNum + ' -</div>';
     container.innerHTML = fullTextHTML;
     
-    updateNavButtons();
+    const navButtons = document.querySelectorAll('.nav-prev, .nav-next, #prev-surah-mobile, #next-surah-mobile');
+    navButtons.forEach(btn => btn.classList.remove('d-none'));
+    
+    if (typeof updateNavButtons === 'function') {
+        updateNavButtons();
+    }
 
   } catch (err) {
     console.error(err);
@@ -119,7 +129,8 @@ export async function loadQuranPage(pageNumber) {
 }
 
 export function startSurahReading(surahNumber) {
-   const startPage = surahStartPages[surahNumber] || 1;
+  const sNum = parseInt(surahNumber);
+  const startPage = surahStartPages[sNum] || 1;
    loadQuranPage(startPage);
 }
 
@@ -131,13 +142,14 @@ export async function loadSurahs() {
     container.innerHTML = ''; 
     const surahsList = res.data.data.surahs;
     surahsList.forEach(surah => {
-      const html = `
+      const surahNum = surah.number || surah.surahNumber || (surahsList.indexOf(surah) + 1);
+      const startPage = surahStartPages[surahNum] || 1;
+     const html = `
         <div class="col-md-3 mb-3">
-          <a href="/quran/${surah._id}" class="text-decoration-none">
-            <div class="card h-100 hover-shadow border-0 shadow-sm">
+          <a href="/quran/${startPage}" class="text-decoration-none"> <div class="card h-100 hover-shadow border-0 shadow-sm">
               <div class="card-body text-center">
                 <div class="d-flex justify-content-center align-items-center mb-2">
-                  <span class="badge bg-success rounded-circle p-2 me-2">${surah._id}</span>
+                  <span class="badge bg-success rounded-circle p-2 me-2">${surahNum}</span>
                   <h5 class="card-title text-dark mb-0 fw-bold" style="font-family: 'Amiri', serif;"> ${surah.arabicName}</h5>
                 </div>
                 <p class="text-muted small mb-0">عدد الآيات: ${surah.ayahCount}</p>
@@ -302,7 +314,7 @@ export async function checkRecitation(file, surah, startAyah, endAyah, userAudio
 
   try {
     const feedbackElem = document.getElementById('ai-feedback');
-    feedbackElem.innerHTML = `<div class="py-5 text-center"><div class="spinner-border text-success mb-3"></div><p>جاري تحليل مخارج الحروف...</p></div>`;
+    feedbackElem.innerHTML = `<div class="py-5 text-center"><div class="spinner-border text-success mb-3"></div><p>جارى تصحيح التلاوه..</p></div>`;
     document.getElementById('result-container').classList.remove('d-none');
 
     const res = await axios.post('/api/v1/quran/check-recitation', formData, { 
@@ -488,3 +500,84 @@ export function loadPrayers() {
     });
   }
 }
+
+
+
+
+export const initSearch = () => {
+  const searchInput = document.getElementById('search-input');
+  const resultsContainer = document.getElementById('search-results');
+
+  if (!searchInput || !resultsContainer) return;
+
+  let timeoutId;
+
+  searchInput.addEventListener('input', (e) => {
+    const query = e.target.value.trim();
+    
+    if (query.length < 2) {
+      resultsContainer.classList.add('d-none');
+      resultsContainer.innerHTML = '';
+      return;
+    }
+
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(async () => {
+      try {
+        resultsContainer.innerHTML = '<div class="list-group-item text-center">جاري البحث...</div>';
+        resultsContainer.classList.remove('d-none');
+
+        const res = await axios.get(`/api/v1/quran/search?q=${query}`);
+        const ayahs = res.data.data.ayahs;
+
+        resultsContainer.innerHTML = '';
+
+        if (ayahs.length === 0) {
+          resultsContainer.innerHTML = '<div class="list-group-item text-center text-muted">لا توجد نتائج</div>';
+          return;
+        }
+
+        ayahs.forEach(ayah => {
+          const item = document.createElement('a');
+          item.className = 'list-group-item list-group-item-action';
+          item.style.cursor = 'pointer';
+          item.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="fw-bold text-success small">${ayah.surahNameAr} - آية ${ayah.numberInSurah}</span>
+              <span class="badge bg-light text-dark border">ص ${ayah.page}</span>
+            </div>
+            <p class="mb-0 mt-1 small text-muted text-end" style="font-family: 'Amiri'; font-size: 1.1em;">${ayah.text.substring(0, 60)}...</p>
+          `;
+
+         item.addEventListener('click', (e) => {
+    e.preventDefault();
+
+    const targetPage = ayah.page;
+    
+    if (window.location.pathname.includes('/quran/')) {
+        loadQuranPage(targetPage);
+        window.history.pushState({}, '', `/quran/${targetPage}`);
+    } else {
+        window.location.assign(`/quran/${targetPage}`);
+    }
+
+    resultsContainer.classList.add('d-none'); 
+    searchInput.value = '';
+});
+
+          resultsContainer.appendChild(item);
+        });
+
+      } catch (err) {
+        console.error(err);
+        resultsContainer.innerHTML = '<div class="list-group-item text-danger text-center">حدث خطأ في البحث</div>';
+      }
+    }, 500); 
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!searchInput.contains(e.target) && !resultsContainer.contains(e.target)) {
+      resultsContainer.classList.add('d-none');
+    }
+  });
+};

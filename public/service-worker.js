@@ -1,4 +1,5 @@
-const CACHE_NAME = 'aqra-cache-v2'; 
+const CACHE_NAME = 'aqra-cache-v4'; 
+
 const ASSETS_TO_CACHE = [
   '/css/style.css',
   '/js/bundle.js',
@@ -34,10 +35,8 @@ self.addEventListener('activate', (event) => {
   return self.clients.claim(); 
 });
 
-// 3. التعامل مع الطلبات (Fetch)
 self.addEventListener('fetch', (event) => {
   const requestUrl = new URL(event.request.url);
-
 
   if (
     event.request.destination === 'audio' || 
@@ -49,7 +48,12 @@ self.addEventListener('fetch', (event) => {
   }
 
   
-  if (event.request.mode === 'navigate' || event.request.headers.get('accept').includes('text/html')) {
+  if (
+    event.request.mode === 'navigate' || 
+    event.request.headers.get('accept').includes('text/html') ||
+    requestUrl.pathname === '/js/bundle.js' || 
+    requestUrl.pathname === '/css/style.css'   
+  ) {
     event.respondWith(
       fetch(event.request)
         .then((networkResponse) => {
@@ -62,12 +66,15 @@ self.addEventListener('fetch', (event) => {
         .catch(() => {
           return caches.match(event.request).then((cachedResponse) => {
             if (cachedResponse) return cachedResponse;
-            return caches.match('/offline.html');
+            if (event.request.mode === 'navigate') {
+                return caches.match('/offline.html');
+            }
           });
         })
     );
     return;
   }
+
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {

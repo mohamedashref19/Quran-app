@@ -62,6 +62,7 @@ exports.getPrayerTimes = catchAsync(async (req, res, next) => {
       hour: "2-digit",
       minute: "2-digit",
       hour12: true,
+      timeZone: "Africa/Cairo"
     });
   };
 
@@ -88,7 +89,7 @@ hijri: new Intl.DateTimeFormat('ar-SA-u-ca-islamic', {
         day: 'numeric', 
         month: 'long',
         year : 'numeric'
-    }).format(Date.now()),
+    }).format(dateObj),
           timings: {
         Fajr: formatTime(prayerTimes.fajr),
         Sunrise: formatTime(prayerTimes.sunrise),

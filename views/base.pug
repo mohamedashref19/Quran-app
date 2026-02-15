@@ -21,6 +21,10 @@ html(dir="rtl" lang="ar")
         a.navbar-brand.fw-bold(href='/') 📖 تطبيق اقرأ
         button.navbar-toggler(type='button' data-bs-toggle='collapse' data-bs-target='#navbarNav')
           span.navbar-toggler-icon
+        .search-container.position-relative.mx-auto.my-3(style="max-width: 500px;")
+          input#search-input.form-control.rounded-pill.px-4.py-2(type="text" placeholder="ابحث عن آية أو كلمة..." style="border: 2px solid #1e5f31;")
+          i.fas.fa-search.position-absolute.text-muted(style="left: 20px; top: 50%; transform: translateY(-50%);")
+          #search-results.list-group.position-absolute.w-100.shadow-lg.d-none(style="z-index: 1000; max-height: 300px; overflow-y: auto; top: 50px;")  
         
         #navbarNav.collapse.navbar-collapse
           ul.navbar-nav.ms-auto

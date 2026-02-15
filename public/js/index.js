@@ -1,7 +1,7 @@
 /* eslint-disable */
 import axios from 'axios';
 import '@babel/polyfill';
-import { login, logout, signup, verifyOTP, updateSettings, forgotPassword, resetPassword, deleteUser,showAlert } from './auth';
+import { login, logout, signup, verifyOTP, updateSettings, forgotPassword, resetPassword, deleteUser, showAlert } from './auth';
 import { 
   loadSurahs, 
   startSurahReading, 
@@ -15,10 +15,67 @@ import {
   loadQuranPage,
   toggleBookmark, 
   deleteBookmark, 
-  deleteKhatmah   
+  deleteKhatmah,
+  initSearch   
 } from './features';
 
+let currentPage = parseInt(window.location.pathname.split('/').pop()) || 1;
 
+const goToNextPage = () => {
+    if (currentPage < 604) { 
+        currentPage++;
+        loadQuranPage(currentPage);
+        window.history.pushState({}, '', `/quran/${currentPage}`);
+    }
+};
+
+const goToPrevPage = () => {
+    if (currentPage > 1) {
+        currentPage--;
+        loadQuranPage(currentPage);
+        window.history.pushState({}, '', `/quran/${currentPage}`);
+    }
+};
+
+
+document.addEventListener('click', (e) => {
+    if (e.target.closest('.nav-next')) {
+        goToNextPage();
+    }
+    if (e.target.closest('.nav-prev')) {
+        goToPrevPage();
+    }
+});
+
+const ayahsContainer = document.getElementById('ayahs-container');
+
+if (ayahsContainer) {
+    let touchstartX = 0;
+    let touchendX = 0;
+
+    const handleGesture = () => {
+        const swipeThreshold = 60;
+        if (touchstartX - touchendX > swipeThreshold) goToNextPage();
+        if (touchendX - touchstartX > swipeThreshold) goToPrevPage();
+    };
+
+    ayahsContainer.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, { passive: true });
+    ayahsContainer.addEventListener('touchend', e => { touchendX = e.changedTouches[0].screenX; handleGesture(); }, { passive: true });
+
+    ayahsContainer.addEventListener('click', (e) => {
+        const tafseerTarget = e.target.closest('.ayah-clickable');
+        if (tafseerTarget) window.showTafseer(tafseerTarget.dataset.surah, tafseerTarget.dataset.ayah);
+
+        const bookmarkBtn = e.target.closest('.bookmark-icon-btn');
+        if (bookmarkBtn) toggleBookmark(bookmarkBtn.dataset.surah, bookmarkBtn.dataset.ayah, bookmarkBtn);
+
+        const khatmahBtn = e.target.closest('.khatmah-icon-btn');
+        if (khatmahBtn) {
+            khatmahBtn.classList.replace('far', 'fas'); 
+            updateKhatmahProgress(khatmahBtn.dataset.surah, khatmahBtn.dataset.ayah);
+        }
+    });
+}
 
 const loginForm = document.querySelector('#loginForm');
 if (loginForm) {
@@ -30,12 +87,9 @@ if (loginForm) {
 
 document.addEventListener('DOMContentLoaded', () => {
   const logOutBtn = document.getElementById('logoutBtn');
-
   if (logOutBtn) {
-
     logOutBtn.addEventListener('click', (e) => {
       e.preventDefault(); 
-      
       logout();
     });
   } 
@@ -124,7 +178,6 @@ if (deleteBtns) {
   });
 }
 
-
 const surahNames = [
   "الفاتحة", "البقرة", "آل عمران", "النساء", "المائدة", "الأنعام", "الأعراف", "الأنفال", "التوبة", "يونس",
   "هود", "يوسف", "الرعد", "إبراهيم", "الحجر", "النحل", "الإسراء", "الكهف", "مريم", "طه",
@@ -149,7 +202,6 @@ if (currentSurahSelect && currentSurahSelect.tagName === 'SELECT') {
     currentSurahSelect.appendChild(opt);
   });
 }
-
 
 if (document.getElementById('active-khatmah')) {
   manageKhatmah();
@@ -182,20 +234,14 @@ if (document.getElementById('active-khatmah')) {
   }
 }
 
-
-if (document.getElementById('surahs-container')) {
-  loadSurahs();
-}
-
+if (document.getElementById('surahs-container')) loadSurahs();
 
 if (document.getElementById('surah-name')) {
   const fullPath = window.location.pathname; 
-  
   const pathParts = fullPath.split('/');
   const param = pathParts.pop();
 
   if (!isNaN(param)) {
- 
     if (fullPath.includes('/quran/')) {
         loadQuranPage(parseInt(param));
     } else {
@@ -204,33 +250,7 @@ if (document.getElementById('surah-name')) {
   }
 }
 
-const ayahsContainer = document.getElementById('ayahs-container');
-if (ayahsContainer) {
-  ayahsContainer.addEventListener('click', (e) => {
-    const tafseerTarget = e.target.closest('.ayah-clickable');
-    if (tafseerTarget) {
-      window.showTafseer(tafseerTarget.dataset.surah, tafseerTarget.dataset.ayah); 
-    }
-
-    const bookmarkBtn = e.target.closest('.bookmark-icon-btn');
-    if (bookmarkBtn) {
-      const { surah, ayah } = bookmarkBtn.dataset;
-      toggleBookmark(surah, ayah, bookmarkBtn); 
-    }
-
-    const khatmahBtn = e.target.closest('.khatmah-icon-btn');
-    if (khatmahBtn) {
-      const { surah, ayah } = khatmahBtn.dataset;
-      khatmahBtn.classList.replace('far', 'fas'); 
-      updateKhatmahProgress(surah, ayah);
-    }
-  });
-}
-
-
-if (document.getElementById('bookmarks-container')) {
-  loadBookmarks();
-}
+if (document.getElementById('bookmarks-container')) loadBookmarks();
 
 const bookmarksList = document.getElementById('bookmarks-container');
 if (bookmarksList) {
@@ -244,17 +264,13 @@ if (bookmarksList) {
   });
 }
 
-
 if (document.getElementById('reciters-container')) loadReciters();
-
 if (document.getElementById('prayers-list')) loadPrayers();
 
-const surahNamesAr = ["الفاتحة", "البقرة", "آل عمران", "النساء", "المائدة", "الأنعام", "الأعراف", "الأنفال", "التوبة", "يونس", "هود", "يوسف", "الرعد", "إبراهيم", "الحجر", "النحل", "الإسراء", "الكهف", "مريم", "طه", "الأنبياء", "الحج", "المؤمنون", "النور", "الفرقان", "الشعراء", "النمل", "القصص", "العنكبوت", "الروم", "لقمان", "السجدة", "الأحزاب", "سبأ", "فاطر", "يس", "الصافات", "ص", "الزمر", "غافر", "فصلت", "الشورى", "الزخرف", "الدخان", "الجاثية", "الأحقاف", "محمد", "الفتح", "الحجرات", "ق", "الذاريات", "الطور", "النجم", "القمر", "الرحمن", "الواقعة", "الحديد", "المجادلة", "الحشر", "الممتحنة", "الصف", "الجمعة", "المنافقون", "التغابن", "الطلاق", "التحريم", "الملك", "القلم", "الحاقة", "المعارج", "نوح", "الجن", "المزمل", "المدثر", "القيامة", "الإنسان", "المرسلات", "النبأ", "النازعات", "عبس", "التكوير", "الإنفطار", "المطففين", "الإنشقاق", "البروج", "الطارق", "الأعلى", "الغاشية", "الفجر", "البلد", "الشمس", "الليل", "الضحى", "الشرح", "التين", "العلق", "القدر", "البينة", "الزلزلة", "العاديات", "القارعة", "التكاثر", "العصر", "الهمزة", "الفيل", "قريش", "الماعون", "الكوثر", "الكافرون", "النصر", "المسد", "الإخلاص", "الفلق", "الناس"];
 const aiSurahSelect = document.getElementById('ai-surah-select');
-
 if (aiSurahSelect) {
     aiSurahSelect.innerHTML = '<option value="" selected disabled>اختر السورة...</option>';
-    surahNamesAr.forEach((name, index) => {
+    surahNames.forEach((name, index) => {
         const opt = document.createElement('option');
         opt.value = index + 1;
         opt.textContent = `${index + 1}. ${name}`;
@@ -268,7 +284,6 @@ const uploadBtn = document.getElementById('uploadBtn');
 
 if (triggerUpload && audioFile) {
     triggerUpload.addEventListener('click', () => audioFile.click());
-
     audioFile.addEventListener('change', function() {
         if (this.files && this.files[0]) {
             uploadBtn.classList.remove('d-none'); 
@@ -280,7 +295,6 @@ if (triggerUpload && audioFile) {
 if (uploadBtn) {
     uploadBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        
         const surahValue = aiSurahSelect ? aiSurahSelect.value : null;
         const startAyah = document.getElementById('ai-start-ayah')?.value || null;
         const endAyah = document.getElementById('ai-end-ayah')?.value || null;
@@ -289,7 +303,6 @@ if (uploadBtn) {
         if (!surahValue) return showAlert('error', 'يرجى اختيار السورة من القائمة');
 
         const audioUrl = URL.createObjectURL(audioFile.files[0]);
-        
         checkRecitation(audioFile.files[0], surahValue, startAyah, endAyah, audioUrl);
     });
 }
@@ -344,9 +357,20 @@ window.showTafseer = async (surahId, ayahId) => {
     Swal.fire({ title: 'جاري جلب التفسير...', didOpen: () => { Swal.showLoading(); } });
     const res = await axios.get(`/api/v1/quran/tafseer/${surahId}/${ayahId}`);
     const data = res.data.data;
+    
     Swal.fire({
       title: `<span class="text-success" style="font-family: 'Amiri'">تفسير الآية ${ayahId}</span>`,
-      html: `<p class="lead" style="line-height: 1.8; text-align: justify; direction: rtl;">${data.tafseer}</p>`,
+      
+      html: `
+        <p class="lead" style="line-height: 1.8; text-align: justify; direction: rtl; margin-bottom: 20px;">
+          ${data.tafseer}
+        </p>
+        <hr style="border-top: 1px dashed #ccc;">
+        <p class="text-muted small" style="text-align: center; margin-top: 10px;">
+          📚 المصدر: التفسير الميسر
+        </p>
+      `,
+      
       confirmButtonText: 'إغلاق',
       confirmButtonColor: '#1e5f31',
     });
@@ -354,3 +378,5 @@ window.showTafseer = async (surahId, ayahId) => {
     Swal.fire({ icon: 'error', title: 'خطأ', text: 'عذراً، لم نتمكن من جلب التفسير حالياً.' });
   }
 };
+
+initSearch()

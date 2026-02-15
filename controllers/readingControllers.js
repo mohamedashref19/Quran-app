@@ -44,21 +44,25 @@ const ayahs = await Ayah.find({ surahNumber: Number(number) }).sort({ ayahNumber
   })
 })
 
-exports.search= catchAsync(async(req,res,next)=>{
-    const {q} = req.query
-    if (!q) {
-    return next(new AppError("Please provide a search term", 400));
-  }
+exports.search = catchAsync(async (req, res, next) => {
+  const { q } = req.query;
+  if (!q) return next(new AppError("Please provide a search term", 400));
 
-  const results = await Ayah.find({simpleText:{$regex:q,$options:"i"}})
+  const results = await Ayah.find({
+    $or: [
+      { simpleText: { $regex: q, $options: "i" } },
+      { text: { $regex: q, $options: "i" } }
+    ]
+  })
+  .select('text surahNameAr numberInSurah page surahNumber') 
+  .limit(20); 
+
   res.status(200).json({
-    status:"success",
+    status: "success",
     results: results.length,
-    data: {
-      ayahs: results
-    }
-  }) 
-})
+    data: { ayahs: results }
+  });
+});
 
 exports.getTafser= catchAsync(async(req,res,next)=>{
     const {surah,ayah} = req.params

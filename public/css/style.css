@@ -350,27 +350,48 @@ footer {
     70% { box-shadow: 0 0 0 15px rgba(220, 53, 69, 0); }
     100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
 }
+#ayahs-container {
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
 
+/* ممكن تضيف Class بالـ JS وقت القلب بيعمل Fade Out ويرجع تاني */
+.page-flip {
+    opacity: 0;
+    transform: translateX(20px);
+}
 /* =========================================
    7. التجاوب مع الشاشات (Responsiveness)
    ========================================= */
 
 /* شاشات التابلت (أقل من 992px) */
 @media (max-width: 992px) {
+    /* 1. إظهار الأسهم وتغيير مكانها */
     .nav-arrow {
-        display: none !important; /* إخفاء الأسهم الجانبية */
-    }
-    
-    #ayahs-container {
-        padding: 30px;
-        margin-top: 15px;
+        display: flex !important; 
+        position: static; /* إلغاء الـ Absolute عشان تظهر في تدفق الصفحة */
+        transform: none;
+        width: 55px; /* تكبير المساحة لسهولة اللمس */
+        height: 55px;
+        background-color: var(--main-green); /* تغيير اللون ليكون واضحاً */
+        color: white;
     }
 
-    .quran-text {
-        font-size: 24px;
-        line-height: 2.2;
+    /* 2. حاوية للأسهم أسفل النص */
+    .mobile-nav-wrapper {
+        display: flex;
+        justify-content: center;
+        gap: 30px; /* مسافة بين السهمين */
+        margin-top: 20px;
+        padding-bottom: 20px;
+    }
+
+    .nav-prev, .nav-next {
+        right: auto;
+        left: auto;
     }
 }
+
+
 
 /* شاشات الموبايل (أقل من 768px) */
 @media (max-width: 768px) {
@@ -436,5 +457,40 @@ footer {
     
     .record-section i {
         font-size: 2rem !important;
+    }
+}
+
+/* تنسيق حاوية أزرار التنقل في الموبايل */
+.mobile-nav-wrapper {
+    margin-top: 25px;
+    padding: 0 15px;
+    z-index: 100;
+}
+
+/* تنسيق أزرار الموبايل (التالي والسابق) */
+.nav-next-mobile, .nav-prev-mobile, .btn-aqra {
+    background-color: var(--main-green) !important;
+    color: white !important;
+    border-radius: 50px !important;
+    padding: 12px 20px !important;
+    font-family: 'Amiri', serif !important;
+    font-size: 1.1rem;
+    box-shadow: 0 4px 12px rgba(30, 95, 49, 0.2);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.nav-next-mobile:hover, .nav-prev-mobile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(30, 95, 49, 0.3);
+}
+
+/* إخفاء الأسهم الجانبية تماماً في الشاشات الصغيرة */
+@media (max-width: 991px) {
+    .nav-arrow.d-lg-flex {
+        display: none !important;
     }
 }

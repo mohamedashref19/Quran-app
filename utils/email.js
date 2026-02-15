@@ -13,10 +13,10 @@ module.exports = class Email {
     if (process.env.NODE_ENV === "production") {
       // SendGrid
       return nodemailer.createTransport({
-        service: "SendGrid",
+        service: "Gmail",
         auth: {
-          user: "apikey",
-          pass: process.env.SENDGRID_API_KEY,
+          user: process.env.GMAIL_USERNAME,
+          pass: process.env.GMAIL_APP_PASSWORD,
         },
       });
     }

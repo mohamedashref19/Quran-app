@@ -7,36 +7,37 @@ block content
       .d-inline-block.position-relative
         h1#surah-name.fw-bold.text-success.px-5.py-2(style="border: 2px solid #d4af37; border-radius: 15px; background: #fff;") جارى التحميل...
       
-      //- أزرار التنقل العلوية (اختياري)
+      //- أزرار التنقل العلوية
       .mt-3.d-flex.justify-content-center.gap-2
-        a.btn.btn-outline-gold(href='/quran') 📖 الفهرس
+        a.btn.btn-outline-success.rounded-pill.px-4(href='/quran') 📖 الفهرس
 
     //- جسم المصحف (الكتاب)
     #quran-book.position-relative.mx-auto(style="max-width: 900px;")
       
-      //- زر السابق (Previous)
-      button#prev-surah-btn.nav-arrow.nav-prev.d-none(title="السورة السابقة")
+      //- 1. أسهم التنقل للديسكتوب (تظهر في الشاشات الكبيرة فقط)
+      button#prev-surah-btn.nav-arrow.nav-prev.d-none.d-lg-flex(title="السورة السابقة")
         i.fas.fa-chevron-right
 
-      //- زر التالي (Next)
-      button#next-surah-btn.nav-arrow.nav-next.d-none(title="السورة التالية")
+      button#next-surah-btn.nav-arrow.nav-next.d-none.d-lg-flex(title="السورة التالية")
         i.fas.fa-chevron-left
 
-      //- حاوية الآيات
+      //- 2. حاوية الآيات (المكان اللي بيتحط فيه النص)
       #ayahs-container.shadow-lg
         .text-center.py-5
           .spinner-border.text-gold(role="status")
             span.visually-hidden جاري التحميل...
     
-    //- أزرار التنقل السفلية (للموبايل بشكل أوضح)
-    .d-flex.justify-content-between.mt-4.mx-auto(style="max-width: 900px;")
-      button#prev-surah-bottom.btn.btn-outline-success.d-none
+    //- 3. ✅ أزرار التنقل السفلية للموبايل (تظهر في الشاشات الصغيرة فقط وبره الـ container)
+    .mobile-nav-wrapper.d-flex.d-lg-none.justify-content-center.gap-3.mt-4
+      button#prev-surah-mobile.btn.btn-aqra.nav-prev(style="flex: 1; max-width: 150px;")
         i.fas.fa-arrow-right.me-2
-        span السورة السابقة
+        span السابق
       
-      button#next-surah-bottom.btn.btn-outline-success.d-none
-        span السورة التالية
+      button#next-surah-mobile.btn.btn-aqra.nav-next(style="flex: 1; max-width: 150px;")
+        span التالي
         i.fas.fa-arrow-left.ms-2
+
+    //- زر الختمة العائم
     a.khatmah-floating-btn(href="/api/v1/quran/continue" title="اذهب لختمتي")
       i.fas.fa-flag
-      span.ms-2 ختمتي     
+      span.ms-2 ختمتي    
