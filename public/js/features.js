@@ -53,11 +53,16 @@ export async function loadQuranPage(pageNumber) {
     const pageNum = parseInt(pageNumber);
     currentPage = pageNum; 
     let userBookmarks = [];
-    try {
-      const bookmarkRes = await axios.get('/api/v1/bookmarks');
-      userBookmarks = bookmarkRes.data.data.bookmarks; 
-    } catch (err) { }
-
+    const isLoggedIn = document.getElementById('logoutBtn') !== null;
+    if (isLoggedIn) {
+            try {
+                const bookmarkRes = await axios.get('/api/v1/bookmarks');
+                userBookmarks = bookmarkRes.data.data.bookmarks; 
+            } catch (err) {
+                console.warn('Session expired or error fetching bookmarks');
+            }
+        } 
+    
     if (ayahs.length > 0) {
         document.title = `${ayahs[0].surahNameAr} - صفحة ${pageNum}`;
     }
@@ -163,6 +168,10 @@ export async function loadSurahs() {
 }
 
 export async function toggleBookmark(surah, ayah, iconElement) {
+  const isLoggedIn = document.getElementById('logoutBtn') !== null;
+  if (!isLoggedIn) {
+    return showAlert('error', 'يجب تسجيل الدخول أولاً لحفظ العلامات المرجعية');
+  }
   try {
     const res = await axios.post('/api/v1/bookmarks', { surahNumber: surah, ayahNumber: ayah });
     if (res.data.message === 'added') {
@@ -174,7 +183,7 @@ export async function toggleBookmark(surah, ayah, iconElement) {
       iconElement.style.color = '#ccc';
       showAlert('success', 'تم إزالة العلامة المرجعية');
     }
-  } catch (err) { showAlert('error', 'حدث خطأ أثناء تحديث العلامة'); }
+  } catch (err) { showAlert('error', 'يرجى تسجيل الدخول لتتمكن من حفظ موضعك في المصحف الشريف. '); }
 }
 
 export async function loadBookmarks() {
@@ -361,7 +370,7 @@ export async function checkRecitation(file, surah, startAyah, endAyah, userAudio
     document.getElementById('btn-retry').addEventListener('click', () => location.reload());
 
   } catch (err) {
-    showAlert('error', 'حدث خطأ أثناء تحليل الصوت');
+    showAlert('error', 'عذراً، تعذر الاتصال بالشبكة. يرجى التحقق من الإنترنت والمحاولة مرة أخرى.');
     document.getElementById('result-container').classList.add('d-none');
   }
 }
@@ -394,13 +403,21 @@ export async function loadReciters() {
       "القارعة", "التكاثر", "العصر", "الهمزة", "الفيل", "قريش", "الماعون", "الكوثر", "الكافرون", "النصر",
       "المسد", "الإخلاص", "الفلق", "الناس"
     ];
+    const reciterNamesAr = {
+    "Mishary Rashid Alafasy": "مشاري راشد العفاسي",
+    "Maher Al Muaiqly": "ماهر المعيقلي",
+    "Mahmoud Khalil Al-Hussary": "محمود خليل الحصري",
+    "Saud Al-Shuraim": "سعود الشريم",
+    "Abdelbasset Abdessamad": "عبد الباسط عبد الصمد"
+};
 
     let optionsHTML = '';
     surahNames.forEach((name, index) => {
         optionsHTML += `<option value="${index + 1}">${index + 1}. ${name}</option>`;
     });
 
-    recitersList.forEach(reciter => {
+   recitersList.forEach(reciter => {
+    const displayName = reciterNamesAr[reciter.name] || reciter.name;
       const serverUrl = reciter.server.endsWith('/') ? reciter.server.slice(0, -1) : reciter.server;
 
       const html = `
@@ -410,8 +427,8 @@ export async function loadReciters() {
               <div class="mb-3">
                  <i class="fas fa-user-circle fa-3x text-success"></i>
               </div>
-              <h5 class="card-title fw-bold text-dark">${reciter.name}</h5>
-              <p class="small text-muted mb-3">${reciter.rewaya || 'رواية حفص عن عاصم'}</p>
+              <h5 class="card-title fw-bold text-dark">${displayName}</h5>
+              <p class="small text-muted mb-3">${'رواية حفص عن عاصم'}</p>
               
               <div class="form-group mb-3">
                 <select class="form-select surah-select" style="font-family: 'Amiri'" data-server="${serverUrl}">
@@ -419,7 +436,7 @@ export async function loadReciters() {
                 </select>
               </div>
 
-              <audio controls class="w-100 mt-2" preload="none">
+              <audio controls class="w-100 mt-2 quran-player" preload="none">
                 <source src="${serverUrl}/001.mp3" type="audio/mpeg">
                 متصفحك لا يدعم تشغيل الصوت.
               </audio>
@@ -434,7 +451,6 @@ export async function loadReciters() {
         select.addEventListener('change', function() {
             const surahNum = this.value;
             const server = this.dataset.server;
-            
             const paddedSurah = surahNum.toString().padStart(3, '0');
             const newAudioUrl = `${server}/${paddedSurah}.mp3`;
 
@@ -446,6 +462,17 @@ export async function loadReciters() {
             }
         });
     });
+    document.addEventListener('play', function(e) {
+        if (e.target.tagName.toLowerCase() === 'audio') {
+            const allAudios = document.querySelectorAll('audio');
+            allAudios.forEach(audio => {
+                if (audio !== e.target) {
+                    audio.pause();
+                    // audio.currentTime = 0; 
+                }
+            });
+        }
+    }, true);
 
   } catch (err) {
     console.error("Error loading reciters:", err);

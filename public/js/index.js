@@ -44,6 +44,7 @@ document.addEventListener('click', (e) => {
     }
     if (e.target.closest('.nav-prev')) {
         goToPrevPage();
+        
     }
 });
 
@@ -55,8 +56,8 @@ if (ayahsContainer) {
 
     const handleGesture = () => {
         const swipeThreshold = 60;
-        if (touchstartX - touchendX > swipeThreshold) goToNextPage();
-        if (touchendX - touchstartX > swipeThreshold) goToPrevPage();
+        if (touchstartX - touchendX > swipeThreshold) goToPrevPage();
+        if (touchendX - touchstartX > swipeThreshold)  goToNextPage();
     };
 
     ayahsContainer.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, { passive: true });

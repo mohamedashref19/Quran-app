@@ -16,17 +16,24 @@ html(dir="rtl" lang="ar")
   body.d-flex.flex-column.min-vh-100
     
     // NAVIGATION
-    nav.navbar.navbar-expand-lg.navbar-dark.bg-aqra.shadow-sm
-      .container
-        a.navbar-brand.fw-bold(href='/') 📖 تطبيق اقرأ
-        button.navbar-toggler(type='button' data-bs-toggle='collapse' data-bs-target='#navbarNav')
-          span.navbar-toggler-icon
-        .search-container.position-relative.mx-auto.my-3(style="max-width: 500px;")
-          input#search-input.form-control.rounded-pill.px-4.py-2(type="text" placeholder="ابحث عن آية أو كلمة..." style="border: 2px solid #1e5f31;")
-          i.fas.fa-search.position-absolute.text-muted(style="left: 20px; top: 50%; transform: translateY(-50%);")
-          #search-results.list-group.position-absolute.w-100.shadow-lg.d-none(style="z-index: 1000; max-height: 300px; overflow-y: auto; top: 50px;")  
+    nav.navbar.navbar-expand-lg.navbar-dark.bg-aqra.shadow-sm.py-2
+      .container.d-flex.align-items-center
+        // 1. اسم التطبيق (سيكون في أقصى اليمين - Order 0)
+        a.navbar-brand.fw-bold.order-0(href='/') 📖 تطبيق اقرأ
         
-        #navbarNav.collapse.navbar-collapse
+        // 2. حاوية البحث (في المنتصف - Order 1)
+        // حافظنا على الـ IDs والـ Logic الخاص بك تماماً
+        .search-container.position-relative.mx-auto.order-1(style="max-width: 450px; flex: 1;")
+          input#search-input.form-control.rounded-pill.px-4.py-2.test2(type="text" placeholder="ابحث عن آية أو كلمة..." style="border: 2px solid #1e5f31;")
+          i.fas.fa-search.position-absolute.text-muted(style="left: 20px; top: 50%; transform: translateY(-50%);")
+          #search-results.list-group.position-absolute.w-100.shadow-lg.d-none(style="z-index: 1000; max-height: 300px; overflow-y: auto; top: 50px;")   
+
+        // 3. زر الثلاث شرطات (سيكون في أقصى اليسار - Order 2)
+        button.navbar-toggler.order-2.ms-2(type='button' data-bs-toggle='collapse' data-bs-target='#navbarNav')
+          span.navbar-toggler-icon
+        
+        // 4. القائمة المنسدلة (تظهر عند الضغط على الشرطات - Order 3)
+        #navbarNav.collapse.navbar-collapse.order-3
           ul.navbar-nav.ms-auto
             if user
               li.nav-item: a.nav-link(href='/me') 👤 حسابي
