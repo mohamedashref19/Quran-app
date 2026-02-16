@@ -1,5 +1,5 @@
 const axios = require('axios');
-
+const User = require('../models/User'); 
 const startTime = new Date();
 
 const monitorMemory = () => {
@@ -34,42 +34,42 @@ const monitorMemory = () => {
 
                 if (messageText === 'status') {
                     const { rss } = process.memoryUsage();
+                    const totalUsers = await User.countDocuments();
+                    const newUsersToday = await User.countDocuments({
+                        createdAt: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+                    });
                     const uptime = Math.round((new Date() - startTime) / 1000 / 60);
+
                     const statusMsg = `🖥️ *حالة سيرفر اقرأ:*\n\n` +
                         `✅ الذاكرة: *${Math.round(rss / 1024 / 1024)}MB*\n` +
                         `⏱️ وقت التشغيل: *${uptime} دقيقة*\n` +
-                        `🌐 الحالة: *متصل*`;
+                        `🌐 الحالة: *متصل*\n\n` +
+                        `📊 *إحصائيات تطبيق اقرأ:*\n\n` +
+                        `👥 إجمالي المستخدمين: *${totalUsers}*\n` +
+                        `✨ مستخدمين جدد (24س): *${newUsersToday}*\n\n` +
+                        `📱 الحالة: *السيرفر يعمل بنجاح*`;
+                    
                     await sendTelegramMessage(TELEGRAM_TOKEN, CHAT_ID, statusMsg);
                 } 
                 
                 else if (messageText === 'restart') {
                     await sendTelegramMessage(TELEGRAM_TOKEN, CHAT_ID, "🔄 جاري إعادة تشغيل السيرفر الآن... سأعود للعمل خلال ثوانٍ.");
-                    
                     setTimeout(() => {
                         console.log('إعادة تشغيل يدوية بطلب من تليجرام...');
                         process.exit(1); 
                     }, 2000);
                 }
             }
-        } catch (err) {}
+        } catch (err) {
+            console.error('Error in Bot Interface:', err.message);
+        }
     }, 5000);
+
+    setInterval(() => sendDailyStats(TELEGRAM_TOKEN, CHAT_ID), 24 * 60 * 60 * 1000);
 };
 
-async function sendTelegramMessage(token, chatId, text) {
-    try {
-        await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
-            chat_id: chatId,
-            text: text,
-            parse_mode: 'Markdown'
-        });
-    } catch (err) {
-        console.error('Telegram Error:', err.message);
-    }
-}
-
-const User = require('../models/User'); 
-
 const sendDailyStats = async (token, chatId) => {
+    if (!token || !chatId) return;
     try {
         const totalUsers = await User.countDocuments();
         const newUsers = await User.countDocuments({
@@ -83,10 +83,20 @@ const sendDailyStats = async (token, chatId) => {
 
         await sendTelegramMessage(token, chatId, message);
     } catch (err) {
-        console.error('فشل جلب الإحصائيات:', err.message);
+        console.error('فشل جلب الإحصائيات اليومية:', err.message);
     }
 };
 
-setInterval(() => sendDailyStats(TELEGRAM_TOKEN, CHAT_ID), 24 * 60 * 60 * 1000);
+async function sendTelegramMessage(token, chatId, text) {
+    try {
+        await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
+            chat_id: chatId,
+            text: text,
+            parse_mode: 'Markdown'
+        });
+    } catch (err) {
+        console.error('Telegram API Error:', err.message);
+    }
+}
 
 module.exports = monitorMemory;
