@@ -325,33 +325,33 @@ export async function checkRecitation(file, surah, startAyah, endAyah, userAudio
 
     let resultHTML = `
         <div class="mb-4 text-center">
-            <h3 class="fw-bold">دقة التلاوة: ${score}%</h3>
-            <div class="progress mx-auto mb-3" style="height: 12px; width: 70%; border-radius: 10px;">
-                <div class="progress-bar bg-success" style="width: ${score}%"></div>
-            </div>
+        <h3 class="fw-bold">دقة التلاوة: ${score}%</h3>
+        <div class="progress mx-auto mb-3" style="height: 12px; width: 70%; border-radius: 10px;">
+            <div class="progress-bar bg-success" style="width: ${score}%"></div>
+        </div>
             
             <div class="audio-playback-container p-3 bg-light rounded-pill d-inline-block shadow-sm mb-3">
-                <p class="small text-success fw-bold mb-2"><i class="fas fa-play-circle me-1"></i> استمع إلى تلاوتك:</p>
-                <audio controls src="${userAudioUrl}" class="custom-audio-player" style="height: 35px;"></audio>
-            </div>
+            <p class="small text-success fw-bold mb-2"><i class="fas fa-play-circle me-1"></i> استمع إلى تلاوتك:</p>
+            <audio controls src="${userAudioUrl}" class="custom-audio-player" style="height: 35px; width: 100%;"></audio>
         </div>
+    </div>
 
-        <div class="p-4 bg-white border rounded shadow-sm text-center mb-4" style="font-family: 'Amiri', serif; font-size: 2.2rem; direction: rtl; line-height: 3.5;">
+       <div class="ai-result-box p-3 bg-white border rounded shadow-sm mb-4">
     `;
     
     analysis.forEach(item => {
         if (item.status === 'ayah_marker') {
             resultHTML += `
-                <div class="ayah-marker-wrapper d-inline-flex align-items-center">
-                    <span class="ayah-circle">${item.text}</span>
-                    <i class="fas fa-volume-up text-primary ms-1 listen-icon" 
-                       onclick="window.playCorrectAudio(${item.surah}, ${item.ayah})"
-                       style="cursor: pointer; font-size: 1rem;" 
-                       title="استمع للنطق الصحيح"></i>
-                </div>`;
+            <div class="ayah-marker-wrapper d-inline-flex align-items-center align-middle">
+                <span class="ayah-circle">${item.text}</span>
+                <i class="fas fa-volume-up text-primary ms-1 listen-icon" 
+                   onclick="window.playCorrectAudio(${item.surah}, ${item.ayah})"
+                   style="cursor: pointer; font-size: 1rem;" 
+                   title="استمع للنطق الصحيح"></i>
+            </div>`;
         } else {
             let className = item.status === 'Correct' ? 'word-correct' : (item.status === 'missing' ? 'word-missing' : 'word-wrong');
-            resultHTML += `<span class="${className} mx-1 d-inline-block">${item.text}</span>`;
+            resultHTML += `<span class="${className}">${item.text}</span>`;
         }
     });
     

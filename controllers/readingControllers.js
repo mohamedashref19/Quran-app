@@ -1,4 +1,5 @@
 const Ayah = require("../models/Ayah")
+const Recitation=require("../models/recitationModel")
 const Khatmah = require('../models/Khatmah'); 
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
@@ -142,3 +143,27 @@ exports.continueKhatmah = catchAsync(async (req, res, next) => {
 
   res.redirect(`/quran/${page}`);
 });
+
+
+exports.saveRecitation = catchAsync(async(req,res,next)=>{
+  if(!req.file){
+    return next(new AppError('Please provide an audio file', 400));
+  }
+  const audioUrl = req.file.location
+
+  const newRecitation = await Recitation.create({
+    user: req.user.id,        
+    audioUrl: audioUrl,       
+    surah: req.body.surah,    
+    startAyah: req.body.startAyah || 1,  
+    endAyah: req.body.endAyah || 1  
+  });
+
+  res.status(200).json({
+    status:"success",
+    message:"File uploaded successfully to AWS S3",
+    data:{
+      url:audioUrl
+    }
+  })
+})
