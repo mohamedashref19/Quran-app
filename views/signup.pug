@@ -9,7 +9,7 @@ block content
           form#signupForm
             .mb-3
               label.form-label(for='name') الاسم بالكامل
-              input#name.form-control(type='text' placeholder='محمد أشرف' required)
+              input#name.form-control(type='text' placeholder='ادخل اسمك' required)
             .mb-3
               label.form-label(for='email') البريد الإلكتروني
               input#email.form-control(type='email' placeholder='name@example.com' required)
@@ -20,4 +20,8 @@ block content
               label.form-label(for='passwordConfirm') تأكيد كلمة المرور
               input#passwordConfirm.form-control(type='password' placeholder='••••••••' required minlength='8')
             
-            button.btn.btn-aqra.w-100.py-2(type='submit') إنشاء حساب
+            button.btn.btn-aqra.w-100.py-2.mb-3(type='submit') إنشاء حساب
+            
+            .text-center
+              p.mb-0.small لديك حساب بالفعل؟ 
+                a.text-success.fw-bold.text-decoration-none(href='/login') تفضل بتسجيل الدخول

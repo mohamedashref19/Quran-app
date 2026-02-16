@@ -497,9 +497,9 @@ export function loadPrayers() {
         
        
         try {
-            const cityRes = await axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ar`);
-            const address = cityRes.data.address;
-            const cityName = address.city || address.town || address.state || address.county || "موقعك الحالي";
+            const cityRes = await axios.get(`/api/v1/prayers/get-location?lat=${latitude}&lon=${longitude}`);
+            const address = cityRes.data.data.address;
+            const cityName = address.city || address.town || address.village || address.state || "موقعك الحالي";
             document.getElementById('location-name').innerText = `مواقيت الصلاة في ${cityName}`;
         } catch (cityErr) {
             document.getElementById('location-name').innerText = 'مواقيت الصلاة حسب موقعك الحالي';
