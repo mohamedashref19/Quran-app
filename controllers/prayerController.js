@@ -109,3 +109,34 @@ hijri: new Intl.DateTimeFormat('ar-SA-u-ca-islamic', {
     },
   });
 });
+
+const axios = require('axios');
+
+exports.getLocation = async (req, res) => {
+  try {
+    const { lat, lon } = req.query;
+
+    if (!lat || !lon) {
+      return res.status(400).json({ status: 'fail', message: 'Missing coordinates' });
+    }
+
+    const response = await axios.get(`https://nominatim.openstreetmap.org/reverse`, {
+      params: { 
+        format: 'json', 
+        lat, 
+        lon, 
+        'accept-language': 'ar' 
+      },
+      headers: { 
+        'User-Agent': 'AqraApp/1.0 (contact:mohamedashref2003195@gmail.com)' 
+      }
+    });
+
+    res.status(200).json({
+      status: 'success',
+      data: response.data
+    });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: 'فشل في تحديد الموقع' });
+  }
+};
