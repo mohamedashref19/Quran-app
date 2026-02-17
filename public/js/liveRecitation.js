@@ -1,10 +1,10 @@
-let fullRecorder; // المسجل الدائم (لتجميع التلاوة كاملة)
-let aiRecorder;   // مسجل الذكاء الاصطناعي (يعمل بنظام الحلقة)
+let fullRecorder;
+let aiRecorder;   
 let isRecording = false;
 let currentAyahWords = []; 
 let currentWordIndex = 0;
 let fullSessionChunks = []; 
-let currentPlayingIcon = null; // لتتبع الأيقونة النشطة
+let currentPlayingIcon = null; 
 
 const surahData = [
     { id: 1, name: "الفاتحة", count: 7 }, { id: 2, name: "البقرة", count: 286 }, { id: 3, name: "آل عمران", count: 200 },
@@ -117,7 +117,6 @@ async function loadAyahs() {
     }
 }
 
-// === دالة الرسم (مع أزرار التحكم) ===
 function renderQuranText(ayahsData, isHidden, surahId) {
     const container = document.getElementById('quran-text-container');
     container.innerHTML = '';
@@ -139,7 +138,6 @@ function renderQuranText(ayahsData, isHidden, surahId) {
             });
         });
         
-        // --- قسم رقم الآية وزر الاستماع ---
         const markersContainer = document.createElement('span');
         markersContainer.className = "text-nowrap ms-2"; 
 
@@ -149,13 +147,11 @@ function renderQuranText(ayahsData, isHidden, surahId) {
         ayahSymbol.className = "ayah-symbol text-secondary";
         ayahSymbol.innerText = `(${ayahNum.toLocaleString('ar-EG')})`;
         
-        // زر الاستماع (Play Icon)
         const listenIcon = document.createElement('i');
         listenIcon.className = "fas fa-play-circle text-primary me-1 cursor-pointer";
         listenIcon.style.cursor = "pointer";
         listenIcon.title = "استمع للآية";
         
-        // عند الضغط، شغل الآية مع تمرير العنصر (this) للتحكم في شكله
         listenIcon.onclick = function() {
             playAyahAudio(surahId, ayahNum, this);
         };
@@ -168,9 +164,7 @@ function renderQuranText(ayahsData, isHidden, surahId) {
     });
 }
 
-// === دالة تشغيل الصوت (مع التحكم والحماية) ===
 function playAyahAudio(surah, ayah, iconElement) {
-    // 1. منع التشغيل أثناء التسجيل
     if (isRecording) {
         alert("⚠️ لا يمكن تشغيل الآيات أثناء التسجيل. يرجى إيقاف التسميع أولاً.");
         return;
@@ -179,8 +173,8 @@ function playAyahAudio(surah, ayah, iconElement) {
     const player = document.getElementById('correct-ayah-player');
     if (!player) return;
 
-    // 2. منطق التبديل (Play/Pause)
-    // إذا ضغط المستخدم على نفس الآية وهي تعمل -> إيقاف
+    // Play/Pause
+    
     if (currentPlayingIcon === iconElement && !player.paused) {
         player.pause();
         player.currentTime = 0;
@@ -190,7 +184,6 @@ function playAyahAudio(surah, ayah, iconElement) {
         return;
     }
 
-    // 3. إذا كان هناك آية أخرى تعمل -> أوقفها وأعد أيقونتها
     if (currentPlayingIcon) {
         const oldPlayer = document.getElementById('correct-ayah-player');
         oldPlayer.pause();
@@ -198,7 +191,6 @@ function playAyahAudio(surah, ayah, iconElement) {
         currentPlayingIcon.classList.add('fa-play-circle', 'text-primary');
     }
 
-    // 4. تشغيل الآية الجديدة
     const padSurah = String(surah).padStart(3, '0');
     const padAyah = String(ayah).padStart(3, '0');
     const url = `https://everyayah.com/data/Husary_128kbps/${padSurah}${padAyah}.mp3`;
@@ -206,12 +198,10 @@ function playAyahAudio(surah, ayah, iconElement) {
     player.src = url;
     player.play().catch(e => console.error("Audio Error:", e));
 
-    // تحديث شكل الأيقونة إلى (Pause)
     iconElement.classList.remove('fa-play-circle', 'text-primary');
     iconElement.classList.add('fa-pause-circle', 'text-danger');
     currentPlayingIcon = iconElement;
 
-    // 5. عند انتهاء الصوت تلقائياً
     player.onended = () => {
         iconElement.classList.remove('fa-pause-circle', 'text-danger');
         iconElement.classList.add('fa-play-circle', 'text-primary');
@@ -219,7 +209,6 @@ function playAyahAudio(surah, ayah, iconElement) {
     };
 }
 
-// === منطق التسجيل (المزدوج لحل خطأ 400) ===
 async function startLiveSession() {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -233,7 +222,6 @@ async function startLiveSession() {
         const memorizeCheckbox = document.getElementById('memorize-mode');
         if (memorizeCheckbox) memorizeCheckbox.disabled = true;
 
-        // إيقاف أي صوت آيات يعمل حالياً
         const player = document.getElementById('correct-ayah-player');
         if (!player.paused) {
             player.pause();
@@ -247,14 +235,12 @@ async function startLiveSession() {
         isRecording = true;
         fullSessionChunks = []; 
 
-        // 1. المسجل الدائم (يسجل الجلسة كاملة دون توقف)
         fullRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
         fullRecorder.ondataavailable = (e) => {
             if (e.data.size > 0) fullSessionChunks.push(e.data);
         };
-        fullRecorder.start(); // تسجيل مستمر
+        fullRecorder.start(); 
 
-        // 2. مسجل الذكاء الاصطناعي (حلقة تسجيل وتوقف)
         startAiRecordingLoop(stream);
 
     } catch (err) {
@@ -262,7 +248,6 @@ async function startLiveSession() {
     }
 }
 
-// دالة الحلقة (Loop Function)
 function startAiRecordingLoop(stream) {
     if (!isRecording) return;
 
@@ -274,20 +259,17 @@ function startAiRecordingLoop(stream) {
     };
 
     aiRecorder.onstop = async () => {
-        // عند التوقف، يكون الملف مكتملاً وسليماً (Header موجود)
         if (aiChunks.length > 0) {
             const blob = new Blob(aiChunks, { type: 'audio/webm' });
-            if (blob.size > 1000) { // تجاهل الصمت التام
+            if (blob.size > 1000) { 
                 await sendChunk(blob);
             }
         }
-        // إعادة البدء فوراً إذا كنا ما زلنا نسجل
         if (isRecording) startAiRecordingLoop(stream);
     };
 
     aiRecorder.start();
 
-    // الإيقاف القسري بعد 4 ثواني لإجبار المتصفح على غلق الملف
     setTimeout(() => {
         if (aiRecorder && aiRecorder.state === 'recording') {
             aiRecorder.stop();
@@ -298,16 +280,13 @@ function startAiRecordingLoop(stream) {
 function stopLiveSession() {
     isRecording = false;
 
-    // إيقاف المسجلات
     if (fullRecorder && fullRecorder.state !== 'inactive') fullRecorder.stop();
     if (aiRecorder && aiRecorder.state !== 'inactive') aiRecorder.stop();
     
-    // إيقاف المايك
     if (fullRecorder && fullRecorder.stream) {
         fullRecorder.stream.getTracks().forEach(t => t.stop());
     }
 
-    // تجميع الملف النهائي للمستخدم
     setTimeout(() => {
         if (fullSessionChunks.length > 0) {
             const fullBlob = new Blob(fullSessionChunks, { type: 'audio/webm' });
@@ -333,8 +312,7 @@ function stopLiveSession() {
 
 async function sendChunk(audioBlob) {
     const formData = new FormData();
-    formData.append('audio', audioBlob, 'stream.webm'); // الامتداد ضروري
-
+    formData.append('audio', audioBlob, 'stream.webm'); 
     const nextWords = currentAyahWords.slice(currentWordIndex, currentWordIndex + 15)
                                       .map(w => w.clean).join(" ");
     
@@ -349,7 +327,7 @@ async function sendChunk(audioBlob) {
         const spokenText = res.data.text;
         
         if (spokenText && spokenText.trim().length > 0) {
-            console.log("AI Heard:", spokenText);
+         //   console.log("AI Heard:", spokenText);
             processFeedback(spokenText);
         }
     } catch (err) {
