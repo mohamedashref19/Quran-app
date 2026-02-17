@@ -19,6 +19,8 @@ const surahStartPages = {
   101: 600, 102: 600, 103: 601, 104: 601, 105: 601, 106: 602, 107: 602, 108: 602, 109: 603,
   110: 603, 111: 603, 112: 604, 113: 604, 114: 604
 };
+    const surahNames = ["الفاتحة", "البقرة", "آل عمران", "النساء", "المائدة", "الأنعام", "الأعراف", "الأنفال", "التوبة", "يونس", "هود", "يوسف", "الرعد", "إبراهيم", "الحجر", "النحل", "الإسراء", "الكهف", "مريم", "طه", "الأنبياء", "الحج", "المؤمنون", "النور", "الفرقان", "الشعراء", "النمل", "القصص", "العنكبوت", "الروم", "لقمان", "السجدة", "الأحزاب", "سبأ", "فاطر", "يس", "الصافات", "ص", "الزمر", "غافر", "فصلت", "الشورى", "الزخرف", "الدخان", "الجاثية", "الأحقاف", "محمد", "الفتح", "الحجرات", "ق", "الذاريات", "الطور", "النجم", "القمر", "الرحمن", "الواقعة", "الحديد", "المجادلة", "الحشر", "الممتحنة", "الصف", "الجمعة", "المنافقون", "التغابن", "الطلاق", "التحريم", "الملك", "القلم", "الحاقة", "المعارج", "نوح", "الجن", "المزمل", "المدثر", "القيامة", "الإنسان", "المرسلات", "النبأ", "النازعات", "عبس", "التكوير", "الإنفطار", "المطففين", "الإنشقاق", "البروج", "الطارق", "الأعلى", "الغاشية", "الفجر", "البلد", "الشمس", "الليل", "الضحى", "الشرح", "التين", "العلق", "القدر", "البينة", "الزلزلة", "العاديات", "القارعة", "التكاثر", "العصر", "الهمزة", "الفيل", "قريش", "الماعون", "الكوثر", "الكافرون", "النصر", "المسد", "الإخلاص", "الفلق", "الناس"];
+
 
 
 function updateNavButtons() {
@@ -235,21 +237,30 @@ export async function manageKhatmah() {
     activeDiv.classList.remove('d-none');
     
     const k = res.data.data.khatmah;
+    
     document.getElementById('khatmah-name').innerText = k.name;
-    document.getElementById('daily-target').innerText = res.data.data.message;
+    
+    const msg = res.data.data.message || "واصل تقدمك لختم القرآن الكريم ✨";
+    document.getElementById('daily-target').innerText = msg;
 
-    const surahNames = ["الفاتحة", "البقرة", "آل عمران", "النساء", "المائدة", "الأنعام", "الأعراف", "الأنفال", "التوبة", "يونس", "هود", "يوسف", "الرعد", "إبراهيم", "الحجر", "النحل", "الإسراء", "الكهف", "مريم", "طه", "الأنبياء", "الحج", "المؤمنون", "النور", "الفرقان", "الشعراء", "النمل", "القصص", "العنكبوت", "الروم", "لقمان", "السجدة", "الأحزاب", "سبأ", "فاطر", "يس", "الصافات", "ص", "الزمر", "غافر", "فصلت", "الشورى", "الزخرف", "الدخان", "الجاثية", "الأحقاف", "محمد", "الفتح", "الحجرات", "ق", "الذاريات", "الطور", "النجم", "القمر", "الرحمن", "الواقعة", "الحديد", "المجادلة", "الحشر", "الممتحنة", "الصف", "الجمعة", "المنافقون", "التغابن", "الطلاق", "التحريم", "الملك", "القلم", "الحاقة", "المعارج", "نوح", "الجن", "المزمل", "المدثر", "القيامة", "الإنسان", "المرسلات", "النبأ", "النازعات", "عبس", "التكوير", "الإنفطار", "المطففين", "الإنشقاق", "البروج", "الطارق", "الأعلى", "الغاشية", "الفجر", "البلد", "الشمس", "الليل", "الضحى", "الشرح", "التين", "العلق", "القدر", "البينة", "الزلزلة", "العاديات", "القارعة", "التكاثر", "العصر", "الهمزة", "الفيل", "قريش", "الماعون", "الكوثر", "الكافرون", "النصر", "المسد", "الإخلاص", "الفلق", "الناس"];
-    const surahName = surahNames[k.currentSurah - 1] || k.currentSurah;
+    const sIdx = parseInt(k.currentSurah) - 1;
+    const surahName = surahNames[sIdx] || `سورة ${k.currentSurah}`;
     
     const statusText = document.getElementById('khatmah-status-text');
-    if (statusText) statusText.innerHTML = `أنت متوقف عند <strong>سورة ${surahName}</strong> - آية <strong>${k.currentAyah}</strong>`;
+    if (statusText) {
+        statusText.innerHTML = `أنت متوقف عند <strong>سورة ${surahName}</strong> - آية <strong>${k.currentAyah}</strong>`;
+    }
     
     if(document.getElementById('currentSurah')) document.getElementById('currentSurah').value = k.currentSurah;
     if(document.getElementById('currentAyah')) document.getElementById('currentAyah').value = k.currentAyah;
     
-    const progress = Math.round(((k.currentSurah / 114) * 100)); 
-    document.getElementById('progress-bar').style.width = `${progress}%`;
-    document.getElementById('progress-bar').innerText = `${progress}%`;
+    const progress = Math.round(((parseInt(k.currentSurah) / 114) * 100)); 
+    const progressBar = document.getElementById('progress-bar');
+    if (progressBar) {
+        progressBar.style.width = `${progress}%`;
+        progressBar.innerText = `${progress}%`;
+    }
+
   } catch (err) {
     const createDiv = document.getElementById('create-khatmah');
     if (createDiv) createDiv.classList.remove('d-none');
@@ -263,30 +274,44 @@ export async function createKhatmah(name, durationDays) {
   } catch (err) { showAlert('error', err.response.data.message); }
 }
 
+// 1. تأكد أن المصفوفة مُعرفة في أعلى الملف (خارج الدالات) لتكون Global
+
+// 1. ضع المصفوفة في أعلى الملف تماماً (خارج الدوال)
+
 export async function updateKhatmahProgress(surah, ayah) {
-  try {
+    try {
     const res = await axios.patch('/api/v1/khatmah', { surah, ayah });
+    
     if (res.data.status === 'success') {
       showAlert('success', 'تم تحديث موقع الختمة! 🚩');
+
       const progressBar = document.getElementById('progress-bar');
-      const allFlags = document.querySelectorAll('.khatmah-icon-btn');
-      allFlags.forEach(btn => {
-        btn.classList.replace('fas', 'far');
-        btn.style.color = '#28a745'; 
-        if (parseInt(btn.dataset.surah) == surah && parseInt(btn.dataset.ayah) == ayah) {
-             btn.classList.replace('far', 'fas');
-             btn.style.color = '#198754';
-        }
-      });
       if (progressBar) {
         const newProgress = Math.round((parseInt(surah) / 114) * 100);
         progressBar.style.width = `${newProgress}%`;
         progressBar.innerText = `${newProgress}%`;
-        const dailyTarget = document.getElementById('daily-target');
-        if(dailyTarget && res.data.data) dailyTarget.innerText = res.data.data.message;
       }
+
+      const dailyTarget = document.getElementById('daily-target');
+      if (dailyTarget) {
+          const targetMsg = (res.data.data && res.data.data.message) || "واصل تقدمك ✨";
+          dailyTarget.innerText = targetMsg;
+          dailyTarget.style.color = ""; 
+          dailyTarget.classList.remove('text-danger'); 
+      }
+
+      const statusText = document.getElementById('khatmah-status-text');
+      if (statusText) {
+          const sIdx = parseInt(surah) - 1;
+          const surahName = surahNames[sIdx] || `سورة رقم ${surah}`; 
+          statusText.innerHTML = `أنت متوقف عند <strong>سورة ${surahName}</strong> - آية <strong>${ayah}</strong>`;
+      }
+
     }
-  } catch (err) { showAlert('error', 'لم تبدأ أي ختمة بعد 📖 ابدأ بإنشاء ختمة جديدة.'); }
+  } catch (err) { 
+      console.error("❌ خطأ في التحديث:", err); 
+      showAlert('error', 'حدث خطأ، يرجى المحاولة مرة أخرى.'); 
+  }
 }
 
 export async function deleteKhatmah() {
@@ -296,10 +321,11 @@ export async function deleteKhatmah() {
       showAlert('success', 'تم إلغاء الختمة بنجاح 🗑️');
       const activeDiv = document.getElementById('active-khatmah');
       const createDiv = document.getElementById('create-khatmah');
-      if (activeDiv && createDiv) {
-        activeDiv.classList.add('d-none');   
-        createDiv.classList.remove('d-none'); 
-      }
+      if (activeDiv) activeDiv.classList.add('d-none');   
+      if (createDiv) createDiv.classList.remove('d-none');
+      
+      const statusText = document.getElementById('khatmah-status-text');
+      if (statusText) statusText.innerText = '';
     }
   } catch (err) { showAlert('error', 'فشل إلغاء الختمة'); }
 }

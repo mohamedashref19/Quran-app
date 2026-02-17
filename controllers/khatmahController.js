@@ -54,45 +54,56 @@ exports.getCurrentKhatmah = catchAsync(async (req, res, next) => {
   });
 });
 
+
+
 exports.updateProgress = catchAsync(async (req, res, next) => {
   const { surah, ayah } = req.body;
 
   const khatmah = await Khatmah.findOneAndUpdate(
     { user: req.user.id, status: "ongoing" },
     { currentSurah: surah, currentAyah: ayah },
-    { new: true }
+    { new: true, runValidators: true }  
   );
 
   if (!khatmah) {
     return next(new AppError("No active Khatmah found to update.", 404));
   }
 
-  let message = "Progress updated";
+  let statusMessage = "Progress updated";
 
   if (Number(surah) === 114) {
     khatmah.status = "completed";
     await khatmah.save();
-    
-    message = "Mashallah! Khatmah Completed! 🎉";
+    statusMessage = "Mashallah! Khatmah Completed! 🎉";
 
     try {
-      const url = `${req.protocol}://${req.get("host")}/me/khatmahs`; 
-      
+      const url = `${req.protocol}://${req.get("host")}/my-khatmah`;
       await new Email(req.user, url).sendKhatmahCompletion();
-      console.log("🏆 Completion email sent to:", req.user.email);
     } catch (err) {
-      console.error("❌ Email failed to send, but khatmah marked as completed.");
+      console.error("Email error");
     }
   }
 
+  const today = new Date();
+  const diffTime = Math.abs(khatmah.endDate - today);
+  const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  const dailyMsg = `يلزمك قراءة حوالي ${khatmah.dailyTargetPages || 0} صفحة يوميًا`;
+
   res.status(200).json({
     status: "success",
-    message,
+    message: statusMessage, 
     data: {
       khatmah,
+      daysLeft: daysLeft > 0 ? daysLeft : 0,
+      message: dailyMsg 
     },
   });
 });
+
+
+
+
 
 exports.deleteKhatmah = catchAsync(async (req, res, next) => {
   await Khatmah.findOneAndDelete({ user: req.user.id, status: "ongoing" });

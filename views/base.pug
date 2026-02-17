@@ -21,13 +21,21 @@ html(dir="rtl" lang="ar")
         // 1. اسم التطبيق (سيكون في أقصى اليمين - Order 0)
         a.navbar-brand.fw-bold.order-0(href='/') 📖 تطبيق اقرأ
         
-        // 2. حاوية البحث (في المنتصف - Order 1)
-        // حافظنا على الـ IDs والـ Logic الخاص بك تماماً
-        .search-container.position-relative.mx-auto.order-1(style="max-width: 450px; flex: 1;")
-          input#search-input.form-control.rounded-pill.px-4.py-2.test2(type="text" placeholder="ابحث عن آية أو كلمة..." style="border: 2px solid #1e5f31;")
-          i.fas.fa-search.position-absolute.text-muted(style="left: 20px; top: 50%; transform: translateY(-50%);")
-          #search-results.list-group.position-absolute.w-100.shadow-lg.d-none(style="z-index: 1000; max-height: 300px; overflow-y: auto; top: 50px;")   
+        .d-flex.align-items-center.mx-auto.order-1(style="flex: 1; max-width: 600px; justify-content: center;")
+        
+          // حاوية البحث
+          .search-container.position-relative.w-100(style="max-width: 450px;")
+            input#search-input.form-control.rounded-pill.px-4.py-2.test2(type="text" placeholder="ابحث عن آية أو كلمة..." style="border: 2px solid #1e5f31; padding-left: 40px;")
+            i.fas.fa-search.position-absolute.text-muted(style="left: 15px; top: 50%; transform: translateY(-50%);")
+            #search-results.list-group.position-absolute.w-100.shadow-lg.d-none(style="z-index: 1000; max-height: 300px; overflow-y: auto; top: 50px;")
 
+          // زر الثيم بجانب البحث مباشرة
+          button#theme-toggle.btn.btn-link.nav-link.ms-2(title="تغيير المظهر")
+            i.fas.fa-moon.fs-5.text-white
+
+        
+
+           
         // 3. زر الثلاث شرطات (سيكون في أقصى اليسار - Order 2)
         button.navbar-toggler.order-2.ms-2(type='button' data-bs-toggle='collapse' data-bs-target='#navbarNav')
           span.navbar-toggler-icon
