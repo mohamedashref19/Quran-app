@@ -21,6 +21,7 @@ router.get('/prayers', viewsController.getPrayers);
 
 router.get('/reciters', viewsController.getReciters);
 router.get('/check-recitation', authController.proctect, viewsController.getRecitationCheck);
+router.get('/stream-check', authController.proctect, viewsController.getAutomaticTracker);
 
 router.get('/my-khatmah', authController.proctect, viewsController.getKhatmah);
 router.get('/my-bookmarks', authController.proctect, viewsController.getBookmarks);

@@ -655,3 +655,62 @@ footer {
         padding: 5px;
     }
 }
+
+
+/* خط المصحف */
+@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
+
+.quran-container {
+    font-family: 'Amiri', serif;
+    direction: rtl;
+    text-align: justify;
+    text-align-last: center;
+    line-height: 2.8;
+    font-size: 32px;
+    background-color: #ffffff;
+    padding: 30px;
+    border: 1px solid #e0e0e0;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.quran-word {
+    display: inline-block;
+    transition: all 0.4s ease;
+    cursor: default;
+    padding: 2px 4px;
+    border-radius: 6px;
+}
+
+/* الكلمة المخفية (وضع الحفظ) */
+.word-hidden {
+    color: transparent !important;
+    text-shadow: 0 0 18px rgba(0,0,0,0.25); /* تأثير ضبابي قوي */
+    background-color: rgba(240, 240, 240, 0.3); /* خلفية شفافة جداً لتحديد المكان */
+}
+
+/* الكلمة الظاهرة */
+.word-visible {
+    color: #000 !important;
+    text-shadow: none !important;
+    background-color: transparent;
+}
+
+/* الكلمة التي تم نطقها صحيح */
+.text-success {
+    color: #198754 !important; /* أخضر غامق */
+    font-weight: bold;
+}
+
+/* رقم الآية */
+.ayah-symbol {
+    font-family: sans-serif;
+    font-size: 0.7em;
+    border: 1px solid #b79c57;
+    border-radius: 50%;
+    padding: 2px 8px;
+    margin: 0 6px;
+    color: #b79c57;
+    display: inline-block;
+    vertical-align: middle;
+}

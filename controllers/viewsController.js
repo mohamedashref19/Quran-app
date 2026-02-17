@@ -62,6 +62,9 @@ exports.getReciters = (req, res) => {
 exports.getRecitationCheck = (req, res) => {
   res.status(200).render('recitation', { title: 'المصحح الآلي' });
 };
+exports.getAutomaticTracker = (req, res) => {
+  res.status(200).render('live-recitation', { title: 'المتتبع الآلي' });
+};
 
 exports.getPrayers = (req, res) => {
   res.status(200).render('prayers', { title: 'مواقيت الصلاة' });

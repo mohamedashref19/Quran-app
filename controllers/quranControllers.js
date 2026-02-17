@@ -223,3 +223,74 @@ exports.check_recitation = catchAsync(async (req, res, next) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+
+
+
+
+
+
+exports.stream_check = catchAsync(async (req, res, next) => {
+    if (!req.file || !req.file.path) {
+        return res.status(400).json({ error: "No audio file" });
+    }
+
+    try {
+        const startTime = Date.now();
+        const fileStream = fs.createReadStream(req.file.path);
+        
+        const expectedContext = req.body.expectedContext || ""; 
+        const surahName = req.body.surahName || "";
+
+        
+        const promptText = `تلاوة قرآنية للشيخ محمود خليل الحصري سورة ${surahName}. النص: ${expectedContext}`;
+
+        const transcription = await groq.audio.transcriptions.create({
+            file: fileStream,
+            model: "whisper-large-v3",
+            language: "ar",
+            temperature: 0,
+            prompt: promptText 
+        });
+
+        let text = normalization(transcription.text); 
+
+        const hallucinations = [
+            "اشترك في القناة", "رابط القناة", "سيدي محمد رسول الله", 
+            "شرح", "تفسير", "السياق الحالي", "المترجم", "يتبع", "صلى الله عليه وسلم"
+        ];
+
+        hallucinations.forEach(h => {
+            if (text.includes(normalization(h))) {
+                text = ""; 
+            }
+        });
+
+        fs.unlink(req.file.path, () => {});
+
+        res.status(200).json({
+            status: 'success',
+            text: text, 
+            latency: Date.now() - startTime
+        });
+
+    } catch (error) {
+        if (req.file.path) fs.unlink(req.file.path, () => {});
+        console.error("Stream Error:", error);
+        res.status(500).json({ error: "Processing failed" });
+    }
+});
+
+exports.getAyahs = catchAsync(async (req, res, next) => {
+    const { surah, start, end } = req.query;
+    
+    const ayahs = await Ayah.find({
+        surahNumber: surah,
+        ayahNumber: { $gte: start, $lte: end }
+    }).sort({ ayahNumber: 1 });
+
+    res.status(200).json({
+        status: 'success',
+        data: ayahs
+    });
+});

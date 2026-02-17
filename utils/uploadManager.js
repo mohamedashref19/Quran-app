@@ -23,8 +23,8 @@ const diskStorage = multer.diskStorage({
         cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
-        const ext = file.mimetype.split('/')[1] || 'webm'; 
-        cb(null, `recitation-${req.user.id}-${Date.now()}.${ext}`);
+        const ext = file.originalname.split('.').pop() || 'webm';
+        cb(null, `stream-${req.user.id}-${Date.now()}.${ext}`);
     }
 });
 
@@ -35,14 +35,23 @@ const s3Storage = multerS3({
     contentType: multerS3.AUTO_CONTENT_TYPE,
     metadata: (req, file, cb) => cb(null, { fieldName: file.fieldname }),
     key: (req, file, cb) => {
-        const ext = file.mimetype.split('/')[1] || 'webm';
-        cb(null, `recitations/user-${req.user.id}-${Date.now()}.${ext}`);
+        // const ext = file.mimetype.split('/')[1] || 'webm';
+        // cb(null, `recitations/user-${req.user.id}-${Date.now()}.${ext}`);
+        cb(null, `stream-${req.user.id}-${Date.now()}.webm`);
     }
 });
 
+// const multerFilter = (req, file, cb) => {
+//     if (file.mimetype.startsWith('audio')) cb(null, true);
+//     else cb(new AppError('Not an audio file!', 400), false);
+// };
+
 const multerFilter = (req, file, cb) => {
-    if (file.mimetype.startsWith('audio')) cb(null, true);
-    else cb(new AppError('Not an audio file!', 400), false);
+    if (file.mimetype.startsWith('audio') || file.mimetype === 'application/octet-stream') {
+        cb(null, true);
+    } else {
+        cb(new AppError('Not an audio file!', 400), false);
+    }
 };
 
 const defaultStorage = process.env.STORAGE_MODE === 's3' ? s3Storage : diskStorage;

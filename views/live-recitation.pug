@@ -1,0 +1,56 @@
+extends base
+
+block content
+  .container.py-5.text-center
+    h2.mb-4.text-primary المسمّع الآلي الذكي 🎤
+    
+    // 1. خيارات التسميع
+    .card.p-4.mb-4.shadow-sm
+      .row.justify-content-center
+        .col-md-4.mb-2
+          select#surah-select.form-select.form-select-lg(style="direction: rtl;")
+            option(value="" disabled selected) اختر السورة...
+        
+        .col-md-3.mb-2
+          input#start-ayah.form-control.form-control-lg(type="number" placeholder="من آية" min="1")
+        
+        .col-md-3.mb-2
+          input#end-ayah.form-control.form-control-lg(type="number" placeholder="إلى آية")
+        
+        .col-md-2.mb-2
+          button.btn.btn-primary.btn-lg.w-100(onclick="loadAyahs()") تحميل
+
+      .form-check.form-switch.d-flex.justify-content-center.mt-3
+        input#memorize-mode.form-check-input.ms-2(type="checkbox" checked) 
+        label.form-check-label.fw-bold(for="memorize-mode") تفعيل وضع الحفظ (إخفاء النص) 🙈
+
+    #session-player-area.d-none.mb-4.p-3.bg-light.rounded.shadow-sm
+      h5.text-success.mb-2 🎧 استمع لتلاوتك كاملة:
+      audio#user-full-audio.w-100(controls)    
+
+    #controls-area.d-none.mb-4
+
+      .alert.alert-info.d-inline-block.px-4.py-2.mb-3.shadow-sm(style="border-radius: 20px;")
+        i.fas.fa-info-circle.me-2
+        strong نصيحة لأفضل دقة: 
+        | اقرأ بتأني، وانتظر 
+        strong 3 ثوانٍ 
+        | تقريباً بين كل آية والأخرى. ⏳
+      br
+      button#btn-start.btn.btn-success.btn-lg.mx-2.px-5(onclick="startLiveSession()") 
+        i.fas.fa-microphone.me-2
+        | ابدأ التسميع
+      button#btn-stop.btn.btn-danger.btn-lg.mx-2.px-5.d-none(onclick="stopLiveSession()") 
+        i.fas.fa-stop.me-2
+        | توقف
+      p#status-msg.text-muted.mt-2 جاهز...
+
+    .quran-container.bg-white.shadow
+      #quran-text-container
+        p.text-muted اختر السورة للبدء...
+
+    audio#correct-ayah-player.d-none
+
+block scripts
+  script(src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js")
+  script(src=`/js/liveRecitation.js?v=${Date.now()}`)
