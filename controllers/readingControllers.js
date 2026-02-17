@@ -55,7 +55,7 @@ exports.search = catchAsync(async (req, res, next) => {
       { text: { $regex: q, $options: "i" } }
     ]
   })
-  .select('text surahNameAr numberInSurah page surahNumber') 
+  .select('text surahNameAr ayahNumber numberInSurah page surahNumber')
   .limit(20); 
 
   res.status(200).json({

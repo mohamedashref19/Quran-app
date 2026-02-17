@@ -28,33 +28,37 @@ exports.addBookmark = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.getMyBookmarks = catchAsync(async(req,res,next)=>{
-    const bookmarks = await Bookmark.find({user:req.user.id}).sort("createdAt")
+exports.getMyBookmarks = catchAsync(async(req, res, next) => {
+    const bookmarks = await Bookmark.find({ user: req.user.id }).sort("createdAt");
+    
     const bookmarksWithText = await Promise.all(
-        bookmarks.map(async(b)=>{
+        bookmarks.map(async(b) => {
             const ayahData = await Ayah.findOne({
-                surahNumber:b.surah,
-                ayahNumber:b.ayah
-            }).select("text simpleText surahNameAr")
-            return{
-                _id:b._id,
-                surah:b.surah,
+                surahNumber: b.surah,
+                ayahNumber: b.ayah
+            }).select("text simpleText surahNameAr page"); 
+
+            return {
+                _id: b._id,
+                surah: b.surah,
                 ayah: b.ayah,
-        note: b.note,
-        createdAt: b.createdAt,
-        ayahText: ayahData ? ayahData.text : "Text not available",
-        surahName: ayahData ? ayahData.surahNameAr : "",
-            }
+                note: b.note,
+                createdAt: b.createdAt,
+                ayahText: ayahData ? ayahData.text : "النص غير متوفر",
+                surahName: ayahData ? ayahData.surahNameAr : "",
+                page: ayahData ? ayahData.page : 1 
+            };
         })
-    )
+    );
+
     res.status(200).json({
-    status: "success",
-    results: bookmarks.length,
-    data: {
-      bookmarks: bookmarksWithText,
-    },
-  });
-})
+        status: "success",
+        results: bookmarks.length,
+        data: {
+            bookmarks: bookmarksWithText,
+        },
+    });
+});
 
 exports.deleteBookemark = catchAsync(async(req,res,next)=>{
     const bookmark = await Bookmark.findOneAndDelete({

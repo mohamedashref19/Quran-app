@@ -16,7 +16,8 @@ import {
   toggleBookmark, 
   deleteBookmark, 
   deleteKhatmah,
-  initSearch   
+  initSearch  ,
+  initBookmarksSearch
 } from './features';
 
 let currentPage = parseInt(window.location.pathname.split('/').pop()) || 1;
@@ -252,7 +253,12 @@ if (document.getElementById('surah-name')) {
   }
 }
 
-if (document.getElementById('bookmarks-container')) loadBookmarks();
+if (document.getElementById('bookmarks-container')) {
+  loadBookmarks();
+  if (typeof initBookmarksSearch === 'function') {
+      initBookmarksSearch();
+  }
+}
 
 const bookmarksList = document.getElementById('bookmarks-container');
 if (bookmarksList) {

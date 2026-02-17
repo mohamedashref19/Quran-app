@@ -193,25 +193,47 @@ export async function loadBookmarks() {
     const res = await axios.get('/api/v1/bookmarks');
     const container = document.getElementById('bookmarks-container');
     if (!container) return;
+    
     container.innerHTML = '';
     const { bookmarks } = res.data.data;
+    
+    // console.log("Bookmarks Loaded:", bookmarks); 
+
     if (bookmarks.length === 0) {
       container.innerHTML = `<div class="text-center py-5"><i class="far fa-bookmark fa-4x text-muted mb-3"></i><p class="lead">لا توجد علامات محفوظة حالياً</p><a href="/quran" class="btn btn-success">اذهب للمصحف واحفظ أول علامة</a></div>`;
       return;
     }
+
     bookmarks.forEach(b => {
+      const surahNum = parseInt(b.surah);
+      
+      let targetPage = b.page ? parseInt(b.page) : null;
+
+      if (!targetPage || isNaN(targetPage)) {
+         if (surahStartPages[surahNum]) {
+            //  console.warn(`⚠️ Missing page for Surah ${surahNum}, using fallback: ${surahStartPages[surahNum]}`);
+             targetPage = surahStartPages[surahNum];
+         } else {
+             targetPage = 1;  
+         }
+      }
+
       const html = `
         <div class="col-md-6 mb-3">
           <div class="card shadow-sm border-start border-success border-4 h-100">
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-start">
-                <h5 class="card-title text-success"> ${b.surahName}</h5>
+                <h5 class="card-title text-success">${b.surahName}</h5>
                 <button class="btn btn-sm btn-outline-danger delete-bookmark-btn" data-id="${b._id}"><i class="fas fa-trash"></i></button>
               </div>
               <p class="ayah-text text-dark mt-2" style="font-family: 'Amiri'; font-size: 1.2rem;">${b.ayahText}</p>
               <div class="mt-3 d-flex justify-content-between align-items-center">
                 <span class="badge bg-light text-dark">آية رقم: ${b.ayah}</span>
-                <a href="/quran/${b.surah}" class="btn btn-sm btn-success">انتقل للآية</a>
+                
+                <a href="/quran/${targetPage}" class="btn btn-sm btn-success">
+                   <i class="fas fa-book-open me-1"></i> انتقل للآية
+                </a>
+                
               </div>
             </div>
           </div>
@@ -637,12 +659,14 @@ export const initSearch = () => {
         }
 
         ayahs.forEach(ayah => {
+          console.log(ayah);
           const item = document.createElement('a');
           item.className = 'list-group-item list-group-item-action';
           item.style.cursor = 'pointer';
-          item.innerHTML = `
+          const realAyahNum = ayah.ayahNumber || ayah.numberInSurah;
+         item.innerHTML = `
             <div class="d-flex justify-content-between align-items-center">
-              <span class="fw-bold text-success small">${ayah.surahNameAr} - آية ${ayah.numberInSurah}</span>
+              <span class="fw-bold text-success small">${ayah.surahNameAr} - آية ${realAyahNum}</span>
               <span class="badge bg-light text-dark border">ص ${ayah.page}</span>
             </div>
             <p class="mb-0 mt-1 small text-muted text-end" style="font-family: 'Amiri'; font-size: 1.1em;">${ayah.text.substring(0, 60)}...</p>
