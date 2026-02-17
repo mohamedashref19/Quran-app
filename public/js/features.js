@@ -47,7 +47,7 @@ function updateNavButtons() {
 }
 
 
-export async function loadQuranPage(pageNumber) {
+export async function loadQuranPage(pageNumber, targetSurah = null, targetAyah = null) {
   try {
     const res = await axios.get(`/api/v1/quran/page/${pageNumber}`);
     const { ayahs, khatmah } = res.data.data;
@@ -111,7 +111,7 @@ export async function loadQuranPage(pageNumber) {
         const khatmahColor = isKhatmahActive ? '#198754' : '#28a745';
 
         fullTextHTML += `
-            <span class="ayah-text ayah-clickable" data-surah="${ayah.surahNumber}" data-ayah="${ayahNum}" title="تفسير الآية ${ayahNum}" style="cursor: pointer;">${ayahText}</span>
+            <span id="ayah-${ayah.surahNumber}-${ayahNum}" class="ayah-text ayah-clickable" data-surah="${ayah.surahNumber}" data-ayah="${ayahNum}" title="تفسير الآية ${ayahNum}" style="cursor: pointer;">${ayahText}</span>
             <span class="ayah-end-wrapper" style="white-space: nowrap; display: inline-block;">
                 <span class="ayah-end-symbol" style="color: #d4af37; font-family: sans-serif; margin: 0 5px; border: 1px solid #d4af37; border-radius: 50%; padding: 0 5px; font-size: 0.8em;">${ayahNum}</span>
                 <i class="${iconClass} fa-bookmark bookmark-icon-btn" data-surah="${ayah.surahNumber}" data-ayah="${ayahNum}" title="حفظ علامة مرجعية" style="cursor: pointer; color: ${iconColor}; font-size: 0.7em;"></i>
@@ -128,6 +128,36 @@ export async function loadQuranPage(pageNumber) {
     
     if (typeof updateNavButtons === 'function') {
         updateNavButtons();
+    }
+    //OutSide Qoran Page
+    if (!targetSurah || !targetAyah) {
+        const hash = window.location.hash;
+        if (hash && hash.startsWith('#ayah-')) {
+            const parts = hash.split('-'); 
+            if (parts.length >= 3) {
+                targetSurah = parts[1];
+                targetAyah = parts[2];
+            }
+        }
+    }
+      //in Quran PAge
+    if (targetSurah && targetAyah) {
+        setTimeout(() => {
+            const elementId = `ayah-${targetSurah}-${targetAyah}`;
+            const targetElement = document.getElementById(elementId);
+            
+            if (targetElement) {
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                targetElement.classList.add('highlight-ayah');
+                
+                 window.history.replaceState(null, null, ' '); 
+
+                setTimeout(() => {
+                    targetElement.classList.remove('highlight-ayah');
+                }, 4000);
+            }
+        }, 1000); 
     }
 
   } catch (err) {
@@ -659,11 +689,12 @@ export const initSearch = () => {
         }
 
         ayahs.forEach(ayah => {
-          console.log(ayah);
+          // console.log(ayah);
           const item = document.createElement('a');
           item.className = 'list-group-item list-group-item-action';
           item.style.cursor = 'pointer';
           const realAyahNum = ayah.ayahNumber || ayah.numberInSurah;
+
          item.innerHTML = `
             <div class="d-flex justify-content-between align-items-center">
               <span class="fw-bold text-success small">${ayah.surahNameAr} - آية ${realAyahNum}</span>
@@ -676,12 +707,14 @@ export const initSearch = () => {
     e.preventDefault();
 
     const targetPage = ayah.page;
+    const surahNum = ayah.surahNumber; 
+            const ayahNum = ayah.ayahNumber || ayah.numberInSurah;
     
     if (window.location.pathname.includes('/quran/')) {
-        loadQuranPage(targetPage);
+        loadQuranPage(targetPage, surahNum, ayahNum);
         window.history.pushState({}, '', `/quran/${targetPage}`);
     } else {
-        window.location.assign(`/quran/${targetPage}`);
+        window.location.assign(`/quran/${targetPage}#ayah-${surahNum}-${ayahNum}`);
     }
 
     resultsContainer.classList.add('d-none'); 

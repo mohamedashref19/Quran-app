@@ -52,6 +52,13 @@ const goToPrevPage = () => {
     }
 };
 
+const path = window.location.pathname;
+if (path.startsWith('/quran/')) {
+    const page = path.split('/')[2]; 
+    if (page) {
+        loadQuranPage(page);
+    }
+}
 
 document.addEventListener('click', (e) => {
     if (e.target.closest('.nav-next')) {
