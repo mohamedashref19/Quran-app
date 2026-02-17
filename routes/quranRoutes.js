@@ -7,6 +7,6 @@ const router = express.Router()
 
 
 
-router.post("/check-recitation",authControllers.proctect,uploadControllers.uploadRecitation,quranControllers.check_recitation)
+router.post("/check-recitation",authControllers.proctect,uploadControllers.uploadRecitationLocal,quranControllers.check_recitation)
 
 module.exports = router

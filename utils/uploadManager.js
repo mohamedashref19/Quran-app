@@ -1,8 +1,14 @@
 const multer = require('multer');
 const { S3Client } = require('@aws-sdk/client-s3');
 const multerS3 = require('multer-s3');
-const AppError = require('./appError');
+const AppError = require('./appError'); 
 const path = require('path');
+const fs = require('fs');
+
+const uploadDir = 'public/audio/uploads/';
+if (!fs.existsSync(uploadDir)){
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 const s3 = new S3Client({
     region: process.env.AWS_REGION,
@@ -14,10 +20,10 @@ const s3 = new S3Client({
 
 const diskStorage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'public/audio/uploads/');
+        cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
-        const ext = file.mimetype.split('/')[1];
+        const ext = file.mimetype.split('/')[1] || 'webm'; 
         cb(null, `recitation-${req.user.id}-${Date.now()}.${ext}`);
     }
 });
@@ -29,7 +35,7 @@ const s3Storage = multerS3({
     contentType: multerS3.AUTO_CONTENT_TYPE,
     metadata: (req, file, cb) => cb(null, { fieldName: file.fieldname }),
     key: (req, file, cb) => {
-        const ext = file.mimetype.split('/')[1];
+        const ext = file.mimetype.split('/')[1] || 'webm';
         cb(null, `recitations/user-${req.user.id}-${Date.now()}.${ext}`);
     }
 });
@@ -39,11 +45,17 @@ const multerFilter = (req, file, cb) => {
     else cb(new AppError('Not an audio file!', 400), false);
 };
 
-const storage = process.env.STORAGE_MODE === 's3' ? s3Storage : diskStorage;
+const defaultStorage = process.env.STORAGE_MODE === 's3' ? s3Storage : diskStorage;
 
-const upload = multer({
-    storage: storage,
+const uploadGeneral = multer({
+    storage: defaultStorage,
     fileFilter: multerFilter
 });
 
-exports.uploadRecitation = upload.single('audio');
+const uploadLocal = multer({
+    storage: diskStorage,
+    fileFilter: multerFilter
+});
+
+exports.uploadRecitation = uploadGeneral.single('audio'); 
+exports.uploadRecitationLocal = uploadLocal.single('audio'); 

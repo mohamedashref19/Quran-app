@@ -1,12 +1,10 @@
-const { execSync } = require('child_process');
+const Groq = require("groq-sdk");
+const fs = require("fs");
+const path = require("path");
 const levenshtein = require('fast-levenshtein');
 const diff = require("diff");
-const path = require("path");
-const fs = require("fs");
-const axios = require("axios");
-const Groq = require("groq-sdk");
-const Ayah = require("../models/Ayah");
 const Recitation = require("../models/recitationModel");
+const Ayah = require("../models/Ayah");
 const catchAsync = require("../utils/catchAsync");
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -26,174 +24,201 @@ const surahAyahCounts = {
     111: 5, 112: 4, 113: 5, 114: 6
 };
 
+// --- القائمة السحرية: تحويل الرسم العثماني وأخطاء Whisper إلى إملائي موحد ---
+const standardMapping = {
+    // الرسم العثماني -> الإملائي
+    "الصلوة": "الصلاة", "الزكوة": "الزكاة", "الحيوة": "الحياة", "الربوا": "الربا",
+    "السموات": "السماوات", "مشكوة": "مشكاة", "النجوة": "النجاة", "الغدوة": "الغداة",
+    "منوة": "مناة", "ايت": "آيات", "ءايت": "آيات", "بايت": "بآيات",
+    "لئيكة": "الأيكة", "الايكة": "الأيكة", "الرحمان": "الرحمن",
+    "إبرهم": "إبراهيم", "إبرهيم": "إبراهيم", "إسمعيل": "إسماعيل",
+    "يحي": "يحيى", "طحيها": "طحاها", "سجى": "سجي", "قلى": "قلي",
+    "الكفرون": "الكافرون", "عبدون": "عابدون", "داوود": "داود",
+    "ملكي": "مالك", "ملك": "مالك", "الصراط": "الصراط", "الصرط": "الصراط",
+    "بمسيطر": "بمصيطر", "المسيطرون": "المصيطرون", "يبصط": "يبسط",    
+    "الظالين": "الضالين", "مغضوب": "المغضوب", "نستعين": "نستعين",
+    "قل": "قل", "يايها": "ياأيها", "ياايها": "ياأيها"
+};
+
 function normalization(text) {
     if (!text) return "";
-    return text
-        .replace(/[\u064B-\u06ED]/g, '') 
+    
+    text = text
+        .replace(/[\u0670]/g, 'ا') 
+        .replace(/[\u064B-\u065F\u06D6-\u06ED]/g, '') 
         .replace(/[أإآٱ]/g, 'ا')
         .replace(/ى/g, 'ي')
         .replace(/ة/g, 'ه')
         .replace(/\u0640/g, '') 
-        .replace(/ئ/g, 'ي').replace(/ؤ/g, 'و') 
-        .replace(/[^\u0600-\u06FF\s]/g, '')
+        .replace(/ئ/g, 'ي').replace(/ؤ/g, 'و')
         .replace(/\s+/g, ' ')
         .trim();
+
+
+    return text.split(" ").map(word => {
+        if (standardMapping[word]) return standardMapping[word];
+        for (const [key, value] of Object.entries(standardMapping)) {
+            if (word.includes(key)) {
+                return word.replace(key, value);
+            }
+        }
+        return word;
+    }).join(" ");
 }
 
 function isPhoneticallyClose(uWord, oWord) {
     if (!uWord || !oWord) return false;
     const dist = levenshtein.get(uWord, oWord);
-    const threshold = oWord.length <= 3 ? 1 : Math.floor(oWord.length * 0.48); 
+    const threshold = oWord.length <= 3 ? 1 : Math.floor(oWord.length * 0.40); 
     return dist <= threshold;
 }
 
 exports.check_recitation = catchAsync(async (req, res, next) => {
     const startTime = Date.now();
-    let filePathForGroq = "";
-    let processedPath = "";
 
     if (!req.file) return res.status(400).json({ status: 'fail', error: "لم يتم استلام ملف صوتي" });
+    if (!req.file.path) return res.status(400).json({ status: 'fail', error: "خطأ: يجب استخدام التخزين المحلي (DiskStorage)" });
 
     const surah = parseInt(req.body.surah);
     const startAyah = parseInt(req.body.startAyah) || 1;
     const endAyah = parseInt(req.body.endAyah) || surahAyahCounts[surah];
-    if (!surah) return res.status(400).json({ error: "رقم السورة مطلوب" });
 
     try {
-
         const newRecitation = await Recitation.create({
-            user:req.user.id,
-            audioUrl: req.file.location,
-            surah: surah,
-            startAyah: startAyah,
-            endAyah: endAyah,
-            score: 0
-        })
+            user: req.user.id,
+            audioUrl: req.file.path, 
+            surah, startAyah, endAyah, score: 0
+        });
+
         let originalAyahs = await Ayah.find({ 
             surahNumber: surah, 
-            ayahNumber: { $gte: startAyah || 1, $lte: endAyah || 286 } 
+            ayahNumber: { $gte: startAyah, $lte: endAyah } 
         }).sort({ ayahNumber: 1 });
 
-        if (originalAyahs.length === 0) throw new Error("الآيات غير موجودة");
-
-        let originalWords = [];
+        let displayWords = [];    
+        let comparisonWords = []; 
         let ayahEndIndices = [];
+
         originalAyahs.forEach((ayah) => {
-            const words = ayah.text.split(" ").filter(Boolean);
-            originalWords.push(...words);
-            ayahEndIndices.push({ index: originalWords.length - 1, number: ayah.ayahNumber });
+            const originalTextSplitted = ayah.text.trim().split(/\s+/);
+            displayWords.push(...originalTextSplitted);
+
+            const cleanText = normalization(ayah.text);
+            const cleanWords = cleanText.split(" ").filter(Boolean);
+            comparisonWords.push(...cleanWords);
+
+            ayahEndIndices.push({ index: displayWords.length - 1, number: ayah.ayahNumber });
         });
 
-        const normalizedOriginalWords = originalWords.map(w => normalization(w));
-        
+        const fullReferenceText = comparisonWords.join(" ");
 
-        const fullReferenceText = normalizedOriginalWords.join(" ");
-
-        // const tempPath = req.file.path;
-        // const finalTempPath = `${tempPath}${path.extname(req.file.originalname) || ".webm"}`;
-
-        const tempFileName = `temp-${req.user.id}-${Date.now()}.webm`;
-        localFilePath = path.join(__dirname, '../public/audio/uploads', tempFileName);
- const dir = path.dirname(localFilePath);
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-        const response = await axios({
-            url: req.file.location,
-            method: 'GET',
-            responseType: 'stream'
-        });
-        const writer = fs.createWriteStream(localFilePath);
-        response.data.pipe(writer);
-        await new Promise((resolve, reject) => {
-            writer.on('finish', resolve);
-            writer.on('error', reject);
-        });
-         
-
-        // fs.renameSync(tempPath, finalTempPath);
-
-        processedPath = localFilePath.replace('.webm', '_clean.wav');
-        try {
-            execSync(`ffmpeg -i "${localFilePath}" -af "afftdn=nf=-25, highpass=f=200, lowpass=f=3000, loudnorm" -ar 16000 -ac 1 "${processedPath}"`);
-            // filePathForGroq = processedPath;
-        } catch (e) { processedPath = localFilePath }
+        const fileStream = fs.createReadStream(req.file.path); 
 
         const transcription = await groq.audio.transcriptions.create({
-            file: fs.createReadStream(processedPath),
-            model: "whisper-large-v3",
+            file: fileStream,
+            model: "whisper-large-v3", 
             language: "ar",
-            temperature: 0,
-            prompt: `تلاوة قرآنية مجودة برواية حفص عن عاصم. النص: ${fullReferenceText}`
+            temperature: 0, 
+            prompt: `تلاوة قرآنية دقيقة. القارئ يقرأ: ${fullReferenceText}`
         });
 
-        const userWords = normalization(transcription.text).replace(/الله/g, ' الله ').split(" ").filter(Boolean);
+        let rawUserText = normalization(transcription.text);
 
-        const diffResults = diff.diffArrays(normalizedOriginalWords, userWords);
+        if (startAyah === 1 && surah !== 9) {
+            const basmalaStandard = "بسم الله الرحمن الرحيم";
+            const userWordsArr = rawUserText.split(" ");
+            const foundBasmalaStart = userWordsArr.slice(0, 4).some(w => 
+                isPhoneticallyClose(w, "بسم") || isPhoneticallyClose(w, "الله") || isPhoneticallyClose(w, "الرحمن")
+            );
+
+            if (foundBasmalaStart) {
+               
+                let cutIndex = 4;
+                if (userWordsArr.length < 4) cutIndex = userWordsArr.length;
+                
+                const restOfText = userWordsArr.slice(cutIndex).join(" ");
+                rawUserText = basmalaStandard + " " + restOfText;
+            }else{
+                 rawUserText = basmalaStandard + " " + rawUserText;
+            }
+        }
+
+        const userWords = rawUserText
+            .replace(/الله/g, ' الله ') 
+            .split(" ")
+            .filter(Boolean);
+
+        const diffResults = diff.diffArrays(comparisonWords, userWords); 
+        
         let resultAnalysis = [];
-        let oIdx = 0;
+        let oIdx = 0; 
         let correctCount = 0;
 
         diffResults.forEach((part, i) => {
             if (part.removed) {
                 part.value.forEach((oWord) => {
                     let status = "missing";
-                    
                     const nextPart = diffResults[i + 1];
                     if (nextPart && nextPart.added) {
-                        const matchIdx = nextPart.value.findIndex(uW => isPhoneticallyClose(uW, oWord));
+                        const currentCleanWord = comparisonWords[oIdx];
+                        const matchIdx = nextPart.value.findIndex(uW => isPhoneticallyClose(uW, currentCleanWord));
+                        
                         if (matchIdx !== -1) {
-                            status = "wrong";
+                            status = "wrong"; 
                             nextPart.value.splice(matchIdx, 1); 
                         }
                     }
-
-                    const originalWithHarakat = originalWords[oIdx];
-                    resultAnalysis.push({ 
-                        text: originalWithHarakat, 
-                        status,
-                        surah: surah,
-                        ayah: (ayahEndIndices.find(m => m.index >= oIdx) || {}).number
-                    });
-
-                    const marker = ayahEndIndices.find(m => m.index === oIdx);
-                    if (marker) resultAnalysis.push({ text: marker.number, status: "ayah_marker", surah, ayah: marker.number });
                     
+                    const wordToDisplay = displayWords[oIdx]; 
+                    const marker = ayahEndIndices.find(m => m.index === oIdx);
+                    
+                    resultAnalysis.push({ 
+                        text: wordToDisplay || oWord, 
+                        status, 
+                        surah, 
+                        ayah: (ayahEndIndices.find(m => m.index >= oIdx) || {}).number 
+                    });
+                    
+                    if (marker) resultAnalysis.push({ text: marker.number, status: "ayah_marker", surah, ayah: marker.number });
                     oIdx++;
                 });
             } else if (!part.added) {
+                //Correct Word
                 part.value.forEach(() => {
-                    const originalWithHarakat = originalWords[oIdx];
-                    resultAnalysis.push({ 
-                        text: originalWithHarakat, 
-                        status: "Correct",
-                        surah: surah,
-                        ayah: (ayahEndIndices.find(m => m.index >= oIdx) || {}).number
-                    });
-                    correctCount++;
-
+                    const wordToDisplay = displayWords[oIdx];
                     const marker = ayahEndIndices.find(m => m.index === oIdx);
-                    if (marker) resultAnalysis.push({ text: marker.number, status: "ayah_marker", surah, ayah: marker.number });
                     
+                    resultAnalysis.push({ 
+                        text: wordToDisplay || "---", 
+                        status: "Correct",
+                        surah, 
+                        ayah: (ayahEndIndices.find(m => m.index >= oIdx) || {}).number 
+                    });
+                    
+                    correctCount++;
+                    if (marker) resultAnalysis.push({ text: marker.number, status: "ayah_marker", surah, ayah: marker.number });
                     oIdx++;
                 });
             }
         });
 
-        const score = Math.round((correctCount / normalizedOriginalWords.length) * 100);
-       
-        [localFilePath, processedPath].forEach(p => { if (fs.existsSync(p)) fs.unlinkSync(p); });
+        const score = Math.round((correctCount / comparisonWords.length) * 100);
         await Recitation.findByIdAndUpdate(newRecitation._id, { score: Math.min(score, 100) });
+
+        setTimeout(() => {
+            if (req.file.path && fs.existsSync(req.file.path)) fs.unlink(req.file.path, () => {});
+        }, 1000);
 
         res.status(200).json({
             success: true,
-            recitation: newRecitation,  
+            recitation: newRecitation,
             analysis: resultAnalysis,
             score: Math.min(score, 100),
             stats: { processingTime: `${(Date.now() - startTime) / 1000}s` }
         });
 
     } catch (error) {
-        if (localFilePath && fs.existsSync(localFilePath)) fs.unlinkSync(localFilePath);
-        if (processedPath && fs.existsSync(processedPath)) fs.unlinkSync(processedPath);
+        if (req.file && req.file.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
         console.error("💥 Error:", error);
         res.status(500).json({ error: error.message });
     }
