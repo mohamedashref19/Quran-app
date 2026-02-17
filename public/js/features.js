@@ -313,6 +313,54 @@ window.playCorrectAudio = (surah, ayah) => {
     audio.play().catch(() => showAlert('error', 'عذراً، فشل تشغيل الصوت التعليمي'));
 };
 
+let currentAudio = null;
+let currentBtn = null;
+
+window.playCorrectAudio = function(surah, ayah, btnElement) {
+    const s = String(surah).padStart(3, '0');
+    const a = String(ayah).padStart(3, '0');
+    
+    const audioUrl = `https://everyayah.com/data/Minshawy_Murattal_128kbps/${s}${a}.mp3`;
+
+    if (currentAudio && !currentAudio.paused && currentBtn === btnElement) {
+        currentAudio.pause();
+        btnElement.classList.remove('fa-stop-circle', 'text-danger');
+        btnElement.classList.add('fa-volume-up', 'text-primary');
+        return;
+    }
+
+    
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0; 
+        if (currentBtn) {
+            currentBtn.classList.remove('fa-stop-circle', 'text-danger');
+            currentBtn.classList.add('fa-volume-up', 'text-primary');
+        }
+    }
+
+    currentAudio = new Audio(audioUrl);
+    currentBtn = btnElement; 
+
+    currentAudio.play();
+
+    btnElement.classList.remove('fa-volume-up', 'text-primary');
+    btnElement.classList.add('fa-stop-circle', 'text-danger');
+
+    currentAudio.onended = function() {
+        btnElement.classList.remove('fa-stop-circle', 'text-danger');
+        btnElement.classList.add('fa-volume-up', 'text-primary');
+        currentAudio = null;
+        currentBtn = null;
+    };
+    
+    currentAudio.onerror = function() {
+        alert("عذراً، ملف الصوت غير متاح حالياً");
+        btnElement.classList.remove('fa-stop-circle', 'text-danger');
+        btnElement.classList.add('fa-volume-up', 'text-primary');
+    };
+};
+
 
 export async function checkRecitation(file, surah, startAyah, endAyah, userAudioUrl) {
   const formData = new FormData();
@@ -354,7 +402,7 @@ export async function checkRecitation(file, surah, startAyah, endAyah, userAudio
             <div class="ayah-marker-wrapper d-inline-flex align-items-center align-middle">
                 <span class="ayah-circle">${item.text}</span>
                 <i class="fas fa-volume-up text-primary ms-1 listen-icon" 
-                   onclick="window.playCorrectAudio(${item.surah}, ${item.ayah})"
+                   onclick="window.playCorrectAudio(${item.surah}, ${item.ayah}, this)"
                    style="cursor: pointer; font-size: 1rem;" 
                    title="استمع للنطق الصحيح"></i>
             </div>`;
