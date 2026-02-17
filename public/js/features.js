@@ -205,7 +205,7 @@ export async function loadBookmarks() {
           <div class="card shadow-sm border-start border-success border-4 h-100">
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-start">
-                <h5 class="card-title text-success">سورة ${b.surahName}</h5>
+                <h5 class="card-title text-success"> ${b.surahName}</h5>
                 <button class="btn btn-sm btn-outline-danger delete-bookmark-btn" data-id="${b._id}"><i class="fas fa-trash"></i></button>
               </div>
               <p class="ayah-text text-dark mt-2" style="font-family: 'Amiri'; font-size: 1.2rem;">${b.ayahText}</p>
@@ -274,9 +274,7 @@ export async function createKhatmah(name, durationDays) {
   } catch (err) { showAlert('error', err.response.data.message); }
 }
 
-// 1. تأكد أن المصفوفة مُعرفة في أعلى الملف (خارج الدالات) لتكون Global
 
-// 1. ضع المصفوفة في أعلى الملف تماماً (خارج الدوال)
 
 export async function updateKhatmahProgress(surah, ayah) {
     try {

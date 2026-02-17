@@ -62,7 +62,7 @@ exports.updateProgress = catchAsync(async (req, res, next) => {
   const khatmah = await Khatmah.findOneAndUpdate(
     { user: req.user.id, status: "ongoing" },
     { currentSurah: surah, currentAyah: ayah },
-    { new: true, runValidators: true }  
+    { returnDocument: true, runValidators: true }  
   );
 
   if (!khatmah) {
