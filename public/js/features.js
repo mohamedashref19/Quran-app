@@ -1,3 +1,4 @@
+
 /* eslint-disable */
 import { LocalNotifications } from '@capacitor/local-notifications';
 import axios from 'axios';
@@ -819,16 +820,20 @@ export const initSearch = () => {
     const targetPage = ayah.page;
     const surahNum = ayah.surahNumber; 
             const ayahNum = ayah.ayahNumber || ayah.numberInSurah;
-    
-    if (window.location.pathname.includes('/quran/')) {
-        loadQuranPage(targetPage, surahNum, ayahNum);
-        window.history.pushState({}, '', `/quran/${targetPage}`);
-    } else {
-        window.location.assign(`/quran/${targetPage}#ayah-${surahNum}-${ayahNum}`);
-    }
-
-    resultsContainer.classList.add('d-none'); 
+            loadQuranPage(targetPage, surahNum, ayahNum);
+            window.history.pushState({}, '', `/quran/${targetPage}`);
+            resultsContainer.classList.add('d-none'); 
     searchInput.value = '';
+    
+    // if (window.location.pathname.includes('/quran/')) {
+    //     loadQuranPage(targetPage, surahNum, ayahNum);
+    //     window.history.pushState({}, '', `/quran/${targetPage}`);
+    // } else {
+    //     window.location.assign(`/quran/${targetPage}#ayah-${surahNum}-${ayahNum}`);
+    // }
+
+    // resultsContainer.classList.add('d-none'); 
+    // searchInput.value = '';
 });
 
           resultsContainer.appendChild(item);

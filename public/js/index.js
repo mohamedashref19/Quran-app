@@ -2,6 +2,27 @@
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import axios from 'axios';
+import '@babel/polyfill';
+import { login, logout, signup, verifyOTP, updateSettings, forgotPassword, resetPassword, deleteUser, showAlert } from './auth';
+import { 
+  loadSurahs, 
+  startSurahReading, 
+  manageKhatmah, 
+  createKhatmah, 
+  updateKhatmahProgress,
+  checkRecitation, 
+  loadReciters, 
+  loadPrayers, 
+  loadBookmarks,
+  loadQuranPage,
+  toggleBookmark, 
+  deleteBookmark, 
+  deleteKhatmah,
+  initSearch  ,
+  initBookmarksSearch
+} from './features';
+axios.defaults.baseURL = 'https://aqra-app.serveftp.com';
 
 const initNativeFeatures = async () => {
     if (!Capacitor.isNativePlatform()) return;
@@ -71,26 +92,7 @@ document.addEventListener('DOMContentLoaded', initNativeFeatures);
 
 
 
-import axios from 'axios';
-import '@babel/polyfill';
-import { login, logout, signup, verifyOTP, updateSettings, forgotPassword, resetPassword, deleteUser, showAlert } from './auth';
-import { 
-  loadSurahs, 
-  startSurahReading, 
-  manageKhatmah, 
-  createKhatmah, 
-  updateKhatmahProgress,
-  checkRecitation, 
-  loadReciters, 
-  loadPrayers, 
-  loadBookmarks,
-  loadQuranPage,
-  toggleBookmark, 
-  deleteBookmark, 
-  deleteKhatmah,
-  initSearch  ,
-  initBookmarksSearch
-} from './features';
+
 
 let currentPage = parseInt(window.location.pathname.split('/').pop()) || 1;
 const surahNames = [
@@ -466,7 +468,7 @@ window.showTafseer = async (surahId, ayahId) => {
   }
 };
 
-initSearch()
+if(typeof initSearch === 'function') initSearch();
 
 
 //DarkMode
