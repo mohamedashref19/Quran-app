@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { LocalNotifications } from '@capacitor/local-notifications';
 import axios from 'axios';
 import { showAlert } from './auth';
 
@@ -20,6 +21,7 @@ const surahStartPages = {
   110: 603, 111: 603, 112: 604, 113: 604, 114: 604
 };
     const surahNames = ["الفاتحة", "البقرة", "آل عمران", "النساء", "المائدة", "الأنعام", "الأعراف", "الأنفال", "التوبة", "يونس", "هود", "يوسف", "الرعد", "إبراهيم", "الحجر", "النحل", "الإسراء", "الكهف", "مريم", "طه", "الأنبياء", "الحج", "المؤمنون", "النور", "الفرقان", "الشعراء", "النمل", "القصص", "العنكبوت", "الروم", "لقمان", "السجدة", "الأحزاب", "سبأ", "فاطر", "يس", "الصافات", "ص", "الزمر", "غافر", "فصلت", "الشورى", "الزخرف", "الدخان", "الجاثية", "الأحقاف", "محمد", "الفتح", "الحجرات", "ق", "الذاريات", "الطور", "النجم", "القمر", "الرحمن", "الواقعة", "الحديد", "المجادلة", "الحشر", "الممتحنة", "الصف", "الجمعة", "المنافقون", "التغابن", "الطلاق", "التحريم", "الملك", "القلم", "الحاقة", "المعارج", "نوح", "الجن", "المزمل", "المدثر", "القيامة", "الإنسان", "المرسلات", "النبأ", "النازعات", "عبس", "التكوير", "الإنفطار", "المطففين", "الإنشقاق", "البروج", "الطارق", "الأعلى", "الغاشية", "الفجر", "البلد", "الشمس", "الليل", "الضحى", "الشرح", "التين", "العلق", "القدر", "البينة", "الزلزلة", "العاديات", "القارعة", "التكاثر", "العصر", "الهمزة", "الفيل", "قريش", "الماعون", "الكوثر", "الكافرون", "النصر", "المسد", "الإخلاص", "الفلق", "الناس"];
+
 
 
 
@@ -605,6 +607,60 @@ export async function loadReciters() {
   }
 }
 
+export const scheduleAllPrayers = async (prayerTimes) => {
+    try {
+        const pending = await LocalNotifications.getPending();
+        if (pending.notifications.length > 0) {
+            await LocalNotifications.cancel(pending);
+        }
+
+        const notifications = [];
+        const now = new Date();
+
+        const targetPrayers = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+        const prayerNamesAr = {
+            'Fajr': 'الفجر',
+            'Dhuhr': 'الظهر',
+            'Asr': 'العصر',
+            'Maghrib': 'المغرب',
+            'Isha': 'العشاء'
+        };
+
+        targetPrayers.forEach((key, index) => {
+            const timeStr = prayerTimes[key]; 
+            if (!timeStr) return;
+
+            const [hours, minutes] = timeStr.split(':');
+            const prayerDate = new Date();
+            prayerDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+            if (prayerDate > now) {
+                notifications.push({
+                    title: `حان الآن موعد صلاة ${prayerNamesAr[key]} 🕌`,
+                    body: `أرحنا بها يا بلال.. موعد صلاة ${prayerNamesAr[key]} حسب توقيتك المحلي.`,
+                    id: index + 1, 
+                    schedule: { at: prayerDate },
+                    channelId: 'prayer-reminders', 
+                    smallIcon: 'ic_notification',
+                    sound: 'azan_short.mp3',
+                    actionTypeId: "OPEN_PRAYERS",
+                });
+            }
+        });
+
+        if (notifications.length > 0) {
+            await LocalNotifications.schedule({ notifications });
+            console.log(`✅ تم جدولة ${notifications.length} صلوات متبقية لليوم.`);
+        }
+    } catch (error) {
+        console.error('❌ خطأ في جدولة إشعارات الصلاة:', error);
+    }
+};
+
+
+
+
+
 export function loadPrayers() {
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(async position => {
@@ -614,6 +670,7 @@ export function loadPrayers() {
         const res = await axios.get(`/api/v1/prayers?lat=${latitude}&lng=${longitude}`);
         const timings = res.data.data.timings;
         const container = document.getElementById('prayers-list');
+    
         
         if (!container) return;
 
@@ -644,7 +701,19 @@ export function loadPrayers() {
             </div>`;
           container.insertAdjacentHTML('beforeend', html);
         }
-      } catch (err) { 
+if (Capacitor.isNativePlatform()) {
+    try {
+        await scheduleAllPrayers(timings);
+        console.log("Prayer notifications updated successfully");
+    } catch (notifyErr) {
+        console.error("Failed to schedule notifications:", notifyErr);
+    }
+}
+
+      }
+      
+      
+      catch (err) { 
         console.error(err);
         alert('فشل جلب المواقيت'); 
       }

@@ -1,4 +1,61 @@
 /* eslint-disable */
+import { App } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
+import { LocalNotifications } from '@capacitor/local-notifications';
+
+const initNativeFeatures = async () => {
+    if (!Capacitor.isNativePlatform()) return;
+
+  //  console.log('📱 Initializing Native Features...');
+
+    try {
+        await App.removeAllListeners();
+        await App.addListener('backButton', ({ canGoBack }) => {
+            if (canGoBack) window.history.back();
+            else App.exitApp();
+        });
+       // console.log('✅ Back Button Ready!');
+
+        const perm = await LocalNotifications.requestPermissions();
+        if (perm.display === 'granted') {
+        //    console.log('✅ Notification Permission Granted!');
+            
+            await LocalNotifications.createChannel({
+                id: 'prayer-reminders',
+    name: 'تنبيهات الصلاة',
+    importance: 5,
+    description: 'قناة تنبيهات تطبيق اقرأ',
+    sound: 'azan_short.mp3', 
+    visibility: 1,
+    vibration: true
+            });
+
+            await LocalNotifications.schedule({
+                notifications: [
+                    {
+                        title: "تم تفعيل التنبيهات 🕌",
+                        body: "سيتم تنبيهك بمواعيد الصلاة والورد اليومي",
+                        id: 101,
+                        schedule: { at: new Date(Date.now() + 10000) },
+                        channelId: 'prayer-reminders'
+                    }
+                ]
+            });
+           //console.log('🚀 Test Notification Scheduled (10s)!');
+        }
+    } catch (err) {
+        console.error('❌ Native Init Error:', err);
+    }
+};
+
+document.addEventListener('DOMContentLoaded', initNativeFeatures);
+
+
+
+
+
+
+
 import axios from 'axios';
 import '@babel/polyfill';
 import { login, logout, signup, verifyOTP, updateSettings, forgotPassword, resetPassword, deleteUser, showAlert } from './auth';
@@ -434,3 +491,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+
