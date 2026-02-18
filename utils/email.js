@@ -10,6 +10,7 @@ module.exports = class Email {
   }
 
   newTransport() {
+    console.log("Current Env:", process.env.NODE_ENV);
     if (process.env.NODE_ENV === "production") {
       // SendGrid
       return nodemailer.createTransport({
@@ -32,7 +33,7 @@ module.exports = class Email {
     });
   }
 
-  async send(subject, htmlContent) {
+async send(subject, htmlContent) {
     const emailOptions = {
       from: this.from,
       to: this.to,
@@ -41,7 +42,14 @@ module.exports = class Email {
       text: convert(htmlContent),
     };
 
-    await this.newTransport().sendMail(emailOptions);
+    try {
+      // محاولة الإرسال
+      await this.newTransport().sendMail(emailOptions);
+      console.log(`✅ Email sent successfully to: ${this.to}`);
+    } catch (err) {
+      // هنا مربط الفرس: لو فيه خطأ هيطبعهولك في التيرمنال
+      console.error("❌ Error sending email:", err);
+    }
   }
 
   async sendWelcome() {

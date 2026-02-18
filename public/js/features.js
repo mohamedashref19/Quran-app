@@ -283,6 +283,44 @@ export async function deleteBookmark(id) {
   } catch (err) { showAlert('error', 'فشل الحذف'); }
 }
 
+
+
+export const scheduleDailyWird = async (khatmahName) => {
+    try {
+        await LocalNotifications.cancel({ notifications: [{ id: 999 }] });
+
+        const notificationTime = new Date();
+        notificationTime.setHours(21); 
+        notificationTime.setMinutes(0);
+        notificationTime.setSeconds(0);
+
+        if (notificationTime < new Date()) {
+            notificationTime.setDate(notificationTime.getDate() + 1);
+        }
+
+        await LocalNotifications.schedule({
+            notifications: [{
+                title: "وقت الورد اليومي 📖",
+                body: `لا تنسَ قراءة وردك من ختمة "${khatmahName}" اليوم.`,
+                id: 999,   
+                schedule: { 
+                    at: notificationTime,
+                    every: 'day', 
+                    allowWhileIdle: true
+                },
+                channelId: 'khatmah-channel', 
+                smallIcon: 'ic_notification',
+                actionTypeId: "OPEN_KHATMAH"
+            }]
+        });
+        console.log('✅ تم جدولة تذكير الورد اليومي الساعة 9 مساءً');
+    } catch (error) {
+        console.error('❌ خطأ في جدولة الورد:', error);
+    }
+};
+
+
+
 export async function manageKhatmah() {
   try {
     const res = await axios.get('/api/v1/khatmah');
@@ -313,6 +351,9 @@ export async function manageKhatmah() {
     if (progressBar) {
         progressBar.style.width = `${progress}%`;
         progressBar.innerText = `${progress}%`;
+    }
+    if (Capacitor.isNativePlatform()) {
+        await scheduleDailyWird(k.name);
     }
 
   } catch (err) {
@@ -640,7 +681,7 @@ export const scheduleAllPrayers = async (prayerTimes) => {
                     body: `أرحنا بها يا بلال.. موعد صلاة ${prayerNamesAr[key]} حسب توقيتك المحلي.`,
                     id: index + 1, 
                     schedule: { at: prayerDate },
-                    channelId: 'prayer-reminders', 
+                    channelId: 'azan-channel', 
                     smallIcon: 'ic_notification',
                     sound: 'azan_short.mp3',
                     actionTypeId: "OPEN_PRAYERS",

@@ -21,7 +21,7 @@ const initNativeFeatures = async () => {
         //    console.log('✅ Notification Permission Granted!');
             
             await LocalNotifications.createChannel({
-                id: 'prayer-reminders',
+                id: 'azan-channel',
     name: 'تنبيهات الصلاة',
     importance: 5,
     description: 'قناة تنبيهات تطبيق اقرأ',
@@ -29,19 +29,14 @@ const initNativeFeatures = async () => {
     visibility: 1,
     vibration: true
             });
-
-            await LocalNotifications.schedule({
-                notifications: [
-                    {
-                        title: "تم تفعيل التنبيهات 🕌",
-                        body: "سيتم تنبيهك بمواعيد الصلاة والورد اليومي",
-                        id: 101,
-                        schedule: { at: new Date(Date.now() + 10000) },
-                        channelId: 'prayer-reminders'
-                    }
-                ]
-            });
-           //console.log('🚀 Test Notification Scheduled (10s)!');
+            await LocalNotifications.createChannel({
+        id: 'khatmah-channel',
+        name: 'تنبيهات الورد اليومي',
+        importance: 4, 
+        visibility: 1,
+        vibration: true
+    });
+          console.log('✅ Notification Channel Created!');
         }
     } catch (err) {
         console.error('❌ Native Init Error:', err);
