@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aqra-cache-v8-network'; 
+const CACHE_NAME = 'aqra-cache-v9-network-fast'; 
 
 const ASSETS_TO_CACHE = [
   '/offline.html',

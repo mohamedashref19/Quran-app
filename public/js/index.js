@@ -6,37 +6,57 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 const initNativeFeatures = async () => {
     if (!Capacitor.isNativePlatform()) return;
 
-  //  console.log('📱 Initializing Native Features...');
-
     try {
+        
+        if ('serviceWorker' in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (let registration of registrations) {
+                await registration.unregister();
+                console.log('🗑️ Service Worker Unregistered');
+            }
+            const keys = await caches.keys();
+            for (let key of keys) {
+                await caches.delete(key);
+                console.log('🗑️ Cache Deleted:', key);
+            }
+        }
+
+       
+        await LocalNotifications.cancel({ notifications: [{ id: 101 }] });
+        const pending = await LocalNotifications.getPending();
+        if (pending.notifications.length > 0) {
+            await LocalNotifications.cancel(pending);
+        }
+        console.log('✅ تم تنظيف جميع الإشعارات القديمة والكاش');
+
+
         await App.removeAllListeners();
         await App.addListener('backButton', ({ canGoBack }) => {
             if (canGoBack) window.history.back();
             else App.exitApp();
         });
-       // console.log('✅ Back Button Ready!');
 
         const perm = await LocalNotifications.requestPermissions();
         if (perm.display === 'granted') {
-        //    console.log('✅ Notification Permission Granted!');
             
             await LocalNotifications.createChannel({
                 id: 'azan-channel',
-    name: 'تنبيهات الصلاة',
-    importance: 5,
-    description: 'قناة تنبيهات تطبيق اقرأ',
-    sound: 'azan_short.mp3', 
-    visibility: 1,
-    vibration: true
+                name: 'تنبيهات الصلاة',
+                importance: 5,
+                description: 'قناة تنبيهات تطبيق اقرأ',
+                sound: 'azan_short.mp3', 
+                visibility: 1,
+                vibration: true
             });
             await LocalNotifications.createChannel({
-        id: 'khatmah-channel',
-        name: 'تنبيهات الورد اليومي',
-        importance: 4, 
-        visibility: 1,
-        vibration: true
-    });
-          console.log('✅ Notification Channel Created!');
+                id: 'khatmah-channel',
+                name: 'تنبيهات الورد اليومي',
+                importance: 4, 
+                visibility: 1,
+                vibration: true
+            });
+            
+            console.log('✅ Notification Channels Ready!');
         }
     } catch (err) {
         console.error('❌ Native Init Error:', err);
