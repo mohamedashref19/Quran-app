@@ -1037,3 +1037,62 @@ test*/
     from { background-color: rgba(255, 193, 7, 0.2); }
     to { background-color: rgba(255, 193, 7, 0.4); }
 }
+
+.blurred-text {
+    color: transparent !important;
+    text-shadow: 0 0 8px rgba(0,0,0,0.5);
+    user-select: none;
+    transition: all 0.3s ease;
+}
+.live-play-btn.playing {
+    background-color: #198754;
+    color: white;
+    border-color: #198754;
+}
+
+/* --- زخرفة عنوان السورة (مثل Pug) --- */
+.surah-title-box {
+    border: 2px solid #d4af37; /* لون ذهبي */
+    border-radius: 15px;
+    background: #fff;
+    padding: 10px 40px;
+    display: inline-block;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    font-family: 'Amiri', serif;
+}
+
+/* --- زر الختمة العائم --- */
+.khatmah-floating-btn {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background-color: #198754; /* لون أخضر */
+    color: white;
+    padding: 12px 20px;
+    border-radius: 50px;
+    text-decoration: none;
+    box-shadow: 0 4px 15px rgba(25, 135, 84, 0.4);
+    z-index: 1050;
+    transition: transform 0.2s;
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+}
+
+.khatmah-floating-btn:hover {
+    transform: scale(1.05);
+    color: white;
+}
+
+/* --- أزرار التنقل السفلية (Next/Prev) --- */
+.nav-btn-custom {
+    flex: 1;
+    max-width: 45%;
+    padding: 12px;
+    border-radius: 10px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}

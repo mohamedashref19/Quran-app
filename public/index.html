@@ -4,34 +4,70 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aqra | تطبيق اقرأ</title>
-    
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
     <link rel="stylesheet" href="/css/style.css">
     <link rel="shortcut icon" type="image/png" href="/img/title.png">
-    <link rel="manifest" href="/manifest.json">
-    <link rel="apple-touch-icon" href="/img/icons/icon-192.png">
-    
     <meta name="theme-color" content="#1e5f31">
+    <style>
+        /* تأثير التشويش لوضع الحفظ */
+.blurred-text {
+    color: transparent !important;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s ease;
+}
+
+/* تنسيق قائمة الآيات في المسمع */
+.live-ayah-item {
+    border-bottom: 1px solid #eee;
+    padding: 15px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.live-ayah-text {
+    font-family: 'Amiri', serif;
+    font-size: 1.3rem;
+    line-height: 2;
+    text-align: right;
+    flex-grow: 1;
+    margin-right: 15px;
+}
+
+.live-play-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #198754;
+    color: #198754;
+    background: white;
+    transition: all 0.2s;
+}
+
+.live-play-btn:active, .live-play-btn.playing {
+    background: #198754;
+    color: white;
+}
+    </style>
 </head>
 
 <body class="d-flex flex-column min-vh-100">
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-aqra shadow-sm py-2">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-aqra shadow-sm py-2 sticky-top">
         <div class="container d-flex align-items-center">
-            <a class="navbar-brand fw-bold order-0" href="/">📖 تطبيق اقرأ</a>
+            <a class="navbar-brand fw-bold order-0" href="#" onclick="showSection('home')">📖 تطبيق اقرأ</a>
             
             <div class="d-flex align-items-center mx-auto order-1" style="flex: 1; max-width: 600px; justify-content: center;">
                  <div class="search-container position-relative w-100" style="max-width: 450px;">
-                    <input id="search-input" class="form-control rounded-pill px-4 py-2 test2" type="text" placeholder="ابحث عن آية أو كلمة..." style="border: 2px solid #1e5f31; padding-left: 40px;">
+                    <input id="search-input" class="form-control rounded-pill px-4 py-2 test2" type="text" placeholder="ابحث عن آية..." style="border: 2px solid #1e5f31; padding-left: 40px;">
                     <i class="fas fa-search position-absolute text-muted" style="left: 15px; top: 50%; transform: translateY(-50%);"></i>
                     <div id="search-results" class="list-group position-absolute w-100 shadow-lg d-none" style="z-index: 1000; max-height: 300px; overflow-y: auto; top: 50px;"></div>
                  </div>
-                 
-                 <button id="theme-toggle" class="btn btn-link nav-link ms-2" title="تغيير المظهر">
-                    <i class="fas fa-moon fs-5 text-white"></i>
-                 </button>
+                 <button id="theme-toggle" class="btn btn-link nav-link ms-2"><i class="fas fa-moon fs-5 text-white"></i></button>
             </div>
 
             <button class="navbar-toggler order-2 ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -39,72 +75,332 @@
             </button>
 
             <div id="navbarNav" class="collapse navbar-collapse order-3">
-                <ul class="navbar-nav ms-auto" id="nav-links">
-                    <li class="nav-item"><a class="nav-link" href="/login">تسجيل دخول</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/signup">إنشاء حساب</a></li>
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item auth-link"><a class="nav-link" href="#" onclick="showSection('login')">تسجيل دخول</a></li>
+                    <li class="nav-item auth-link"><a class="nav-link" href="#" onclick="showSection('signup')">إنشاء حساب</a></li>
+                    <li class="nav-item user-link d-none"><a class="nav-link" href="#" onclick="showSection('profile')">👤 حسابي</a></li>
                 </ul>
             </div>
         </div>
     </nav>
 
-    <div class="container my-5">
-        
-        <div class="row justify-content-center mb-5">
-            <div class="col-md-8 text-center">
-                <h3 id="location-name" class="text-success fw-bold">جاري تحديد الموقع...</h3>
-                <h5 id="hijri-date" class="text-muted mb-4"></h5>
-                <div id="prayers-list" class="list-group shadow-sm">
-                    </div>
-            </div>
-        </div>
+    <div class="container my-4">
 
-        <div id="active-khatmah" class="d-none row justify-content-center">
-            <div class="col-md-8">
-                <div class="card border-success shadow-sm">
-                    <div class="card-body text-center">
-                        <h4 id="khatmah-name" class="card-title text-success fw-bold"></h4>
-                        <p id="daily-target" class="card-text lead my-3"></p>
-                        <p id="khatmah-status-text" class="text-muted"></p>
-                        
-                        <div class="progress mb-3" style="height: 25px;">
-                            <div id="progress-bar" class="progress-bar bg-success progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
+        <div id="home-section">
+            <div class="row justify-content-center text-center mb-4">
+                <div class="col-lg-8">
+                    <h1 class="display-6 fw-bold text-success">مرحباً بك في اقرأ 📖</h1>
+                    <div class="mt-3 bg-light p-3 rounded shadow-sm border-start border-success border-4">
+                        <h5 id="hijri-date" class="text-muted mb-2 small"></h5>
+                        <h6 id="location-name" class="text-success fw-bold small">جاري تحديد الموقع...</h6>
+                        <div id="prayers-list" class="list-group list-group-horizontal justify-content-center flex-wrap mt-2 small-prayers"></div>
+                    </div>
+                    <div id="active-khatmah" class="d-none mt-3">
+                        <div class="card border-success shadow-sm">
+                            <div class="card-body py-2">
+                                <h5 id="khatmah-name" class="text-success fw-bold m-0"></h5>
+                                <p id="daily-target" class="small text-muted my-1"></p>
+                                <div class="progress my-2" style="height: 10px;">
+                                    <div id="progress-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+                                </div>
+                                <button onclick="openQuranAtCurrentKhatmah()" class="btn btn-sm btn-success w-100">واصل القراءة <i class="fas fa-book-open"></i></button>
+                            </div>
                         </div>
-                        
-                        <a href="/quran" class="btn btn-success">اذهب للمصحف <i class="fas fa-book-open ms-1"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="row g-3">
+                <div class="col-6 col-md-4">
+                   <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow" onclick="showSection('surah-index'); loadSurahIndex();" style="cursor: pointer;">
+                        <div class="mb-2"><i class="fas fa-book-open fa-2x text-success"></i></div>
+                        <h6 class="fw-bold">المصحف</h6>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4">
+                    <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow" onclick="showSection('reciters')" style="cursor: pointer;">
+                        <div class="mb-2"><i class="fas fa-headphones-alt fa-2x text-success"></i></div>
+                        <h6 class="fw-bold">القراء</h6>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4">
+                    <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow" onclick="showSection('ai-correction')" style="cursor: pointer;">
+                        <div class="mb-2"><i class="fas fa-microphone-alt fa-2x text-warning"></i></div>
+                        <h6 class="fw-bold">المصحح الذكي</h6>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4">
+                    <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow" onclick="document.getElementById('active-khatmah').classList.remove('d-none');" style="cursor: pointer;">
+                        <div class="mb-2"><i class="fas fa-calendar-check fa-2x text-success"></i></div>
+                        <h6 class="fw-bold">الختمة</h6>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4">
+                    <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow" onclick="showSection('bookmarks')" style="cursor: pointer;">
+                        <div class="mb-2"><i class="fas fa-bookmark fa-2x text-success"></i></div>
+                        <h6 class="fw-bold">العلامات</h6>
+                    </div>
+                </div>
+                 <div class="col-6 col-md-4">
+                    <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow" onclick="showSection('live-recitation')" style="cursor: pointer;">
+                        <div class="mb-2"><i class="fa-solid fa-wand-magic-sparkles fa-2x text-warning"></i></div>
+                        <h6 class="fw-bold">تتبع التلاوة</h6>
                     </div>
                 </div>
             </div>
         </div>
+        <div id="surah-index-section" class="d-none">
+    <div class="container text-center mt-3">
+        <h2 class="mb-4 text-success fw-bold">المصحف الشريف 📖</h2>
+        
+        <button class="btn btn-outline-secondary btn-sm mb-3" onclick="showSection('home')">
+            <i class="fas fa-arrow-right"></i> القائمة الرئيسية
+        </button>
 
-        <div id="create-khatmah" class="d-none text-center mt-4">
-            <div class="alert alert-light border shadow-sm">
-                <h5>لا توجد ختمة نشطة حالياً</h5>
-                <p>ابدأ رحلتك مع القرآن الكريم ونظم وقتك.</p>
-                <a href="/khatmah" class="btn btn-outline-success">بدء ختمة جديدة</a>
+        <div id="surah-index-list" class="row g-3"></div>
+        
+        <a href="#" class="khatmah-floating-btn" onclick="document.getElementById('active-khatmah').classList.remove('d-none'); showSection('home');">
+            <i class="fas fa-flag"></i>
+            <span class="ms-2">ختمتي</span>
+        </a>
+    </div>
+</div>
+
+        <div id="login-section" class="d-none">
+            <div class="card shadow-sm p-4 mx-auto" style="max-width: 400px;">
+                <div class="text-center mb-4">
+                    <h3 class="mt-2 text-success">تسجيل الدخول</h3>
+                </div>
+                <form id="loginFormPage">
+                    <div class="mb-3">
+                        <label class="form-label">البريد الإلكتروني</label>
+                        <input type="email" id="login-email" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">كلمة المرور</label>
+                        <input type="password" id="login-password" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">دخول</button>
+                </form>
+                <div class="text-center mt-3">
+                    <a href="#" onclick="showSection('signup')" class="text-decoration-none">إنشاء حساب جديد</a>
+                    <br>
+                    <a href="#" onclick="showSection('home')" class="text-muted small">عودة</a>
+                </div>
+            </div>
+        </div>
+
+        <div id="signup-section" class="d-none">
+            <div class="card shadow-sm p-4 mx-auto" style="max-width: 400px;">
+                <div class="text-center mb-4">
+                    <h3 class="mt-2 text-success">حساب جديد</h3>
+                </div>
+                <form id="signupFormPage">
+                    <div class="mb-3">
+                        <label class="form-label">الاسم</label>
+                        <input type="text" id="signup-name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">البريد الإلكتروني</label>
+                        <input type="email" id="signup-email" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">كلمة المرور</label>
+                        <input type="password" id="signup-password" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">تأكيد كلمة المرور</label>
+                        <input type="password" id="signup-passwordConfirm" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">تسجيل</button>
+                </form>
+                <div class="text-center mt-3">
+                    <a href="#" onclick="showSection('login')" class="text-decoration-none">لديك حساب بالفعل؟</a>
+                </div>
+            </div>
+        </div>
+        <div id="verify-otp-section" class="d-none">
+    <div class="card shadow-sm p-4 mx-auto text-center" style="max-width: 400px;">
+        <div class="display-1 mb-3">📩</div>
+        <h3>تفعيل الحساب</h3>
+        <p class="text-muted">أدخل الرمز المرسل إلى بريدك.</p>
+        <form id="verifyOTPFormPage"> <div class="mb-3 text-start">
+                <label class="form-label">البريد الإلكتروني</label>
+                <input id="verify-email" class="form-control" type="email" placeholder="email@example.com" required>
+            </div>
+            <div class="mb-3 text-start">
+                <label class="form-label">رمز التحقق (OTP)</label>
+                <input id="verify-otp" class="form-control text-center fs-4" type="text" maxlength="6" style="letter-spacing: 5px;" required>
+            </div>
+            <button type="submit" class="btn btn-success w-100">تفعيل</button>
+        </form>
+    </div>
+</div>
+
+        <div id="verify-otp-section" class="d-none">
+            <div class="card shadow-sm p-4 mx-auto text-center" style="max-width: 400px;">
+                <div class="display-1 mb-3">📩</div>
+                <h3>تفعيل الحساب</h3>
+                <p class="text-muted">أدخل الرمز المرسل إلى بريدك.</p>
+                <form id="verifyOTPFormPage">
+                    <div class="mb-3 text-start">
+                        <label class="form-label">البريد الإلكتروني</label>
+                        <input id="verify-email" class="form-control" type="email" required>
+                    </div>
+                    <div class="mb-3 text-start">
+                        <label class="form-label">رمز التحقق (OTP)</label>
+                        <input id="verify-otp" class="form-control text-center fs-4" type="text" maxlength="6" required>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">تفعيل</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="quran-section" class="d-none">
+    <div class="container py-3 text-center">
+        
+        <div class="mb-3">
+            <h1 id="surah-title-display" class="surah-title-box text-success fw-bold h3">
+                جارى التحميل...
+            </h1>
+        </div>
+
+        <div class="mb-3">
+            <button class="btn btn-outline-success rounded-pill px-4 btn-sm" onclick="showSection('surah-index'); loadSurahIndex();">
+                📖 الفهرس
+            </button>
+        </div>
+
+        <div id="quran-book" class="position-relative mx-auto bg-white rounded shadow-sm p-3 mb-3" style="min-height: 500px;">
+            <div id="ayahs-container">
+                </div>
+        </div>
+
+        <div class="d-flex justify-content-between gap-3 mt-2 pb-5">
+            <button id="btn-next-page" class="btn btn-success nav-btn-custom">
+                <span>التالي</span> <i class="fas fa-arrow-left"></i>
+            </button>
+            <button id="btn-prev-page" class="btn btn-success nav-btn-custom">
+                <i class="fas fa-arrow-right"></i> <span>السابق</span>
+            </button>
+        </div>
+
+        <a href="#" class="khatmah-floating-btn" onclick="document.getElementById('active-khatmah').classList.remove('d-none'); showSection('home');">
+            <i class="fas fa-flag"></i>
+            <span class="ms-2">ختمتي</span>
+        </a>
+    </div>
+</div>
+
+        <div id="reciters-section" class="d-none">
+            <div class="d-flex align-items-center mb-3">
+                <button class="btn btn-sm btn-secondary me-3" onclick="showSection('home')"><i class="fas fa-arrow-right"></i></button>
+                <h3 class="flex-grow-1 text-center m-0">القراء المتاحون</h3>
+            </div>
+            <div id="reciters-container" class="row g-3"></div>
+        </div>
+
+        <div id="bookmarks-section" class="d-none">
+            <div class="d-flex align-items-center mb-3">
+                <button class="btn btn-sm btn-secondary me-3" onclick="showSection('home')"><i class="fas fa-arrow-right"></i></button>
+                <h3 class="flex-grow-1 text-center m-0">العلامات المحفوظة</h3>
+            </div>
+            <div id="bookmarks-container" class="row g-3"></div>
+        </div>
+
+        <div id="ai-correction-section" class="d-none">
+            <div class="d-flex align-items-center mb-3">
+                <button class="btn btn-sm btn-secondary me-3" onclick="showSection('home')"><i class="fas fa-arrow-right"></i></button>
+                <h3 class="flex-grow-1 text-center m-0">المصحح الذكي</h3>
+            </div>
+            <div class="card shadow-sm p-4 text-center">
+                <div class="mb-4">
+                    <label class="form-label fw-bold">اختر السورة:</label>
+                    <select id="ai-surah-select" class="form-select form-select-lg"></select>
+                </div>
+                <div class="row g-2 mb-4">
+                    <div class="col-6"><input type="number" id="ai-start-ayah" class="form-control" placeholder="من آية"></div>
+                    <div class="col-6"><input type="number" id="ai-end-ayah" class="form-control" placeholder="إلى آية"></div>
+                </div>
+                <button id="recordBtn" class="btn btn-outline-danger rounded-circle p-4 mb-3" style="width: 80px; height: 80px;"><i class="fas fa-microphone fa-2x"></i></button>
+                <p id="recordStatus" class="text-muted small">اضغط للتسجيل</p>
+                <div id="result-container" class="mt-4 d-none text-start bg-light p-3 rounded">
+                    <h6 class="fw-bold border-bottom pb-2">النتيجة:</h6>
+                    <div id="ai-feedback"></div>
+                </div>
+            </div>
+        </div>
+        <div id="live-recitation-section" class="d-none">
+    <div class="d-flex align-items-center mb-3">
+        <button class="btn btn-sm btn-secondary me-3" onclick="showSection('home')"><i class="fas fa-arrow-right"></i></button>
+        <h3 class="flex-grow-1 text-center m-0">المسمّع الآلي 🎧</h3>
+    </div>
+
+    <div class="card shadow-sm p-3">
+        <div class="row g-2 justify-content-center mb-3">
+            <div class="col-12 mb-2">
+                <select id="live-surah-select" class="form-select form-select-lg"></select>
+            </div>
+            <div class="col-6">
+                <input id="live-start-ayah" class="form-control" type="number" placeholder="من آية">
+            </div>
+            <div class="col-6">
+                <input id="live-end-ayah" class="form-control" type="number" placeholder="إلى آية">
+            </div>
+            <div class="col-12 mt-2">
+                <button class="btn btn-primary w-100" onclick="loadLiveAyahs()">تحميل الآيات</button>
+            </div>
+        </div>
+
+        <div class="form-check form-switch d-flex justify-content-center mb-3">
+            <input class="form-check-input ms-2" type="checkbox" id="memorize-mode" checked>
+            <label class="form-check-label fw-bold" for="memorize-mode">وضع الحفظ (إخفاء النص)</label>
+        </div>
+
+        <div id="live-controls" class="text-center d-none">
+            <button id="btn-start-live" class="btn btn-success btn-lg px-4 mb-2">
+                <i class="fas fa-microphone me-2"></i> ابدأ التسميع
+            </button>
+            <button id="btn-stop-live" class="btn btn-danger btn-lg px-4 mb-2 d-none">
+                <i class="fas fa-stop me-2"></i> توقف
+            </button>
+            <p id="live-status" class="text-muted small mt-1">جاهز...</p>
+        </div>
+
+        <div id="live-quran-container" class="bg-white border rounded p-3 text-center mt-3" style="min-height: 200px; font-family: 'Amiri', serif; font-size: 1.4rem; line-height: 2.2;">
+            <p class="text-muted small">اضغط تحميل لعرض الآيات...</p>
+        </div>
+    </div>
+</div>
+
+        <div id="profile-section" class="d-none">
+            <div class="d-flex align-items-center mb-3">
+                <button class="btn btn-sm btn-secondary me-3" onclick="showSection('home')"><i class="fas fa-arrow-right"></i></button>
+                <h3>إعدادات الحساب</h3>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-body">
+                            <h5 class="card-title text-success mb-3">بياناتي</h5>
+                            <form id="updateUserForm">
+                                <div class="mb-3"><label>الاسم</label><input type="text" id="profile-name" class="form-control" required></div>
+                                <div class="mb-3"><label>البريد</label><input type="email" id="profile-email" class="form-control" required></div>
+                                <button type="submit" class="btn btn-success w-100">حفظ</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 text-center">
+                    <button id="logoutBtnProfile" class="btn btn-outline-danger w-100 py-2">تسجيل خروج</button>
+                </div>
             </div>
         </div>
 
     </div>
 
     <footer class="bg-white border-top py-3 mt-auto">
-        <div class="container">
-            <div class="row align-items-center flex-column-reverse flex-md-row">
-                <div class="col-md-6 text-center text-md-end">
-                    <div class="d-flex align-items-center justify-content-center justify-content-md-start">
-                        <img class="me-2" src="/img/title.png" alt="Aqra Logo" style="width: 18px; height: 18px; opacity: 0.8;">
-                        <p class="mb-0 text-muted fw-light" style="font-size: 0.85rem;">
-                            جميع الحقوق محفوظة لـ <strong class="text-success">تطبيق اقرأ</strong> &copy; <span id="current-year"></span>
-                        </p>
-                    </div>
-                </div>
-                <div class="col-md-6 text-center text-md-start mb-2 mb-md-0">
-                    <div class="d-flex align-items-center justify-content-center justify-content-md-start gap-2">
-                        <p class="mb-0 text-muted" style="font-size: 0.85rem;">تم التطوير بواسطة 
-                            <a class="text-dark text-decoration-none fw-bold" href="https://mohamed-ashraf-backend.netlify.app/" target="_blank">Mohamed Ashraf</a>
-                        </p>
-                    </div>
-                </div>
-            </div>
+        <div class="container text-center">
+            <p class="mb-0 text-muted fw-light small">جميع الحقوق محفوظة لـ <strong class="text-success">تطبيق اقرأ</strong> &copy; <span id="current-year"></span></p>
         </div>
     </footer>
 
@@ -113,12 +409,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
-    
-    <script>
-        document.getElementById('current-year').textContent = new Date().getFullYear();
-    </script>
-
+    <script>document.getElementById('current-year').textContent = new Date().getFullYear();</script>
     <script src="/js/bundle.js"></script> 
-
 </body>
 </html>

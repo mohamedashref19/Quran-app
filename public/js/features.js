@@ -56,7 +56,9 @@ export async function loadQuranPage(pageNumber, targetSurah = null, targetAyah =
     const { ayahs, khatmah } = res.data.data;
     
     const pageNum = parseInt(pageNumber);
+
     currentPage = pageNum; 
+    window.currentPage = pageNum;
     let userBookmarks = [];
     const isLoggedIn = document.getElementById('logoutBtn') !== null;
     if (isLoggedIn) {
