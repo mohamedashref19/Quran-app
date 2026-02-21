@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aqra | تطبيق اقرأ</title>
+    <title>Aqra |  اقرأ</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="/css/style.css">
@@ -123,7 +123,7 @@
         .password-field-wrapper { position: relative; }
 
         /* ══════════════════════════════════════════════
-           ─── Bottom Navigation Bar ──────────────────
+            ─── Bottom Navigation Bar ──────────────────
         ══════════════════════════════════════════════ */
         .bottom-nav {
             position: fixed;
@@ -272,8 +272,14 @@
             padding-bottom: calc(72px + env(safe-area-inset-bottom));
         }
 
-        /* إخفاء الـ bottom nav على الشاشات الكبيرة لو حبيت */
-        /* @media (min-width: 992px) { .bottom-nav { display: none; } } */
+        /* ستايل دعاء الختمة */
+        .dua-container {
+            font-family: 'Amiri', serif;
+            font-size: 1.3rem;
+            line-height: 2.2;
+            text-align: justify;
+            text-align-last: center;
+        }
     </style>
 </head>
 
@@ -281,7 +287,7 @@
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-aqra shadow-sm py-2 sticky-top">
         <div class="container d-flex align-items-center">
-            <a class="navbar-brand fw-bold order-0" href="#" onclick="showSection('home')">📖 تطبيق اقرأ</a>
+            <a class="navbar-brand fw-bold order-0" href="#" onclick="showSection('home')"> اقرأ📖 </a>
             
             <div class="d-flex align-items-center mx-auto order-1" style="flex: 1; max-width: 600px; justify-content: center;">
                 <div class="search-container position-relative w-100" style="max-width: 450px;">
@@ -308,7 +314,6 @@
 
     <div class="container my-4">
 
-        <!-- Home Section -->
         <div id="home-section">
             <div class="row justify-content-center text-center mb-4">
                 <div class="col-lg-8">
@@ -360,7 +365,6 @@
             </div>
         </div>
 
-        <!-- Khatmah Section -->
         <div id="khatmah-section" class="d-none">
             <div class="d-flex align-items-center mb-3">
                 <button class="btn btn-sm btn-secondary me-3" onclick="showSection('home')">
@@ -378,7 +382,6 @@
                     <p id="daily-target" class="fw-bold text-danger lead"></p>
                     <p id="khatmah-status-text" class="text-muted mt-2">جاري تحميل مكان التوقف...</p>
                     
-                    <!-- ✅ زر متابعة الختمة - يفتح المصحف عند علامة الختمة -->
                     <button onclick="openQuranAtCurrentKhatmah()" class="btn btn-lg btn-success w-100 mt-3">
                         🚀 متابعة الختمة من حيث توقفت
                     </button>
@@ -422,7 +425,6 @@
             </div>
         </div>
 
-        <!-- ✅ Surah Index Section -->
         <div id="surah-index-section" class="d-none">
             <div class="container text-center mt-3">
                 <h2 class="mb-2 text-success fw-bold">المصحف الشريف 📖</h2>
@@ -430,7 +432,6 @@
                     <i class="fas fa-arrow-right"></i> القائمة الرئيسية
                 </button>
 
-                <!-- تبويبات العرض -->
                 <div class="btn-group mb-4 w-100" role="group">
                     <button class="btn btn-success active" id="tab-surahs" onclick="switchIndexTab('surahs')">
                         <i class="fas fa-list me-1"></i> السور
@@ -440,17 +441,20 @@
                     </button>
                 </div>
 
-                <!-- عرض السور -->
+                <div class="mb-4">
+                    <button class="btn btn-outline-warning w-100 py-2 fw-bold text-dark border-2 shadow-sm" onclick="showSection('khatmah-dua')" style="background-color: #fff9e6;">
+                        <i class="fas fa-hands-praying text-warning me-2 fs-5"></i> دعاء ختم القرآن الكريم
+                    </button>
+                </div>
+
                 <div id="view-surahs">
                     <div id="surah-index-list" class="row g-3"></div>
                 </div>
 
-                <!-- ✅ عرض الأجزاء والأحزاب -->
                 <div id="view-juz" class="d-none">
                     <div id="juz-index-list"></div>
                 </div>
 
-                <!-- ✅ زر ختمتي في صفحة الفهرس - يفتح المصحف عند علامة الختمة -->
                 <a href="#" class="khatmah-floating-btn" onclick="event.preventDefault(); openQuranAtCurrentKhatmah();">
                     <i class="fas fa-flag"></i>
                     <span class="ms-2">ختمتي</span>
@@ -458,7 +462,36 @@
             </div>
         </div>
 
-        <!-- Login Section -->
+        <div id="khatmah-dua-section" class="d-none">
+            <div class="d-flex align-items-center mb-3">
+                <button class="btn btn-sm btn-secondary me-3" onclick="showSection('surah-index')">
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+                <h3 class="flex-grow-1 text-center m-0 text-success fw-bold">دعاء ختم القرآن</h3>
+            </div>
+            
+            <div class="card border-0 shadow-sm p-4 bg-white" style="border-top: 5px solid #198754 !important;">
+                <div class="text-center mb-4">
+                    <i class="fas fa-hands-praying fa-3x text-warning mb-2"></i>
+                    <h5 class="text-muted">تقبل الله طاعتكم وبارك في ختمتكم</h5>
+                </div>
+                
+                <div class="dua-container text-dark">
+                    <p>اللَّهُمَّ ارْحَمْنِي بالقُرْءَانِ وَاجْعَلهُ لِي إِمَاماً وَنُوراً وَهُدًى وَرَحْمَةً.</p>
+                    <p>اللَّهُمَّ ذَكِّرْنِي مِنْهُ مَانَسِيتُ وَعَلِّمْنِي مِنْهُ مَاجَهِلْتُ وَارْزُقْنِي تِلاَوَتَهُ آنَاءَ اللَّيْلِ وَأَطْرَافَ النَّهَارِ وَاجْعَلهُ لِي حُجَّةً يَارَبَّ العَالَمِينَ.</p>
+                    <p>اللَّهُمَّ أَصْلِحْ لِي دِينِي الَّذِي هُوَ عِصْمَةُ أَمْرِي، وَأَصْلِحْ لِي دُنْيَايَ الَّتِي فِيهَا مَعَاشِي، وَأَصْلِحْ لِي آخِرَتِي الَّتِي فِيهَا مَعَادِي، وَاجْعَلِ الحَيَاةَ زِيَادَةً لِي فِي كُلِّ خَيْرٍ وَاجْعَلِ المَوْتَ رَاحَةً لِي مِنْ كُلِّ شَرٍّ.</p>
+                    <p>اللَّهُمَّ اجْعَلْ خَيْرَ عُمْرِي آخِرَهُ وَخَيْرَ عَمَلِي خَوَاتِمَهُ وَخَيْرَ أَيَّامِي يَوْمَ أَلْقَاكَ فِيهِ.</p>
+                    <p>اللَّهُمَّ إِنِّي أَسْأَلُكَ عِيشَةً هَنِيَّةً وَمِيتَةً سَوِيَّةً وَمَرَدًّا غَيْرَ مُخْزٍ وَلاَ فَاضِحٍ.</p>
+                    <p>اللَّهُمَّ إِنِّي أَسْأَلُكَ خَيْرَ المَسْأَلةِ وَخَيْرَ الدُّعَاءِ وَخَيْرَ النَّجَاحِ وَخَيْرَ العِلْمِ وَخَيْرَ العَمَلِ وَخَيْرَ الثَّوَابِ وَخَيْرَ الحَيَاةِ وَخيْرَ المَمَاتِ وَثَبِّتْنِي وَثَقِّلْ مَوَازِينِي وَحَقِّقْ إِيمَانِي وَارْفَعْ دَرَجَتِي وَتَقَبَّلْ صَلاَتِي وَاغْفِرْ خَطِيئَاتِي وَأَسْأَلُكَ العُلَا مِنَ الجَنَّةِ.</p>
+                    <p>اللَّهُمَّ إِنِّي أَسْأَلُكَ مُوجِبَاتِ رَحْمَتِكَ وَعَزَائِمِ مَغْفِرَتِكَ وَالسَّلاَمَةَ مِنْ كُلِّ إِثْمٍ وَالغَنِيمَةَ مِنْ كُلِّ بِرٍّ وَالفَوْزَ بِالجَنَّةِ وَالنَّجَاةَ مِنَ النَّارِ.</p>
+                    <p>اللَّهُمَّ أَحْسِنْ عَاقِبَتَنَا فِي الأُمُورِ كُلِّهَا، وَأَجِرْنَا مِنْ خِزْيِ الدُّنْيَا وَعَذَابِ الآخِرَةِ.</p>
+                    <p>اللَّهُمَّ اقْسِمْ لَنَا مِنْ خَشْيَتِكَ مَاتَحُولُ بِهِ بَيْنَنَا وَبَيْنَ مَعْصِيَتِكَ وَمِنْ طَاعَتِكَ مَاتُبَلِّغُنَا بِهَا جَنَّتَكَ وَمِنَ اليَقِينِ مَاتُهَوِّنُ بِهِ عَلَيْنَا مَصَائِبَ الدُّنْيَا وَمَتِّعْنَا بِأَسْمَاعِنَا وَأَبْصَارِنَا وَقُوَّتِنَا مَاأَحْيَيْتَنَا وَاجْعَلْهُ الوَارِثَ مِنَّا وَاجْعَلْ ثَأْرَنَا عَلَى مَنْ ظَلَمَنَا وَانْصُرْنَا عَلَى مَنْ عَادَانَا وَلاَ تجْعَلْ مُصِيبَتَنَا فِي دِينِنَا وَلاَ تَجْعَلِ الدُّنْيَا أَكْبَرَ هَمِّنَا وَلَا مَبْلَغَ عِلْمِنَا وَلاَ تُسَلِّطْ عَلَيْنَا مَنْ لَا يَرْحَمُنَا.</p>
+                    <p>اللَّهُمَّ لَا تَدَعْ لَنَا ذَنْبًا إِلَّا غَفَرْتَهُ وَلَا هَمَّا إِلَّا فَرَّجْتَهُ وَلَا دَيْنًا إِلَّا قَضَيْتَهُ وَلَا حَاجَةً مِنْ حَوَائِجِ الدُّنْيَا وَالآخِرَةِ إِلَّا قَضَيْتَهَا يَاأَرْحَمَ الرَّاحِمِينَ.</p>
+                    <p>رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ وَصَلَّى اللهُ عَلَى سَيِّدِنَا وَنَبِيِّنَا مُحَمَّدٍ وَعَلَى آلِهِ وَأَصْحَابِهِ الأَخْيَارِ وَسَلَّمَ تَسْلِيمًا كَثِيراً.</p>
+                </div>
+            </div>
+        </div>
+
         <div id="login-section" class="d-none">
             <div class="card shadow-sm p-4 mx-auto" style="max-width: 400px;">
                 <div class="text-center mb-4">
@@ -487,7 +520,6 @@
             </div>
         </div>
 
-        <!-- ✅ Forgot Password Section -->
         <div id="forgot-password-section" class="d-none">
             <div class="card shadow-sm p-4 mx-auto" style="max-width: 400px;">
                 <div class="text-center mb-4">
@@ -514,7 +546,6 @@
             </div>
         </div>
 
-        <!-- Signup Section -->
         <div id="signup-section" class="d-none">
             <div class="card shadow-sm p-4 mx-auto" style="max-width: 400px;">
                 <div class="text-center mb-4">
@@ -545,7 +576,6 @@
             </div>
         </div>
 
-        <!-- Verify OTP -->
         <div id="verify-otp-section" class="d-none">
             <div class="card shadow-sm p-4 mx-auto text-center" style="max-width: 400px;">
                 <div class="display-1 mb-3">📩</div>
@@ -565,7 +595,6 @@
             </div>
         </div>
 
-        <!-- Quran Section -->
         <div id="quran-section" class="d-none">
             <div class="container py-3 text-center">
                 <div class="mb-2">
@@ -582,6 +611,13 @@
                 <div id="quran-book" class="position-relative mx-auto bg-white rounded shadow-sm p-3 mb-3" style="min-height: 500px;">
                     <div id="ayahs-container"></div>
                 </div>
+                
+                <div id="khatmah-dua-btn-container" class="d-none mb-3">
+                    <button class="btn btn-warning w-100 py-2 fw-bold shadow-sm" onclick="showSection('khatmah-dua')">
+                        <i class="fas fa-hands-praying me-2"></i> دعاء ختم القرآن الكريم
+                    </button>
+                </div>
+
                 <div class="d-flex justify-content-between gap-3 mt-2 pb-5">
                     <button id="btn-next-page" class="btn btn-success nav-btn-custom">
                         <span>السابق</span> <i class="fas fa-arrow-left"></i>
@@ -590,7 +626,7 @@
                         <i class="fas fa-arrow-right"></i> <span>التالى</span>
                     </button>
                 </div>
-                <!-- ✅ زر ختمتي في صفحة المصحف - يعمل scroll للآية الحالية في الختمة -->
+                
                 <a href="#" class="khatmah-floating-btn" onclick="event.preventDefault(); openQuranAtCurrentKhatmah();">
                     <i class="fas fa-flag"></i>
                     <span class="ms-2">ختمتي</span>
@@ -598,7 +634,6 @@
             </div>
         </div>
 
-        <!-- Reciters Section -->
         <div id="reciters-section" class="d-none">
             <div class="d-flex align-items-center mb-3">
                 <button class="btn btn-sm btn-secondary me-3" onclick="showSection('home')"><i class="fas fa-arrow-right"></i></button>
@@ -607,7 +642,6 @@
             <div id="reciters-container" class="row g-3"></div>
         </div>
 
-        <!-- Bookmarks Section -->
         <div id="bookmarks-section" class="d-none">
             <div class="d-flex align-items-center mb-3">
                 <button class="btn btn-sm btn-secondary me-3" onclick="showSection('home')"><i class="fas fa-arrow-right"></i></button>
@@ -616,7 +650,6 @@
             <div id="bookmarks-container" class="row g-3"></div>
         </div>
 
-        <!-- AI Correction Section -->
         <div id="ai-correction-section" class="d-none">
             
             <div class="d-flex align-items-center mb-3">
@@ -644,7 +677,6 @@
             </div>
         </div>
 
-        <!-- Live Recitation Section -->
         <div id="live-recitation-section" class="d-none">
             <div class="d-flex align-items-center mb-3">
                 <button class="btn btn-sm btn-secondary me-3" onclick="showSection('home')"><i class="fas fa-arrow-right"></i></button>
@@ -681,15 +713,15 @@
                     </button>
                     <p id="live-status" class="text-muted small mt-1">جاهز...</p>
                 </div>
-                <!-- بعد الـ live-controls div -->
-<div class="text-center mt-2">
-  <label class="small text-muted">
-    <i class="fas fa-volume-up me-1"></i> الصوت
-  </label>
-  <input type="range" class="form-range d-inline-block" id="volume-slider-live"
-         min="0" max="1" step="0.1" value="1"
-         style="width: 150px; accent-color: #198754; vertical-align: middle;">
-</div>
+                
+                <div class="text-center mt-2">
+                  <label class="small text-muted">
+                    <i class="fas fa-volume-up me-1"></i> الصوت
+                  </label>
+                  <input type="range" class="form-range d-inline-block" id="volume-slider-live"
+                         min="0" max="1" step="0.1" value="1"
+                         style="width: 150px; accent-color: #198754; vertical-align: middle;">
+                </div>
 
                 <div id="live-quran-container" class="bg-white border rounded p-3 text-center mt-3" 
                      style="min-height: 200px; font-family: 'Amiri', serif; font-size: 1.4rem; line-height: 2.2;">
@@ -698,7 +730,6 @@
             </div>
         </div>
 
-        <!-- ✅ Profile Section -->
         <div id="profile-section" class="d-none">
             <div class="d-flex align-items-center mb-3">
                 <button class="btn btn-sm btn-secondary me-3" onclick="showSection('home')"><i class="fas fa-arrow-right"></i></button>
@@ -772,23 +803,17 @@
 
     </div>
 
-    <!-- ══════════════════════════════════════════════
-         ─── Bottom Navigation Bar ──────────────────
-    ══════════════════════════════════════════════ -->
     <nav class="bottom-nav" id="bottom-nav">
-        <!-- الرئيسية -->
         <button class="bottom-nav-item active" id="bnav-home" onclick="showSection('home'); setActiveNav('bnav-home')">
             <i class="fas fa-home"></i>
             <span>الرئيسية</span>
         </button>
 
-        <!-- الختمة -->
         <button class="bottom-nav-item" id="bnav-khatmah" onclick="showSection('khatmah'); setActiveNav('bnav-khatmah')">
             <i class="fas fa-calendar-check"></i>
             <span>ختمتي</span>
         </button>
 
-        <!-- المصحف - زر مميز في المنتصف -->
         <button class="bottom-nav-item nav-center-btn" id="bnav-quran" onclick="showSection('surah-index'); loadSurahIndex(); setActiveNav('bnav-quran')">
             <div class="nav-icon-wrap">
                 <i class="fas fa-book-open"></i>
@@ -796,13 +821,11 @@
             <span>المصحف</span>
         </button>
 
-        <!-- العلامات -->
         <button class="bottom-nav-item" id="bnav-bookmarks" onclick="showSection('bookmarks'); setActiveNav('bnav-bookmarks')">
             <i class="fas fa-bookmark"></i>
             <span>علاماتي</span>
         </button>
 
-        <!-- حسابي -->
         <button class="bottom-nav-item" id="bnav-profile" onclick="showSection('profile'); setActiveNav('bnav-profile')">
             <i class="fas fa-user"></i>
             <span>حسابي</span>
@@ -814,6 +837,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
     <script src="/js/bundle.js"></script>
 
     <script>
@@ -826,10 +850,7 @@
             if (activeBtn) activeBtn.classList.add('active');
         }
 
-        // ربط الـ showSection الأصلي مع تحديث الـ bottom nav
-        // يتم تنفيذه بعد تحميل bundle.js
         document.addEventListener('DOMContentLoaded', () => {
-            // map بين الـ sections والـ nav items
             const sectionNavMap = {
                 'home':            'bnav-home',
                 'khatmah':         'bnav-khatmah',
@@ -837,16 +858,16 @@
                 'quran':           'bnav-quran',
                 'bookmarks':       'bnav-bookmarks',
                 'profile':         'bnav-profile',
+                'khatmah-dua':     'bnav-quran' // يبقي الـ active على المصحف لما تفتح الدعاء
             };
 
-            // نغلف الـ showSection الأصلي عشان نحدث الـ nav تلقائياً
             const _origShowSection = window.showSection;
             if (_origShowSection) {
                 window.showSection = function(sectionName) {
                     _origShowSection(sectionName);
                     const navId = sectionNavMap[sectionName];
                     if (navId) setActiveNav(navId);
-                    // إخفاء الـ bottom nav في صفحات login/signup/otp
+                    
                     const hiddenSections = ['login','signup','verify-otp','forgot-password'];
                     const bottomNav = document.getElementById('bottom-nav');
                     if (bottomNav) {

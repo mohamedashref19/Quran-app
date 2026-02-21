@@ -14,16 +14,55 @@ import {
   toggleBookmark, deleteBookmark, deleteKhatmah, initSearch, initBookmarksSearch
 } from './features';
 
-// 1. Config
+// ─── 1. Config ────────────────────────────────────────────────────────────────
 axios.defaults.baseURL = 'https://aqra-app.serveftp.com';
 axios.defaults.withCredentials = true;
 
-// 2. Global State
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // التحقق هل الخطأ بسبب انقطاع الإنترنت؟
+    if (!navigator.onLine || error.message === 'Network Error') {
+      Swal.fire({
+        icon: 'error',
+        title: 'لا يوجد اتصال بالإنترنت',
+        text: 'يرجى التحقق من اتصالك بالشبكة والمحاولة مرة أخرى.',
+        confirmButtonText: 'فهمت',
+        confirmButtonColor: '#1e5f31'
+      });
+    }
+    return Promise.reject(error);
+  }
+);
+
+window.addEventListener('offline', () => {
+  Swal.fire({
+    toast: true,
+    position: 'top-end',
+    icon: 'warning',
+    title: 'انقطع الاتصال بالإنترنت',
+    showConfirmButton: false,
+    timer: 3000
+  });
+});
+
+window.addEventListener('online', () => {
+  Swal.fire({
+    toast: true,
+    position: 'top-end',
+    icon: 'success',
+    title: 'عاد الاتصال بالإنترنت',
+    showConfirmButton: false,
+    timer: 3000
+  });
+});
+
+// ─── 2. Global State ──────────────────────────────────────────────────────────
 window.currentAudio = null;
 let aiMediaRecorder = null;
 window.currentPage  = 1;
 
-
+//  متغيرات التلاوة المباشرة
 let liveStream = null;
 let isLiveTracking = false;
 let chunkRecorder = null;
@@ -32,36 +71,95 @@ let lastMatchedIndex = -1;
 let searchStartIndex = 0;    
 let accumulatedBuffer = '';
 
-// Quran Page Cache
-const quranCache = new Map(); 
-const CACHE_SIZE = 10; 
+// ─── Quran IndexedDB Cache ─────────────────────────────────────────────────
+const DB_NAME    = 'QuranAppDB';
+const STORE_NAME = 'quranPages';
+const DB_VERSION = 1;
 
-// ✅ حفظ في الـ cache 
-const cacheSet = (page, data) => {
-  if (quranCache.size >= CACHE_SIZE) {
-    const firstKey = quranCache.keys().next().value;
-    quranCache.delete(firstKey);
-  }
-  quranCache.set(page, data);
-};
+let _db = null;
 
-const prefetchPage = async (pageNum) => {
-  if (pageNum < 1 || pageNum > 604) return;
-  if (quranCache.has(pageNum)) return; 
-  try {
-    const res = await axios.get(`/api/v1/quran/page/${pageNum}`);
-    cacheSet(pageNum, res.data.data);
-    console.log(`🔄 [PREFETCH] صفحة ${pageNum} جاهزة`);
-  } catch (e) { /* تجاهل */ }
-};
+const initQuranDB = () => new Promise((resolve, reject) => {
+  if (_db) return resolve(_db);
+  const req = indexedDB.open(DB_NAME, DB_VERSION);
 
-Object.assign(window, {
-  quranCache,
-  cacheSet,
-  prefetchPage
+  req.onupgradeneeded = (e) => {
+    const db = e.target.result;
+    if (!db.objectStoreNames.contains(STORE_NAME)) {
+      const store = db.createObjectStore(STORE_NAME, { keyPath: 'page' });
+      store.createIndex('cachedAt', 'cachedAt');
+    }
+  };
+
+  req.onsuccess = (e) => {
+    _db = e.target.result;
+    console.log('✅ [IDB] قاعدة بيانات المصحف جاهزة');
+    resolve(_db);
+  };
+
+  req.onerror = (e) => {
+    console.error('❌ [IDB] خطأ في فتح قاعدة البيانات:', e.target.error);
+    reject(e.target.error);
+  };
 });
 
-// ─── 3. Helpers
+// ✅ حفظ صفحة في IndexedDB
+const cacheSet = async (page, data) => {
+  try {
+    const db = await initQuranDB();
+    return new Promise((resolve, reject) => {
+      const tx    = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      store.put({ page, data, cachedAt: Date.now() });
+      tx.oncomplete = () => resolve(true);
+      tx.onerror    = (e) => reject(e.target.error);
+    });
+  } catch (e) {
+    console.warn('⚠️ [IDB] خطأ في الحفظ:', e);
+    return false;
+  }
+};
+
+// ✅ قراءة صفحة من IndexedDB
+const cacheGet = async (page) => {
+  try {
+    const db = await initQuranDB();
+    return new Promise((resolve, reject) => {
+      const tx    = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const req   = store.get(page);
+      req.onsuccess = (e) => resolve(e.target.result?.data || null);
+      req.onerror   = (e) => reject(e.target.error);
+    });
+  } catch (e) {
+    console.warn('⚠️ [IDB] خطأ في القراءة:', e);
+    return null;
+  }
+};
+
+// ✅ Prefetch صفحة في الخلفية وحفظها في IndexedDB
+const prefetchPage = async (pageNum) => {
+  if (pageNum < 1 || pageNum > 604) return;
+  if (!navigator.onLine) return;
+  try {
+    const cached = await cacheGet(pageNum);
+    if (cached) return; // موجودة خلاص
+    const res = await axios.get(`/api/v1/quran/page/${pageNum}`);
+    await cacheSet(pageNum, res.data.data);
+    console.log(`🔄 [PREFETCH] صفحة ${pageNum} اتحفظت في IndexedDB`);
+  } catch (e) { /* تجاهل أخطاء الـ prefetch */ }
+};
+
+// ✅ تعرض الدوال على الـ window عشان features.js يقدر يستخدمها
+Object.assign(window, {
+  cacheSet,
+  cacheGet,
+  prefetchPage,
+});
+
+// ─── تهيئة قاعدة البيانات فور تحميل الصفحة ───────────────────────────────
+initQuranDB().catch(e => console.warn('IDB init failed:', e));
+
+// ─── 3. Helpers ───────────────────────────────────────────────────────────────
 const normalizeArabic = (text) => {
   if (!text) return '';
   return text
@@ -85,7 +183,7 @@ function calculateSimilarity(spoken, ayah) {
   return (spokenAccuracy * 0.6) + (ayahCompletion * 0.4);
 }
 
-// ─── 4. Data 
+// ─── 4. Data ──────────────────────────────────────────────────────────────────
 const surahNames = [
   "الفاتحة","البقرة","آل عمران","النساء","المائدة","الأنعام","الأعراف","الأنفال","التوبة","يونس",
   "هود","يوسف","الرعد","إبراهيم","الحجر","النحل","الإسراء","الكهف","مريم","طه",
@@ -110,6 +208,7 @@ const surahPageMap = [
   600,601,601,601,602,602,602,603,603,603,604,604,604,604
 ];
 
+// بيانات الأجزاء
 const juzData = [
   { juz: 1,  page: 1,   name: "الم",                surahs: "الفاتحة - البقرة" },
   { juz: 2,  page: 22,  name: "سَيَقُولُ",           surahs: "البقرة" },
@@ -151,8 +250,22 @@ const getSurahNameByPage = (pageNum) => {
   return surahNames[idx];
 };
 
+// دالة فحص الإنترنت
+function checkConnection() {
+  if (!navigator.onLine) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'أنت غير متصل بالإنترنت 📶',
+      text: 'يرجى التحقق من اتصالك بالواي فاي أو بيانات الهاتف والمحاولة مرة أخرى.',
+      confirmButtonText: 'حسناً',
+      confirmButtonColor: '#1e5f31' // لون تطبيق اقرأ
+    });
+    return false; // معناه مفيش نت
+  }
+  return true; // معناه النت شغال
+}
 
-// Login Help fun.
+// ─── 5. دالة مساعدة موحدة لطلب تسجيل الدخول ─────────────────────────────────
 const requireLogin = (featureName = 'هذه الميزة') => {
   Swal.fire({
     icon: 'warning',
@@ -170,17 +283,17 @@ const requireLogin = (featureName = 'هذه الميزة') => {
   });
 };
 
-// ─── 6. التحقق من تسجيل الدخول 
+// ─── 6. التحقق من تسجيل الدخول ───────────────────────────────────────────────
 const isUserLoggedIn = () => {
   const logoutBtn = document.getElementById('logoutBtn');
   const userLinks = document.querySelectorAll('.user-link:not(.d-none)');
   return (logoutBtn !== null) || (userLinks.length > 0);
 };
 
-// ─── 7. Stop All Media
+// ─── 7. Stop All Media ────────────────────────────────────────────────────────
 const stopAllMedia = () => {
   console.log("🔴 [SYSTEM] Stopping all media...");
-   //console.trace(); 
+   console.trace(); 
   if (window.currentAudio) { window.currentAudio.pause(); window.currentAudio = null; }
   document.querySelectorAll('audio, video').forEach(m => { m.pause(); m.currentTime = 0; });
   if (aiMediaRecorder && aiMediaRecorder.state !== 'inactive') {
@@ -225,18 +338,30 @@ const resetUIButtons = () => {
   }
 };
 
-// ─── 8. Auth & Routing 
+// ─── 8. Auth & Routing ──────────────────────────────────────────────────────────
 window.checkAuth = async () => {
   try {
     const res = await axios.get('/api/v1/users/me');
     if (res.data.status === 'success') {
       document.querySelectorAll('.auth-link').forEach(el => el.classList.add('d-none'));
       document.querySelectorAll('.user-link').forEach(el => el.classList.remove('d-none'));
+      await localforage.setItem('is_logged_in', true);
       return true;
     }
-  } catch {
+  } catch (err) {
+    if (!navigator.onLine || err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
+      const wasLoggedIn = await localforage.getItem('is_logged_in');
+      if (wasLoggedIn) {
+        document.querySelectorAll('.auth-link').forEach(el => el.classList.add('d-none'));
+        document.querySelectorAll('.user-link').forEach(el => el.classList.remove('d-none'));
+        console.log('⚡ [OFFLINE] المستخدم مسجل دخول (من الكاش)');
+        return true;
+      }
+    }
+    
     document.querySelectorAll('.auth-link').forEach(el => el.classList.remove('d-none'));
     document.querySelectorAll('.user-link').forEach(el => el.classList.add('d-none'));
+    await localforage.removeItem('is_logged_in');
   }
   return false;
 };
@@ -351,10 +476,27 @@ window.showSection = (sectionName) => {
     if (sel && sel.options.length <= 1) surahNames.forEach((n, i) => { const o = document.createElement('option'); o.value = i + 1; o.textContent = `${i + 1}. ${n}`; sel.appendChild(o); });
   }
   if (sectionName === 'profile') {
-    axios.get('/api/v1/users/me').then(res => {
+    axios.get('/api/v1/users/me').then(async res => {
       const u = res.data.data.doc;
-      if (u) { const n = document.getElementById('profile-name'); if (n) n.value = u.name; const e = document.getElementById('profile-email'); if (e) e.value = u.email; }
-    }).catch(() => window.showSection('login'));
+      if (u) { 
+        const n = document.getElementById('profile-name'); if (n) n.value = u.name; 
+        const e = document.getElementById('profile-email'); if (e) e.value = u.email; 
+        // ✅ حفظ بيانات المستخدم للأوفلاين
+        await localforage.setItem('cached_user_profile', { name: u.name, email: u.email });
+      }
+    }).catch(async (err) => {
+      // ✅ لو مفيش نت، نجيب البيانات من الكاش بدل ما نطرده لصفحة الدخول
+      if (!navigator.onLine || err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
+        const cachedUser = await localforage.getItem('cached_user_profile');
+        if (cachedUser) {
+          const n = document.getElementById('profile-name'); if (n) n.value = cachedUser.name;
+          const e = document.getElementById('profile-email'); if (e) e.value = cachedUser.email;
+          console.log('⚡ [OFFLINE] تم عرض بيانات الحساب من الكاش');
+          return;
+        }
+      }
+      window.showSection('login');
+    });
   }
   if (sectionName === 'forgot-password') {
     const emailEl = document.getElementById('forgot-email');
@@ -374,6 +516,7 @@ window.openQuranAtCurrentKhatmah = async () => {
   try {
     if (!isUserLoggedIn()) { requireLogin('متابعة الختمة'); return; }
 
+    // ✅ رسالة تحميل فورية قبل أي حاجة
     Swal.fire({
       title: '📖 جاري فتح ختمتك...',
       html: `
@@ -416,8 +559,16 @@ window.openQuranAtCurrentKhatmah = async () => {
 
       for (let p = surahFirstPage; p <= nextSurahPage && p <= 604; p++) {
         try {
-          const pageRes = await axios.get(`/api/v1/quran/page/${p}`);
-          const ayahs   = pageRes.data.data.ayahs;
+          // ✅ جرب من IndexedDB أولاً
+          let ayahs;
+          const cached = await cacheGet(p);
+          if (cached) {
+            ayahs = cached.ayahs;
+          } else {
+            const pageRes = await axios.get(`/api/v1/quran/page/${p}`);
+            ayahs = pageRes.data.data.ayahs;
+            await cacheSet(p, pageRes.data.data);
+          }
           const matched = ayahs.find(a =>
             parseInt(a.surahNumber) === currentSurah &&
             parseInt(a.ayahNumber)  === currentAyah
@@ -440,6 +591,7 @@ window.openQuranAtCurrentKhatmah = async () => {
 
     console.log(`✅ [KHATMAH] سورة ${currentSurah} آية ${currentAyah} صفحة ${targetPage}`);
 
+    // ✅ إغلاق الـ Swal وفتح المصحف
     Swal.close();
 
     document.querySelectorAll('[id$="-section"]').forEach(el => el.classList.add('d-none'));
@@ -452,7 +604,7 @@ window.openQuranAtCurrentKhatmah = async () => {
     await window.loadQuranPage(targetPage, currentSurah, currentAyah);
 
   } catch (err) {
-    Swal.close();  
+    Swal.close();
     if (err.response?.status === 401) requireLogin('متابعة الختمة');
     else if (err.response?.status === 404) window.showSection('khatmah');
     else showAlert('error', 'تعذر تحميل الختمة');
@@ -468,10 +620,11 @@ window.loadQuranPage = async (pageNum, targetSurah = null, targetAyah = null) =>
 };
 window.startSurahReading = startSurahReading;
 
+// ✅ تعريض دوال المصادقة على الـ window للاستخدام من HTML
 window.changePassword = changePassword;
 window.forgotPasswordHandler = forgotPassword;
 
-// ─── 9. Live Audio Player
+// ─── 9. Live Audio Player ─────────────────────────────────────────────────────
 window.playLiveAudio = (url, btnId) => {
   if (isLiveTracking) { showAlert('error', 'أوقف التسميع أولاً قبل تشغيل الصوت'); return; }
   const btn = document.getElementById(btnId);
@@ -499,7 +652,7 @@ window.playLiveAudio = (url, btnId) => {
   else playNew();
 };
 
-// ─── 10. Seamless Backend Chunking Logic 
+// ─── 10. Seamless Backend Chunking Logic ────────────────────────────────────────
 async function sendChunkToAPI(blob) {
     const formData = new FormData();
     formData.append('audio', blob, 'chunk.webm');
@@ -752,9 +905,9 @@ document.addEventListener('click', async (e) => {
       requireLogin('تتبع الختمة وحفظ التقدم');
       return;
     }
+    // التحديث والتأثيرات البصرية هتم بالكامل داخل هذه الدالة
     await updateKhatmahProgress(khatmahBtn.dataset.surah, khatmahBtn.dataset.ayah);
-    (khatmahBtn.querySelector('i') || khatmahBtn).classList.replace('far', 'fas');
-    showAlert('success', 'تم تحديث الورد بنجاح'); return;
+    return;
   }
   // ✅ حذف العلامات المرجعية
   const deleteBookmarkBtn = e.target.closest('.delete-bookmark-btn');
@@ -784,10 +937,24 @@ document.addEventListener('touchend', e => {
 
 // ─── 15. Nav Buttons ──────────────────────────────────────────────────────────
 document.getElementById('btn-prev-page')?.addEventListener('click', () => {
-  if (window.currentPage < 604) { window.currentPage++; window.loadQuranPage(window.currentPage); window.scrollTo({ top: 0, behavior: 'smooth' });window.prefetchPage(window.currentPage + 1); }
+  if (window.currentPage < 604) {
+    window.currentPage++;
+    window.loadQuranPage(window.currentPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Prefetch الصفحات القادمة في الخلفية
+    prefetchPage(window.currentPage + 1);
+    prefetchPage(window.currentPage + 2);
+  }
 });
 document.getElementById('btn-next-page')?.addEventListener('click', () => {
-  if (window.currentPage > 1) { window.currentPage--; window.loadQuranPage(window.currentPage); window.scrollTo({ top: 0, behavior: 'smooth' });    window.prefetchPage(window.currentPage - 1);}
+  if (window.currentPage > 1) {
+    window.currentPage--;
+    window.loadQuranPage(window.currentPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Prefetch الصفحات السابقة في الخلفية
+    prefetchPage(window.currentPage - 1);
+    prefetchPage(window.currentPage - 2);
+  }
 });
 
 // ─── 16. Popstate & Body Links ────────────────────────────────────────────────
@@ -901,7 +1068,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const aiRecordStatus = document.getElementById('recordStatus');
   if (aiRecordBtn) {
     aiRecordBtn.addEventListener('click', async () => {
-      // ✅ التحقق من تسجيل الدخول أولاً
       if (!isUserLoggedIn()) {
         requireLogin('المصحح الذكي للتلاوة');
         return;
@@ -934,7 +1100,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // ── Live Tracking Buttons - التحقق من تسجيل الدخول قبل البدء ──────────────
+  // ── Live Tracking Buttons ──────────────────────────────────────────────────
   const btnStartLive = document.getElementById('btn-start-live');
   const btnStopLive  = document.getElementById('btn-stop-live');
   const liveStatus   = document.getElementById('live-status');
@@ -942,7 +1108,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (btnStartLive && btnStopLive) {
 
     btnStartLive.addEventListener('click', async () => {
-      // ✅ التحقق من تسجيل الدخول أولاً
       if (!isUserLoggedIn()) {
         requireLogin('تتبع التلاوة المباشر');
         return;
@@ -958,8 +1123,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         btnStartLive.classList.add('d-none');
         btnStopLive.classList.remove('d-none');
-        if (liveStatus) liveStatus.innerHTML = `🎤 <span class="text-success fw-bold">جاري الاستماع المستمر... اقرأ الآيات</span>`;
-
+if (liveStatus) {
+  liveStatus.innerHTML = `
+    <div class="d-flex flex-column align-items-center mt-2">
+      <span class="text-success fw-bold mb-1" style="font-size: 1.1rem;">
+        <i class="fas fa-microphone-alt fa-pulse text-danger me-2"></i> جاري الاستماع لتلاوتك... اقرأ الآن
+      </span>
+      <span class="text-muted bg-light px-3 py-1 rounded-pill" style="font-size: 0.85rem; border: 1px solid #e9ecef;">
+        <i class="fas fa-robot text-secondary me-1"></i> المعلم الذكي يتابعك (يستغرق التحديث حوالي 3 ثوانٍ ⏳)
+      </span>
+    </div>
+  `;
+}
         startChunkLoop();
 
       } catch (err) { 
@@ -1022,39 +1197,39 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!name || !duration) return showAlert('error', 'أدخل اسم الختمة والمدة');
     await createKhatmah(name, duration);
   });
-// ─── Volume Control للمصحح الذكي ────────────────────────
-const volumeSliderAi = document.getElementById('volume-slider-ai');
-const volumeControlAi = document.getElementById('volume-control-ai');
 
-if (volumeSliderAi) {
-  volumeSliderAi.addEventListener('input', function() {
-    // التحكم في صوت الـ audio elements في صفحة AI
-    document.querySelectorAll('#result-container audio').forEach(audio => {
-      audio.volume = parseFloat(this.value);
+  // ─── Volume Control للمصحح الذكي ────────────────────────
+  const volumeSliderAi = document.getElementById('volume-slider-ai');
+  const volumeControlAi = document.getElementById('volume-control-ai');
+
+  if (volumeSliderAi) {
+    volumeSliderAi.addEventListener('input', function() {
+      document.querySelectorAll('#result-container audio').forEach(audio => {
+        audio.volume = parseFloat(this.value);
+      });
+    });
+  }
+
+  const resultContainer = document.getElementById('result-container');
+  if (resultContainer) {
+    const observer = new MutationObserver(() => {
+      if (!resultContainer.classList.contains('d-none')) {
+        if (volumeControlAi) volumeControlAi.classList.remove('d-none');
+      } else {
+        if (volumeControlAi) volumeControlAi.classList.add('d-none');
+      }
+    });
+    observer.observe(resultContainer, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  document.getElementById('volume-slider-live')?.addEventListener('input', function() {
+    if (window.currentAudio) {
+      window.currentAudio.volume = parseFloat(this.value);
+    }
+    document.querySelectorAll('#live-quran-container audio').forEach(a => {
+      a.volume = parseFloat(this.value);
     });
   });
-}
 
-// إظهار volume control لما تظهر النتيجة
-const resultContainer = document.getElementById('result-container');
-if (resultContainer) {
-  const observer = new MutationObserver(() => {
-    if (!resultContainer.classList.contains('d-none')) {
-      if (volumeControlAi) volumeControlAi.classList.remove('d-none');
-    } else {
-      if (volumeControlAi) volumeControlAi.classList.add('d-none');
-    }
-  });
-  observer.observe(resultContainer, { attributes: true, attributeFilter: ['class'] });
-}
-document.getElementById('volume-slider-live')?.addEventListener('input', function() {
-  if (window.currentAudio) {
-    window.currentAudio.volume = parseFloat(this.value);
-  }
-  // للـ audio elements الثابتة في الصفحة
-  document.querySelectorAll('#live-quran-container audio').forEach(a => {
-    a.volume = parseFloat(this.value);
-  });
-});
   console.log(Capacitor.isNativePlatform() ? '📱 Mobile Mode Active' : '🌐 Web Mode Active');
 });
