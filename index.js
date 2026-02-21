@@ -24,57 +24,138 @@ const globalErrorHandler = require("./controllers/errorControllers");
 const app = express();
 app.set("trust proxy", 1);
 
+// 4. CORS
+app.use(cors({
+  origin: [
+    'http://127.0.0.1:3000', 
+    'http://localhost:3000', 
+    'https://aqra-app.serveftp.com',
+    'capacitor://localhost', 
+    'http://localhost'
+  ],
+  credentials: true 
+}));
 // 1. Security Middleware (Helmet)
 
+
+// app.use(
+//   helmet({
+//     contentSecurityPolicy: {
+//       directives: {
+//         defaultSrc: ["'self'", "data:", "blob:", "https:", "ws:"],
+//         baseUri: ["'self'"],
+//         fontSrc: ["'self'", "https:", "data:"],
+//         manifestSrc: ["'self'"],
+//         mediaSrc: ["'self'", "https:", "data:", "blob:"],
+//         scriptSrc: [
+//           "'self'",
+//           "https:",
+//           "http:",
+//           "blob:", 
+//           "https://*.mapbox.com",
+//           "https://js.stripe.com",
+//           "https://cdn.jsdelivr.net",
+//           "'unsafe-inline'"
+//         ],
+//         scriptSrcAttr: ["'unsafe-inline'"],
+//         frameSrc: ["'self'", "https://js.stripe.com"],
+//         objectSrc: ["'none'"],
+//         styleSrc: ["'self'", "https:", "'unsafe-inline'"],
+//         workerSrc: ["'self'", "data:", "blob:"],
+//         childSrc: ["blob:"], 
+//         imgSrc: [
+//           "'self'",
+//           "data:",
+//           "blob:",
+//           "https://i.imgur.com",
+//           "https://www.transparenttextures.com",
+//         ],
+//         connectSrc: [
+//           "'self'",
+//           "data:",
+//           "blob:",
+//           "ws://127.0.0.1:*/",
+//           "http://127.0.0.1:3000", 
+//           "https://cdn.jsdelivr.net",
+//           "https://nominatim.openstreetmap.org",
+//           "https://cdnjs.cloudflare.com",
+//           "https://www.transparenttextures.com",
+//           "https://api.alquran.cloud",
+//           "https://aqra-app.serveftp.com",
+//           "capacitor://localhost", 
+//           "http://localhost",      
+          
+//         ],
+//       },
+//     },
+//   })
+// );
 
 app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ["'self'", "data:", "blob:", "https:", "ws:"],
+        defaultSrc: ["'self'"],
         baseUri: ["'self'"],
-        fontSrc: ["'self'", "https:", "data:"],
-        manifestSrc: ["'self'"],
-        mediaSrc: ["'self'", "https:", "data:", "blob:"],
+        manifestSrc: ["'self'"], 
+        
         scriptSrc: [
           "'self'",
-          "https:",
-          "http:",
-          "blob:", 
-          "https://*.mapbox.com",
-          "https://js.stripe.com",
+          "'unsafe-inline'",
           "https://cdn.jsdelivr.net",
-          "'unsafe-inline'"
+          "https://cdnjs.cloudflare.com",
+          "capacitor://localhost",
+          "http://localhost"
         ],
-        scriptSrcAttr: ["'unsafe-inline'"],
-        frameSrc: ["'self'", "https://js.stripe.com"],
-        objectSrc: ["'none'"],
-        styleSrc: ["'self'", "https:", "'unsafe-inline'"],
-        workerSrc: ["'self'", "data:", "blob:"],
-        childSrc: ["blob:"], 
+        
+        styleSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "https://cdn.jsdelivr.net",
+          "https://cdnjs.cloudflare.com",
+          "https://fonts.googleapis.com"
+        ],
+        
+        fontSrc: [
+          "'self'",
+          "https://fonts.gstatic.com",
+          "https://cdnjs.cloudflare.com",
+          "data:"
+        ],
+        
         imgSrc: [
           "'self'",
           "data:",
           "blob:",
-          "https://i.imgur.com",
-          "https://www.transparenttextures.com",
+          "capacitor://localhost",
+          "http://localhost",
+          "https://*" 
         ],
+        
+        mediaSrc: ["'self'", "https:", "data:", "blob:"], 
+        
         connectSrc: [
           "'self'",
-          "data:",
-          "blob:",
-          "ws://127.0.0.1:*/",
-          "http://127.0.0.1:3000", 
+          "https://api.alquran.cloud",
+          "https://aqra-app.serveftp.com",
           "https://cdn.jsdelivr.net",
-          "https://nominatim.openstreetmap.org",
-          "https://cdnjs.cloudflare.com",
-          "https://www.transparenttextures.com"
-          
+          "capacitor://localhost",
+          "http://localhost",
+          "ws://127.0.0.1:*", 
+          "http://127.0.0.1:3000"
         ],
+        
+        workerSrc: ["'self'", "blob:"], 
+        childSrc: ["blob:"],
+        
+        frameSrc: ["'none'"],   
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [],
       },
     },
   })
 );
+
 
 // 2. Logging (Development)
 if (process.env.NODE_ENV === "development") {
@@ -92,8 +173,6 @@ app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
 
-// 4. CORS
-app.use(cors());
 
 // 5. Rate Limiting
 const limiter = rateLimit({

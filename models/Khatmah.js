@@ -37,6 +37,8 @@ const khatmahSchema = new mongoose.Schema({
   dailyTargetPages: {
     type: Number, 
   },
+  page:{ type: Number, default: 1 },
+
 });
 
 khatmahSchema.pre("save", async function () {

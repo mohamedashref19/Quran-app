@@ -1096,3 +1096,114 @@ test*/
     justify-content: center;
     gap: 10px;
 }
+
+@keyframes bookmarkPulse {
+    0%   { transform: scale(1);   color: #d4af37; }
+    50%  { transform: scale(1.8); color: #ffcc00; filter: drop-shadow(0 0 6px #d4af37); }
+    100% { transform: scale(1);   color: #d4af37; }
+}
+
+.bookmark-arrived {
+    animation: bookmarkPulse 0.8s ease 3;
+}
+
+@keyframes khatmahPulse {
+    0%   { transform: scale(1);   color: #198754; }
+    50%  { transform: scale(1.8); color: #28a745; filter: drop-shadow(0 0 8px #198754); }
+    100% { transform: scale(1);   color: #198754; }
+}
+
+.khatmah-active-pulse {
+    animation: khatmahPulse 0.8s ease 3;
+}
+
+/* الأيقونة تفضل مضيئة دايماً لو active */
+.khatmah-icon-btn.fas {
+    filter: drop-shadow(0 0 3px #198754);
+}
+
+/* الآية اللي بيقراها دلوقتي */
+.ayah-matched {
+    background: linear-gradient(135deg, #d4edda, #c3e6cb);
+    border-right: 4px solid #198754;
+    border-radius: 8px;
+    padding: 8px 12px;
+    transition: all 0.3s ease;
+    animation: ayahGlow 1s ease infinite alternate;
+}
+
+/* الآية الجاية */
+.ayah-listening {
+    background: #fff3cd;
+    border-right: 4px solid #ffc107;
+    border-radius: 8px;
+    padding: 8px 12px;
+    opacity: 0.8;
+}
+
+@keyframes ayahGlow {
+    0%  { box-shadow: 0 0 5px rgba(25, 135, 84, 0.3); }
+    100%{ box-shadow: 0 0 15px rgba(25, 135, 84, 0.7); }
+}
+
+
+/* ══════════════════════════════════════════════
+   ─── إعدادات الدارك مود لمربع مواقيت الصلاة ───
+══════════════════════════════════════════════ */
+
+/* تغيير خلفية المربع الأبيض للون الداكن */
+[data-theme="dark"] #home-section .bg-light {
+    background-color: #1a1a1a !important;
+    border-color: #198754 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* تفتيح لون التاريخ الهجري عشان يكون مقروء على الخلفية الغامقة */
+[data-theme="dark"] #hijri-date {
+    color: #9ca3af !important;
+}
+
+/* لو عناصر مواقيت الصلاة نفسها (الفجر، الظهر، الخ) محتاجة تظبيط في الألوان */
+[data-theme="dark"] #prayers-list > div, 
+[data-theme="dark"] .small-prayers .list-group-item {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+    border-color: #404040 !important;
+}
+
+
+/* ══════════════════════════════════════════════
+   ─── تنسيق مربع الملاحظات (الوضع العادي والداكن) ───
+══════════════════════════════════════════════ */
+
+/* الوضع الفاتح (الافتراضي) */
+.bookmark-note-box {
+    background-color: #f8f9fa;
+    border-right: 3px solid #198754;
+}
+.bookmark-note-box .note-text {
+    color: #6c757d; /* لون رمادي مناسب للوضع الفاتح */
+}
+
+/* الوضع الداكن (Dark Mode) */
+[data-theme="dark"] .bookmark-note-box {
+    background-color: #2a2a2a !important; /* لون رمادي غامق متناسق مع كروت الآيات */
+    border-right-color: #198754 !important;
+}
+[data-theme="dark"] .bookmark-note-box .note-text {
+    color: #e5e7eb !important; /* لون كلام فاتح عشان يتقري بسهولة */
+}
+
+/* غيّر الـ bottom في التعريف الأخير */
+.khatmah-floating-btn {
+    bottom: calc(64px + 12px); /* كان: 20px - كان بيتغطى تحت الـ nav */
+    left: 16px;
+}
+
+/* وفي الـ media query */
+@media (max-width: 768px) {
+    .khatmah-floating-btn {
+        bottom: calc(64px + 10px); /* كان: 20px */
+        left: 12px;
+    }
+}

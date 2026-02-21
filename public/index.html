@@ -10,48 +10,270 @@
     <link rel="shortcut icon" type="image/png" href="/img/title.png">
     <meta name="theme-color" content="#1e5f31">
     <style>
-        /* تأثير التشويش لوضع الحفظ */
-.blurred-text {
-    color: transparent !important;
-    text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-    transition: all 0.3s ease;
-}
+        .blurred-text {
+            color: transparent !important;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+        .live-ayah-item {
+            border-bottom: 1px solid #eee;
+            padding: 15px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .live-ayah-text {
+            font-family: 'Amiri', serif;
+            font-size: 1.4rem;
+            line-height: 2.2;
+            padding: 15px;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            border-right: 4px solid transparent;
+            text-align: right;
+            flex-grow: 1;
+            margin-right: 15px;
+        }
+        .live-play-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #198754;
+            color: #198754;
+            background: white;
+            transition: all 0.2s;
+        }
+        .live-play-btn:active, .live-play-btn.playing {
+            background: #198754;
+            color: white;
+        }
+        .ayah-active {
+            background-color: #e8f5e9;
+            border-right-color: #198754;
+            color: #0f5132;
+            transform: scale(1.02);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        .word-highlight {
+            color: #198754;
+            font-weight: bold;
+            text-shadow: 0 0 1px rgba(25, 135, 84, 0.3);
+        }
+        .blurred-text {
+            filter: blur(4px);
+            transition: filter 0.3s;
+        }
+        .ayah-active .blurred-text {
+            filter: blur(0);
+        }
 
-/* تنسيق قائمة الآيات في المسمع */
-.live-ayah-item {
-    border-bottom: 1px solid #eee;
-    padding: 15px 0;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
+        /* ─── فهرس المصحف بالأجزاء ──────────────────── */
+        .juz-header {
+            background: linear-gradient(135deg, #1e5f31, #198754);
+            color: white;
+            border-radius: 12px;
+            padding: 12px 20px;
+            margin: 20px 0 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 3px 10px rgba(25, 135, 84, 0.3);
+        }
+        .juz-header h5 { margin: 0; font-size: 1rem; }
+        .juz-badge {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.4);
+            border-radius: 20px;
+            padding: 3px 12px;
+            font-size: 0.85rem;
+        }
+        .hizb-tabs {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        .hizb-tab {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 4px 10px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .hizb-tab:hover { background: #e8f5e9; border-color: #198754; color: #198754; }
 
-.live-ayah-text {
-    font-family: 'Amiri', serif;
-    font-size: 1.3rem;
-    line-height: 2;
-    text-align: right;
-    flex-grow: 1;
-    margin-right: 15px;
-}
+        /* ─── رأس صفحة القرآن ───────────────────────── */
+        #quran-juz-info { margin-bottom: 8px; }
+        #quran-juz-info .badge { font-size: 0.9rem; padding: 6px 12px; }
 
-.live-play-btn {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid #198754;
-    color: #198754;
-    background: white;
-    transition: all 0.2s;
-}
+        /* ─── تغيير كلمة المرور ─────────────────────── */
+        .password-toggle {
+            cursor: pointer;
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+        .password-field-wrapper { position: relative; }
 
-.live-play-btn:active, .live-play-btn.playing {
-    background: #198754;
-    color: white;
-}
+        /* ══════════════════════════════════════════════
+           ─── Bottom Navigation Bar ──────────────────
+        ══════════════════════════════════════════════ */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1050;
+            background: #ffffff;
+            border-top: 1px solid rgba(25, 135, 84, 0.15);
+            box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: stretch;
+            height: 64px;
+            padding: 0 4px;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        /* Dark mode للـ bottom nav */
+        [data-theme="dark"] .bottom-nav {
+            background: #1a1a1a;
+            border-top-color: rgba(25, 135, 84, 0.25);
+            box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .bottom-nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: #9ca3af;
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 6px 2px;
+            border-radius: 12px;
+            margin: 6px 2px;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            text-decoration: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        [data-theme="dark"] .bottom-nav-item {
+            color: #6b7280;
+        }
+
+        .bottom-nav-item i {
+            font-size: 1.15rem;
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .bottom-nav-item span {
+            line-height: 1;
+            letter-spacing: 0.02em;
+        }
+
+        /* Active State */
+        .bottom-nav-item.active {
+            color: #198754;
+            background: rgba(25, 135, 84, 0.08);
+        }
+
+        [data-theme="dark"] .bottom-nav-item.active {
+            color: #4ade80;
+            background: rgba(74, 222, 128, 0.1);
+        }
+
+        .bottom-nav-item.active i {
+            transform: translateY(-2px) scale(1.1);
+        }
+
+        /* زر المصحف الوسطي (أكبر وأبرز) */
+        .bottom-nav-item.nav-center-btn {
+            flex: 1.2;
+        }
+
+        .bottom-nav-item.nav-center-btn .nav-icon-wrap {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #1e5f31, #198754);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(25, 135, 84, 0.4);
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            margin-bottom: 2px;
+        }
+
+        .bottom-nav-item.nav-center-btn i {
+            color: white;
+            font-size: 1.2rem;
+            transform: none !important;
+        }
+
+        .bottom-nav-item.nav-center-btn.active .nav-icon-wrap,
+        .bottom-nav-item.nav-center-btn:active .nav-icon-wrap {
+            transform: scale(1.1);
+            box-shadow: 0 6px 18px rgba(25, 135, 84, 0.5);
+        }
+
+        .bottom-nav-item.nav-center-btn.active {
+            background: transparent;
+            color: #198754;
+        }
+
+        /* Hover effect لـ desktop */
+        @media (hover: hover) {
+            .bottom-nav-item:not(.nav-center-btn):hover {
+                color: #198754;
+                background: rgba(25, 135, 84, 0.06);
+            }
+            .bottom-nav-item:not(.nav-center-btn):hover i {
+                transform: translateY(-2px);
+            }
+        }
+
+        /* Active press effect */
+        .bottom-nav-item:active:not(.nav-center-btn) {
+            transform: scale(0.92);
+        }
+
+        /* نقطة الإشعار */
+        .nav-badge {
+            position: absolute;
+            top: 4px;
+            left: 50%;
+            transform: translateX(6px);
+            width: 7px;
+            height: 7px;
+            background: #ef4444;
+            border-radius: 50%;
+            border: 1.5px solid #fff;
+        }
+
+        [data-theme="dark"] .nav-badge {
+            border-color: #1a1a1a;
+        }
+
+        /* padding للـ body عشان المحتوى ميتغطاش بالـ navbar */
+        body {
+            padding-bottom: calc(72px + env(safe-area-inset-bottom));
+        }
+
+        /* إخفاء الـ bottom nav على الشاشات الكبيرة لو حبيت */
+        /* @media (min-width: 992px) { .bottom-nav { display: none; } } */
     </style>
 </head>
 
@@ -62,12 +284,12 @@
             <a class="navbar-brand fw-bold order-0" href="#" onclick="showSection('home')">📖 تطبيق اقرأ</a>
             
             <div class="d-flex align-items-center mx-auto order-1" style="flex: 1; max-width: 600px; justify-content: center;">
-                 <div class="search-container position-relative w-100" style="max-width: 450px;">
-                    <input id="search-input" class="form-control rounded-pill px-4 py-2 test2" type="text" placeholder="ابحث عن آية..." style="border: 2px solid #1e5f31; padding-left: 40px;">
+                <div class="search-container position-relative w-100" style="max-width: 450px;">
+                    <input id="search-input" class="form-control rounded-pill px-4 py-2 test2" type="text" placeholder=" ابحث ب الاّيه ..." style="border: 2px solid #1e5f31; padding-left: 40px;">
                     <i class="fas fa-search position-absolute text-muted" style="left: 15px; top: 50%; transform: translateY(-50%);"></i>
                     <div id="search-results" class="list-group position-absolute w-100 shadow-lg d-none" style="z-index: 1000; max-height: 300px; overflow-y: auto; top: 50px;"></div>
-                 </div>
-                 <button id="theme-toggle" class="btn btn-link nav-link ms-2"><i class="fas fa-moon fs-5 text-white"></i></button>
+                </div>
+                <button id="theme-toggle" class="btn btn-link nav-link ms-2"><i class="fas fa-moon fs-5 text-white"></i></button>
             </div>
 
             <button class="navbar-toggler order-2 ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -86,32 +308,21 @@
 
     <div class="container my-4">
 
+        <!-- Home Section -->
         <div id="home-section">
             <div class="row justify-content-center text-center mb-4">
                 <div class="col-lg-8">
                     <h1 class="display-6 fw-bold text-success">مرحباً بك في اقرأ 📖</h1>
                     <div class="mt-3 bg-light p-3 rounded shadow-sm border-start border-success border-4">
                         <h5 id="hijri-date" class="text-muted mb-2 small"></h5>
-                        <h6 id="location-name" class="text-success fw-bold small">جاري تحديد الموقع...</h6>
+                        <h6 id="location-name" class="text-success fw-bold small">جارى جلب مواقيت الصلاه...</h6>
                         <div id="prayers-list" class="list-group list-group-horizontal justify-content-center flex-wrap mt-2 small-prayers"></div>
-                    </div>
-                    <div id="active-khatmah" class="d-none mt-3">
-                        <div class="card border-success shadow-sm">
-                            <div class="card-body py-2">
-                                <h5 id="khatmah-name" class="text-success fw-bold m-0"></h5>
-                                <p id="daily-target" class="small text-muted my-1"></p>
-                                <div class="progress my-2" style="height: 10px;">
-                                    <div id="progress-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
-                                </div>
-                                <button onclick="openQuranAtCurrentKhatmah()" class="btn btn-sm btn-success w-100">واصل القراءة <i class="fas fa-book-open"></i></button>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
             <div class="row g-3">
                 <div class="col-6 col-md-4">
-                   <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow" onclick="showSection('surah-index'); loadSurahIndex();" style="cursor: pointer;">
+                    <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow" onclick="showSection('surah-index'); loadSurahIndex();" style="cursor: pointer;">
                         <div class="mb-2"><i class="fas fa-book-open fa-2x text-success"></i></div>
                         <h6 class="fw-bold">المصحف</h6>
                     </div>
@@ -129,7 +340,7 @@
                     </div>
                 </div>
                 <div class="col-6 col-md-4">
-                    <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow" onclick="document.getElementById('active-khatmah').classList.remove('d-none');" style="cursor: pointer;">
+                    <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow" onclick="showSection('khatmah')" style="cursor: pointer;">
                         <div class="mb-2"><i class="fas fa-calendar-check fa-2x text-success"></i></div>
                         <h6 class="fw-bold">الختمة</h6>
                     </div>
@@ -140,7 +351,7 @@
                         <h6 class="fw-bold">العلامات</h6>
                     </div>
                 </div>
-                 <div class="col-6 col-md-4">
+                <div class="col-6 col-md-4">
                     <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow" onclick="showSection('live-recitation')" style="cursor: pointer;">
                         <div class="mb-2"><i class="fa-solid fa-wand-magic-sparkles fa-2x text-warning"></i></div>
                         <h6 class="fw-bold">تتبع التلاوة</h6>
@@ -148,23 +359,106 @@
                 </div>
             </div>
         </div>
+
+        <!-- Khatmah Section -->
+        <div id="khatmah-section" class="d-none">
+            <div class="d-flex align-items-center mb-3">
+                <button class="btn btn-sm btn-secondary me-3" onclick="showSection('home')">
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+                <h3 class="flex-grow-1 text-center m-0">📅 ختمتي</h3>
+            </div>
+
+            <div id="active-khatmah" class="d-none">
+                <div class="card border-0 shadow p-4 text-center">
+                    <h3 id="khatmah-name" class="text-success fw-bold"></h3>
+                    <div class="progress my-3" style="height: 25px; border-radius: 10px;">
+                        <div id="progress-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%">0%</div>
+                    </div>
+                    <p id="daily-target" class="fw-bold text-danger lead"></p>
+                    <p id="khatmah-status-text" class="text-muted mt-2">جاري تحميل مكان التوقف...</p>
+                    
+                    <!-- ✅ زر متابعة الختمة - يفتح المصحف عند علامة الختمة -->
+                    <button onclick="openQuranAtCurrentKhatmah()" class="btn btn-lg btn-success w-100 mt-3">
+                        🚀 متابعة الختمة من حيث توقفت
+                    </button>
+
+                    <hr>
+                    <h5 class="mb-3">تحديث التقدم:</h5>
+                    <div class="d-flex justify-content-center gap-2 flex-wrap">
+                        <select id="currentSurah" class="form-select" style="width: 200px;" required>
+                            <option value="" disabled selected>اختر السورة</option>
+                        </select>
+                        <input id="currentAyah" class="form-control" type="number" 
+                               placeholder="رقم الآية" style="width: 120px;" required>
+                        <button id="specialBookmarkBtn" class="btn btn-success">
+                            🔖 حفظ التقدم
+                        </button>
+                    </div>
+
+                    <button id="deleteKhatmahBtn" class="btn btn-outline-danger mt-4 w-100">
+                        🗑️ إلغاء الختمة
+                    </button>
+                </div>
+            </div>
+
+            <div id="create-khatmah" class="d-none">
+                <div class="card border-0 shadow p-4">
+                    <h3 class="text-center mb-4">ابدأ ختمة جديدة 📖</h3>
+                    <form id="createKhatmahForm">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">اسم الختمة</label>
+                            <input id="planName" class="form-control form-control-lg" type="text" placeholder="مثال: ختمة رمضان" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">المدة (بالأيام)</label>
+                            <input id="duration" class="form-control form-control-lg" type="number" placeholder="30" required>
+                        </div>
+                        <button class="btn btn-success btn-lg w-100" type="submit">
+                            ✨ إنشاء الختمة
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ✅ Surah Index Section -->
         <div id="surah-index-section" class="d-none">
-    <div class="container text-center mt-3">
-        <h2 class="mb-4 text-success fw-bold">المصحف الشريف 📖</h2>
-        
-        <button class="btn btn-outline-secondary btn-sm mb-3" onclick="showSection('home')">
-            <i class="fas fa-arrow-right"></i> القائمة الرئيسية
-        </button>
+            <div class="container text-center mt-3">
+                <h2 class="mb-2 text-success fw-bold">المصحف الشريف 📖</h2>
+                <button class="btn btn-outline-secondary btn-sm mb-3" onclick="showSection('home')">
+                    <i class="fas fa-arrow-right"></i> القائمة الرئيسية
+                </button>
 
-        <div id="surah-index-list" class="row g-3"></div>
-        
-        <a href="#" class="khatmah-floating-btn" onclick="document.getElementById('active-khatmah').classList.remove('d-none'); showSection('home');">
-            <i class="fas fa-flag"></i>
-            <span class="ms-2">ختمتي</span>
-        </a>
-    </div>
-</div>
+                <!-- تبويبات العرض -->
+                <div class="btn-group mb-4 w-100" role="group">
+                    <button class="btn btn-success active" id="tab-surahs" onclick="switchIndexTab('surahs')">
+                        <i class="fas fa-list me-1"></i> السور
+                    </button>
+                    <button class="btn btn-outline-success" id="tab-juz" onclick="switchIndexTab('juz')">
+                        <i class="fas fa-th me-1"></i> الأجزاء
+                    </button>
+                </div>
 
+                <!-- عرض السور -->
+                <div id="view-surahs">
+                    <div id="surah-index-list" class="row g-3"></div>
+                </div>
+
+                <!-- ✅ عرض الأجزاء والأحزاب -->
+                <div id="view-juz" class="d-none">
+                    <div id="juz-index-list"></div>
+                </div>
+
+                <!-- ✅ زر ختمتي في صفحة الفهرس - يفتح المصحف عند علامة الختمة -->
+                <a href="#" class="khatmah-floating-btn" onclick="event.preventDefault(); openQuranAtCurrentKhatmah();">
+                    <i class="fas fa-flag"></i>
+                    <span class="ms-2">ختمتي</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Login Section -->
         <div id="login-section" class="d-none">
             <div class="card shadow-sm p-4 mx-auto" style="max-width: 400px;">
                 <div class="text-center mb-4">
@@ -182,6 +476,10 @@
                     <button type="submit" class="btn btn-success w-100">دخول</button>
                 </form>
                 <div class="text-center mt-3">
+                    <a href="#" onclick="showSection('forgot-password')" class="text-decoration-none text-danger small">
+                        <i class="fas fa-key me-1"></i> نسيت كلمة المرور؟
+                    </a>
+                    <br class="my-2">
                     <a href="#" onclick="showSection('signup')" class="text-decoration-none">إنشاء حساب جديد</a>
                     <br>
                     <a href="#" onclick="showSection('home')" class="text-muted small">عودة</a>
@@ -189,6 +487,34 @@
             </div>
         </div>
 
+        <!-- ✅ Forgot Password Section -->
+        <div id="forgot-password-section" class="d-none">
+            <div class="card shadow-sm p-4 mx-auto" style="max-width: 400px;">
+                <div class="text-center mb-4">
+                    <div class="display-4 mb-2">🔑</div>
+                    <h3 class="text-success">استعادة كلمة المرور</h3>
+                    <p class="text-muted small">أدخل بريدك الإلكتروني وسنرسل لك رابط إعادة تعيين كلمة المرور</p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">البريد الإلكتروني</label>
+                    <input type="email" id="forgot-email" class="form-control form-control-lg" placeholder="example@mail.com" required>
+                </div>
+                <button id="forgot-password-btn" class="btn btn-success btn-lg w-100 mb-3" onclick="handleForgotPassword()">
+                    <i class="fas fa-paper-plane me-2"></i> إرسال رابط الاستعادة
+                </button>
+                <div id="forgot-success-msg" class="alert alert-success d-none text-center" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <span></span>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="#" onclick="showSection('login')" class="text-muted small">
+                        <i class="fas fa-arrow-right me-1"></i> العودة لتسجيل الدخول
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Signup Section -->
         <div id="signup-section" class="d-none">
             <div class="card shadow-sm p-4 mx-auto" style="max-width: 400px;">
                 <div class="text-center mb-4">
@@ -218,24 +544,8 @@
                 </div>
             </div>
         </div>
-        <div id="verify-otp-section" class="d-none">
-    <div class="card shadow-sm p-4 mx-auto text-center" style="max-width: 400px;">
-        <div class="display-1 mb-3">📩</div>
-        <h3>تفعيل الحساب</h3>
-        <p class="text-muted">أدخل الرمز المرسل إلى بريدك.</p>
-        <form id="verifyOTPFormPage"> <div class="mb-3 text-start">
-                <label class="form-label">البريد الإلكتروني</label>
-                <input id="verify-email" class="form-control" type="email" placeholder="email@example.com" required>
-            </div>
-            <div class="mb-3 text-start">
-                <label class="form-label">رمز التحقق (OTP)</label>
-                <input id="verify-otp" class="form-control text-center fs-4" type="text" maxlength="6" style="letter-spacing: 5px;" required>
-            </div>
-            <button type="submit" class="btn btn-success w-100">تفعيل</button>
-        </form>
-    </div>
-</div>
 
+        <!-- Verify OTP -->
         <div id="verify-otp-section" class="d-none">
             <div class="card shadow-sm p-4 mx-auto text-center" style="max-width: 400px;">
                 <div class="display-1 mb-3">📩</div>
@@ -244,53 +554,51 @@
                 <form id="verifyOTPFormPage">
                     <div class="mb-3 text-start">
                         <label class="form-label">البريد الإلكتروني</label>
-                        <input id="verify-email" class="form-control" type="email" required>
+                        <input id="verify-email" class="form-control" type="email" placeholder="email@example.com" required>
                     </div>
                     <div class="mb-3 text-start">
                         <label class="form-label">رمز التحقق (OTP)</label>
-                        <input id="verify-otp" class="form-control text-center fs-4" type="text" maxlength="6" required>
+                        <input id="verify-otp" class="form-control text-center fs-4" type="text" maxlength="6" style="letter-spacing: 5px;" required>
                     </div>
                     <button type="submit" class="btn btn-success w-100">تفعيل</button>
                 </form>
             </div>
         </div>
 
+        <!-- Quran Section -->
         <div id="quran-section" class="d-none">
-    <div class="container py-3 text-center">
-        
-        <div class="mb-3">
-            <h1 id="surah-title-display" class="surah-title-box text-success fw-bold h3">
-                جارى التحميل...
-            </h1>
-        </div>
-
-        <div class="mb-3">
-            <button class="btn btn-outline-success rounded-pill px-4 btn-sm" onclick="showSection('surah-index'); loadSurahIndex();">
-                📖 الفهرس
-            </button>
-        </div>
-
-        <div id="quran-book" class="position-relative mx-auto bg-white rounded shadow-sm p-3 mb-3" style="min-height: 500px;">
-            <div id="ayahs-container">
+            <div class="container py-3 text-center">
+                <div class="mb-2">
+                    <h1 id="surah-title-display" class="surah-title-box text-success fw-bold h3">
+                        جارى التحميل...
+                    </h1>
+                    <div id="quran-juz-info" class="mt-1"></div>
                 </div>
+                <div class="mb-3">
+                    <button class="btn btn-outline-success rounded-pill px-4 btn-sm" onclick="showSection('surah-index'); loadSurahIndex();">
+                        📖 الفهرس
+                    </button>
+                </div>
+                <div id="quran-book" class="position-relative mx-auto bg-white rounded shadow-sm p-3 mb-3" style="min-height: 500px;">
+                    <div id="ayahs-container"></div>
+                </div>
+                <div class="d-flex justify-content-between gap-3 mt-2 pb-5">
+                    <button id="btn-next-page" class="btn btn-success nav-btn-custom">
+                        <span>السابق</span> <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <button id="btn-prev-page" class="btn btn-success nav-btn-custom">
+                        <i class="fas fa-arrow-right"></i> <span>التالى</span>
+                    </button>
+                </div>
+                <!-- ✅ زر ختمتي في صفحة المصحف - يعمل scroll للآية الحالية في الختمة -->
+                <a href="#" class="khatmah-floating-btn" onclick="event.preventDefault(); openQuranAtCurrentKhatmah();">
+                    <i class="fas fa-flag"></i>
+                    <span class="ms-2">ختمتي</span>
+                </a>
+            </div>
         </div>
 
-        <div class="d-flex justify-content-between gap-3 mt-2 pb-5">
-            <button id="btn-next-page" class="btn btn-success nav-btn-custom">
-                <span>التالي</span> <i class="fas fa-arrow-left"></i>
-            </button>
-            <button id="btn-prev-page" class="btn btn-success nav-btn-custom">
-                <i class="fas fa-arrow-right"></i> <span>السابق</span>
-            </button>
-        </div>
-
-        <a href="#" class="khatmah-floating-btn" onclick="document.getElementById('active-khatmah').classList.remove('d-none'); showSection('home');">
-            <i class="fas fa-flag"></i>
-            <span class="ms-2">ختمتي</span>
-        </a>
-    </div>
-</div>
-
+        <!-- Reciters Section -->
         <div id="reciters-section" class="d-none">
             <div class="d-flex align-items-center mb-3">
                 <button class="btn btn-sm btn-secondary me-3" onclick="showSection('home')"><i class="fas fa-arrow-right"></i></button>
@@ -299,6 +607,7 @@
             <div id="reciters-container" class="row g-3"></div>
         </div>
 
+        <!-- Bookmarks Section -->
         <div id="bookmarks-section" class="d-none">
             <div class="d-flex align-items-center mb-3">
                 <button class="btn btn-sm btn-secondary me-3" onclick="showSection('home')"><i class="fas fa-arrow-right"></i></button>
@@ -307,7 +616,9 @@
             <div id="bookmarks-container" class="row g-3"></div>
         </div>
 
+        <!-- AI Correction Section -->
         <div id="ai-correction-section" class="d-none">
+            
             <div class="d-flex align-items-center mb-3">
                 <button class="btn btn-sm btn-secondary me-3" onclick="showSection('home')"><i class="fas fa-arrow-right"></i></button>
                 <h3 class="flex-grow-1 text-center m-0">المصحح الذكي</h3>
@@ -318,60 +629,76 @@
                     <select id="ai-surah-select" class="form-select form-select-lg"></select>
                 </div>
                 <div class="row g-2 mb-4">
-                    <div class="col-6"><input type="number" id="ai-start-ayah" class="form-control" placeholder="من آية"></div>
-                    <div class="col-6"><input type="number" id="ai-end-ayah" class="form-control" placeholder="إلى آية"></div>
+                    <div class="col-6"><input type="number" id="ai-start-ayah" class="form-control" placeholder="من اّيه اختيارى"></div>
+                    <div class="col-6"><input type="number" id="ai-end-ayah" class="form-control" placeholder="الى اّيه اختيارى"></div>
                 </div>
-                <button id="recordBtn" class="btn btn-outline-danger rounded-circle p-4 mb-3" style="width: 80px; height: 80px;"><i class="fas fa-microphone fa-2x"></i></button>
+                <button id="recordBtn" class="btn btn-outline-danger rounded-circle p-4 mb-3" style="width: 80px; height: 80px;">
+                    <i class="fas fa-microphone fa-2x"></i>
+                </button>
                 <p id="recordStatus" class="text-muted small">اضغط للتسجيل</p>
                 <div id="result-container" class="mt-4 d-none text-start bg-light p-3 rounded">
                     <h6 class="fw-bold border-bottom pb-2">النتيجة:</h6>
                     <div id="ai-feedback"></div>
                 </div>
+
             </div>
         </div>
+
+        <!-- Live Recitation Section -->
         <div id="live-recitation-section" class="d-none">
-    <div class="d-flex align-items-center mb-3">
-        <button class="btn btn-sm btn-secondary me-3" onclick="showSection('home')"><i class="fas fa-arrow-right"></i></button>
-        <h3 class="flex-grow-1 text-center m-0">المسمّع الآلي 🎧</h3>
-    </div>
-
-    <div class="card shadow-sm p-3">
-        <div class="row g-2 justify-content-center mb-3">
-            <div class="col-12 mb-2">
-                <select id="live-surah-select" class="form-select form-select-lg"></select>
+            <div class="d-flex align-items-center mb-3">
+                <button class="btn btn-sm btn-secondary me-3" onclick="showSection('home')"><i class="fas fa-arrow-right"></i></button>
+                <h3 class="flex-grow-1 text-center m-0">تتبع التلاوه🎧</h3>
             </div>
-            <div class="col-6">
-                <input id="live-start-ayah" class="form-control" type="number" placeholder="من آية">
-            </div>
-            <div class="col-6">
-                <input id="live-end-ayah" class="form-control" type="number" placeholder="إلى آية">
-            </div>
-            <div class="col-12 mt-2">
-                <button class="btn btn-primary w-100" onclick="loadLiveAyahs()">تحميل الآيات</button>
-            </div>
-        </div>
 
-        <div class="form-check form-switch d-flex justify-content-center mb-3">
-            <input class="form-check-input ms-2" type="checkbox" id="memorize-mode" checked>
-            <label class="form-check-label fw-bold" for="memorize-mode">وضع الحفظ (إخفاء النص)</label>
-        </div>
+            <div class="card shadow-sm p-3">
+                <div class="row g-2 justify-content-center mb-3">
+                    <div class="col-12 mb-2">
+                        <select id="live-surah-select" class="form-select form-select-lg"></select>
+                    </div>
+                    <div class="col-6">
+                        <input id="live-start-ayah" class="form-control" type="number" placeholder="من اّيه اختيارى">
+                    </div>
+                    <div class="col-6">
+                        <input id="live-end-ayah" class="form-control" type="number" placeholder="الى اّيه اختيارى">
+                    </div>
+                    <div class="col-12 mt-2">
+                        <button class="btn btn-primary w-100" onclick="loadLiveAyahs()">تحميل الآيات</button>
+                    </div>
+                </div>
 
-        <div id="live-controls" class="text-center d-none">
-            <button id="btn-start-live" class="btn btn-success btn-lg px-4 mb-2">
-                <i class="fas fa-microphone me-2"></i> ابدأ التسميع
-            </button>
-            <button id="btn-stop-live" class="btn btn-danger btn-lg px-4 mb-2 d-none">
-                <i class="fas fa-stop me-2"></i> توقف
-            </button>
-            <p id="live-status" class="text-muted small mt-1">جاهز...</p>
-        </div>
+                <div class="form-check form-switch d-flex justify-content-center mb-3">
+                    <input class="form-check-input ms-2" type="checkbox" id="memorize-mode" checked>
+                    <label class="form-check-label fw-bold" for="memorize-mode">وضع الحفظ (إخفاء النص)</label>
+                </div>
 
-        <div id="live-quran-container" class="bg-white border rounded p-3 text-center mt-3" style="min-height: 200px; font-family: 'Amiri', serif; font-size: 1.4rem; line-height: 2.2;">
-            <p class="text-muted small">اضغط تحميل لعرض الآيات...</p>
-        </div>
-    </div>
+                <div id="live-controls" class="text-center d-none">
+                    <button id="btn-start-live" class="btn btn-success btn-lg px-4 mb-2">
+                        <i class="fas fa-microphone me-2"></i> ابدأ التسميع
+                    </button>
+                    <button id="btn-stop-live" class="btn btn-danger btn-lg px-4 mb-2 d-none">
+                        <i class="fas fa-stop me-2"></i> توقف
+                    </button>
+                    <p id="live-status" class="text-muted small mt-1">جاهز...</p>
+                </div>
+                <!-- بعد الـ live-controls div -->
+<div class="text-center mt-2">
+  <label class="small text-muted">
+    <i class="fas fa-volume-up me-1"></i> الصوت
+  </label>
+  <input type="range" class="form-range d-inline-block" id="volume-slider-live"
+         min="0" max="1" step="0.1" value="1"
+         style="width: 150px; accent-color: #198754; vertical-align: middle;">
 </div>
 
+                <div id="live-quran-container" class="bg-white border rounded p-3 text-center mt-3" 
+                     style="min-height: 200px; font-family: 'Amiri', serif; font-size: 1.4rem; line-height: 2.2;">
+                    <p class="text-muted small">اضغط تحميل لعرض الآيات...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ✅ Profile Section -->
         <div id="profile-section" class="d-none">
             <div class="d-flex align-items-center mb-3">
                 <button class="btn btn-sm btn-secondary me-3" onclick="showSection('home')"><i class="fas fa-arrow-right"></i></button>
@@ -381,35 +708,206 @@
                 <div class="col-md-6 mb-4">
                     <div class="card shadow-sm border-0">
                         <div class="card-body">
-                            <h5 class="card-title text-success mb-3">بياناتي</h5>
+                            <h5 class="card-title text-success mb-3">
+                                <i class="fas fa-user-circle me-2"></i> بياناتي
+                            </h5>
                             <form id="updateUserForm">
-                                <div class="mb-3"><label>الاسم</label><input type="text" id="profile-name" class="form-control" required></div>
-                                <div class="mb-3"><label>البريد</label><input type="email" id="profile-email" class="form-control" required></div>
-                                <button type="submit" class="btn btn-success w-100">حفظ</button>
+                                <div class="mb-3">
+                                    <label class="form-label">الاسم</label>
+                                    <input type="text" id="profile-name" class="form-control" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">البريد</label>
+                                    <input type="email" id="profile-email" class="form-control" required>
+                                </div>
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="fas fa-save me-2"></i> حفظ التغييرات
+                                </button>
                             </form>
                         </div>
                     </div>
                 </div>
+
+                <div class="col-md-6 mb-4">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-body">
+                            <h5 class="card-title text-warning mb-3">
+                                <i class="fas fa-lock me-2"></i> تغيير كلمة المرور
+                            </h5>
+                            <div class="mb-3">
+                                <label class="form-label">كلمة المرور الحالية</label>
+                                <div class="password-field-wrapper">
+                                    <input type="password" id="current-password" class="form-control" placeholder="أدخل كلمة المرور الحالية">
+                                    <i class="fas fa-eye password-toggle" onclick="togglePasswordVisibility('current-password', this)"></i>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">كلمة المرور الجديدة</label>
+                                <div class="password-field-wrapper">
+                                    <input type="password" id="new-password" class="form-control" placeholder="8 أحرف على الأقل">
+                                    <i class="fas fa-eye password-toggle" onclick="togglePasswordVisibility('new-password', this)"></i>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">تأكيد كلمة المرور الجديدة</label>
+                                <div class="password-field-wrapper">
+                                    <input type="password" id="confirm-new-password" class="form-control" placeholder="أعد كتابة كلمة المرور الجديدة">
+                                    <i class="fas fa-eye password-toggle" onclick="togglePasswordVisibility('confirm-new-password', this)"></i>
+                                </div>
+                            </div>
+                            <button class="btn btn-warning w-100 text-white fw-bold" onclick="handleChangePassword()">
+                                <i class="fas fa-key me-2"></i> تغيير كلمة المرور
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="col-12 text-center">
-                    <button id="logoutBtnProfile" class="btn btn-outline-danger w-100 py-2">تسجيل خروج</button>
+                    <button id="logoutBtnProfile" class="btn btn-outline-danger w-100 py-2">
+                        <i class="fas fa-sign-out-alt me-2"></i> تسجيل خروج
+                    </button>
                 </div>
             </div>
         </div>
 
     </div>
 
-    <footer class="bg-white border-top py-3 mt-auto">
-        <div class="container text-center">
-            <p class="mb-0 text-muted fw-light small">جميع الحقوق محفوظة لـ <strong class="text-success">تطبيق اقرأ</strong> &copy; <span id="current-year"></span></p>
-        </div>
-    </footer>
+    <!-- ══════════════════════════════════════════════
+         ─── Bottom Navigation Bar ──────────────────
+    ══════════════════════════════════════════════ -->
+    <nav class="bottom-nav" id="bottom-nav">
+        <!-- الرئيسية -->
+        <button class="bottom-nav-item active" id="bnav-home" onclick="showSection('home'); setActiveNav('bnav-home')">
+            <i class="fas fa-home"></i>
+            <span>الرئيسية</span>
+        </button>
+
+        <!-- الختمة -->
+        <button class="bottom-nav-item" id="bnav-khatmah" onclick="showSection('khatmah'); setActiveNav('bnav-khatmah')">
+            <i class="fas fa-calendar-check"></i>
+            <span>ختمتي</span>
+        </button>
+
+        <!-- المصحف - زر مميز في المنتصف -->
+        <button class="bottom-nav-item nav-center-btn" id="bnav-quran" onclick="showSection('surah-index'); loadSurahIndex(); setActiveNav('bnav-quran')">
+            <div class="nav-icon-wrap">
+                <i class="fas fa-book-open"></i>
+            </div>
+            <span>المصحف</span>
+        </button>
+
+        <!-- العلامات -->
+        <button class="bottom-nav-item" id="bnav-bookmarks" onclick="showSection('bookmarks'); setActiveNav('bnav-bookmarks')">
+            <i class="fas fa-bookmark"></i>
+            <span>علاماتي</span>
+        </button>
+
+        <!-- حسابي -->
+        <button class="bottom-nav-item" id="bnav-profile" onclick="showSection('profile'); setActiveNav('bnav-profile')">
+            <i class="fas fa-user"></i>
+            <span>حسابي</span>
+        </button>
+    </nav>
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
-    <script>document.getElementById('current-year').textContent = new Date().getFullYear();</script>
-    <script src="/js/bundle.js"></script> 
+    <script src="/js/bundle.js"></script>
+
+    <script>
+        // ─── Bottom Nav Active State ──────────────────
+        function setActiveNav(activeId) {
+            document.querySelectorAll('.bottom-nav-item').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            const activeBtn = document.getElementById(activeId);
+            if (activeBtn) activeBtn.classList.add('active');
+        }
+
+        // ربط الـ showSection الأصلي مع تحديث الـ bottom nav
+        // يتم تنفيذه بعد تحميل bundle.js
+        document.addEventListener('DOMContentLoaded', () => {
+            // map بين الـ sections والـ nav items
+            const sectionNavMap = {
+                'home':            'bnav-home',
+                'khatmah':         'bnav-khatmah',
+                'surah-index':     'bnav-quran',
+                'quran':           'bnav-quran',
+                'bookmarks':       'bnav-bookmarks',
+                'profile':         'bnav-profile',
+            };
+
+            // نغلف الـ showSection الأصلي عشان نحدث الـ nav تلقائياً
+            const _origShowSection = window.showSection;
+            if (_origShowSection) {
+                window.showSection = function(sectionName) {
+                    _origShowSection(sectionName);
+                    const navId = sectionNavMap[sectionName];
+                    if (navId) setActiveNav(navId);
+                    // إخفاء الـ bottom nav في صفحات login/signup/otp
+                    const hiddenSections = ['login','signup','verify-otp','forgot-password'];
+                    const bottomNav = document.getElementById('bottom-nav');
+                    if (bottomNav) {
+                        bottomNav.style.display = hiddenSections.includes(sectionName) ? 'none' : 'flex';
+                    }
+                };
+            }
+        });
+
+        function togglePasswordVisibility(inputId, icon) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+
+        function handleChangePassword() {
+            const current = document.getElementById('current-password').value;
+            const newPass = document.getElementById('new-password').value;
+            const confirm = document.getElementById('confirm-new-password').value;
+            if (window.changePassword) {
+                window.changePassword(current, newPass, confirm);
+            }
+        }
+
+        function handleForgotPassword() {
+            const email = document.getElementById('forgot-email').value;
+            if (window.forgotPasswordHandler) {
+                window.forgotPasswordHandler(email);
+            }
+        }
+
+        function switchIndexTab(tab) {
+            const surahsView = document.getElementById('view-surahs');
+            const juzView    = document.getElementById('view-juz');
+            const tabSurahs  = document.getElementById('tab-surahs');
+            const tabJuz     = document.getElementById('tab-juz');
+
+            if (tab === 'surahs') {
+                surahsView.classList.remove('d-none');
+                juzView.classList.add('d-none');
+                tabSurahs.classList.add('active');
+                tabSurahs.classList.remove('btn-outline-success');
+                tabSurahs.classList.add('btn-success');
+                tabJuz.classList.remove('active', 'btn-success');
+                tabJuz.classList.add('btn-outline-success');
+            } else {
+                surahsView.classList.add('d-none');
+                juzView.classList.remove('d-none');
+                tabJuz.classList.add('active');
+                tabJuz.classList.remove('btn-outline-success');
+                tabJuz.classList.add('btn-success');
+                tabSurahs.classList.remove('active', 'btn-success');
+                tabSurahs.classList.add('btn-outline-success');
+                if (window.loadJuzIndex) window.loadJuzIndex();
+            }
+        }
+    </script>
 </body>
 </html>
