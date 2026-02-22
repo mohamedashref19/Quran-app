@@ -1013,12 +1013,13 @@ const initNativeFeatures = async () => {
 // ─── 18. DOMContentLoaded ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
 
-  if (Capacitor.isNativePlatform()) {
-    try {
-      const { value: token } = await Preferences.get({ key: 'auth_token' });
-      if (token) { axios.defaults.headers.common['Authorization'] = `Bearer ${token}`; console.log('✅ Token restored from storage'); }
-    } catch { console.log('No saved token'); }
-  }
+try {
+    const { value: token } = await Preferences.get({ key: 'auth_token' });
+    if (token) { 
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`; 
+        console.log('✅ Token restored from storage'); 
+    }
+  } catch { console.log('No saved token'); }
 
   initNativeFeatures();
   if (typeof initSearch === 'function') initSearch();
