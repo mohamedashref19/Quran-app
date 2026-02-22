@@ -24,6 +24,8 @@ exports.addBookmark = catchAsync(async (req, res, next) => {
 
   res.status(201).json({
     status: "success",
+    message: "added",
+
     data: { bookmark },
   });
 });
@@ -75,7 +77,7 @@ exports.deleteBookemark = catchAsync(async(req,res,next)=>{
 })
 
 exports.toggleBookmark = catchAsync(async (req, res, next) => {
-  const { surahNumber, ayahNumber } = req.body;
+  const { surahNumber, ayahNumber ,note} = req.body;
 
   const existingBookmark = await Bookmark.findOne({
     user: req.user.id,
@@ -94,7 +96,8 @@ exports.toggleBookmark = catchAsync(async (req, res, next) => {
   const bookmark = await Bookmark.create({
     user: req.user.id,
     surah: surahNumber,
-    ayah: ayahNumber
+    ayah: ayahNumber    ,
+    note
   });
 
   res.status(201).json({

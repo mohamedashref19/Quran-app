@@ -43,11 +43,9 @@ async send(subject, htmlContent) {
     };
 
     try {
-      // محاولة الإرسال
       await this.newTransport().sendMail(emailOptions);
       console.log(`✅ Email sent successfully to: ${this.to}`);
     } catch (err) {
-      // هنا مربط الفرس: لو فيه خطأ هيطبعهولك في التيرمنال
       console.error("❌ Error sending email:", err);
     }
   }
