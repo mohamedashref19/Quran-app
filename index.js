@@ -98,12 +98,15 @@ app.use(
         defaultSrc: ["'self'"],
         baseUri: ["'self'"],
         manifestSrc: ["'self'"], 
+        scriptSrcAttr: ["'unsafe-inline'"],
         
         scriptSrc: [
           "'self'",
           "'unsafe-inline'",
           "https://cdn.jsdelivr.net",
           "https://cdnjs.cloudflare.com",
+          "https://js-de.sentry-cdn.com",
+          "https://browser.sentry-cdn.com",
           "capacitor://localhost",
           "http://localhost"
         ],
@@ -139,6 +142,7 @@ app.use(
           "https://api.alquran.cloud",
           "https://aqra-app.serveftp.com",
           "https://cdn.jsdelivr.net",
+          "https://*.sentry.io",
           "capacitor://localhost",
           "http://localhost",
           "ws://127.0.0.1:*", 
