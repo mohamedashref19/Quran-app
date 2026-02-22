@@ -281,6 +281,10 @@
             text-align-last: center;
         }
     </style>
+    <script
+  src="https://js-de.sentry-cdn.com/0af56875ddd4565c69cab0d50f1798a9.min.js"
+  crossorigin="anonymous"
+></script>
 </head>
 
 <body class="d-flex flex-column min-vh-100">
@@ -832,13 +836,34 @@
         </button>
     </nav>
 
+    
+
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+    <script>
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBe8g3X0uXyWLLUi6f2twf_FlbK4DNZfJ4",
+  authDomain: "aqra-app-edff0.firebaseapp.com",
+  projectId: "aqra-app-edff0",
+  storageBucket: "aqra-app-edff0.firebasestorage.app",
+  messagingSenderId: "491715628737",
+  appId: "1:491715628737:web:b2ad1180b59ae2c793ce40",
+  measurementId: "G-0XGVE7V9DJ"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+    </script>
     <script src="/js/bundle.js"></script>
+
 
     <script>
         // ─── Bottom Nav Active State ──────────────────
