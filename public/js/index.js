@@ -342,6 +342,10 @@ const resetUIButtons = () => {
 
 // ─── 8. Auth & Routing ──────────────────────────────────────────────────────────
 window.checkAuth = async () => {
+  const savedToken = localStorage.getItem('auth_token');
+  if (savedToken && !axios.defaults.headers.common['Authorization']) {
+    axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
+  }
   try {
     const res = await axios.get('/api/v1/users/me');
     if (res.data.status === 'success') {
@@ -478,16 +482,19 @@ window.showSection = (sectionName) => {
     if (sel && sel.options.length <= 1) surahNames.forEach((n, i) => { const o = document.createElement('option'); o.value = i + 1; o.textContent = `${i + 1}. ${n}`; sel.appendChild(o); });
   }
   if (sectionName === 'profile') {
+    const savedToken = localStorage.getItem('auth_token');
+    if (savedToken) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
+    }
+
     axios.get('/api/v1/users/me').then(async res => {
       const u = res.data.data.doc;
       if (u) { 
         const n = document.getElementById('profile-name'); if (n) n.value = u.name; 
         const e = document.getElementById('profile-email'); if (e) e.value = u.email; 
-        // ✅ حفظ بيانات المستخدم للأوفلاين
         await localforage.setItem('cached_user_profile', { name: u.name, email: u.email });
       }
     }).catch(async (err) => {
-      // ✅ لو مفيش نت، نجيب البيانات من الكاش بدل ما نطرده لصفحة الدخول
       if (!navigator.onLine || err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
         const cachedUser = await localforage.getItem('cached_user_profile');
         if (cachedUser) {
@@ -497,7 +504,9 @@ window.showSection = (sectionName) => {
           return;
         }
       }
-      window.showSection('login');
+      if (err.response?.status === 401) {
+        window.showSection('login');
+      }
     });
   }
   if (sectionName === 'forgot-password') {

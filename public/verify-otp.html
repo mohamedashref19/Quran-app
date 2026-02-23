@@ -13,17 +13,16 @@
         <h3>تفعيل الحساب</h3>
         <p class="text-muted">أدخل الرمز المرسل إلى بريدك الإلكتروني.</p>
         
-        <form id="verifyOTPForm" class="mt-4">
-            <div class="mb-3 text-start">
-                <label class="form-label">البريد الإلكتروني</label>
-                <input id="email" class="form-control" type="email" placeholder="الإيميل المسجل" required>
-            </div>
-            <div class="mb-3 text-start">
-                <label class="form-label">رمز التحقق (OTP)</label>
-                <input id="otp" class="form-control text-center fs-4" type="text" placeholder="######" required maxlength="6" style="letter-spacing: 5px;">
-            </div>
-            <button type="submit" class="btn btn-success w-100">تفعيل</button>
-        </form>
+        <form id="verifyOTPFormPage" class="mt-4"> <div class="mb-3 text-start">
+        <label class="form-label">البريد الإلكتروني</label>
+        <input id="verify-email" class="form-control" type="email" placeholder="الإيميل المسجل" required>
+    </div>
+    <div class="mb-3 text-start">
+        <label class="form-label">رمز التحقق (OTP)</label>
+        <input id="verify-otp" class="form-control text-center fs-4" type="text" placeholder="######" required maxlength="6" style="letter-spacing: 5px;">
+    </div>
+    <button type="submit" class="btn btn-success w-100">تفعيل</button>
+</form>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
