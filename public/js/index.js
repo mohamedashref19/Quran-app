@@ -295,7 +295,7 @@ const isUserLoggedIn = () => {
 // ─── 7. Stop All Media ────────────────────────────────────────────────────────
 const stopAllMedia = () => {
   console.log("🔴 [SYSTEM] Stopping all media...");
-   console.trace(); 
+  //  console.trace(); 
   if (window.currentAudio) { window.currentAudio.pause(); window.currentAudio = null; }
   document.querySelectorAll('audio, video').forEach(m => { m.pause(); m.currentTime = 0; });
   if (aiMediaRecorder && aiMediaRecorder.state !== 'inactive') {
@@ -847,7 +847,9 @@ window.loadLiveAyahs = async () => {
   document.getElementById('live-controls').classList.remove('d-none');
 
   try {
-    const response      = await axios.get(`https://api.alquran.cloud/v1/surah/${surah}`);
+    const response = await axios.get(`https://api.alquran.cloud/v1/surah/${surah}`, {
+  withCredentials: false 
+})
     const filteredAyahs = response.data.data.ayahs.filter(a => a.numberInSurah >= startAyah && a.numberInSurah <= endAyah);
     container.innerHTML = '';
     if (!filteredAyahs.length) { container.innerHTML = '<p class="text-muted">لا توجد آيات في هذا النطاق.</p>'; return; }
