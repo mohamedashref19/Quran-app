@@ -306,13 +306,25 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
 
-            <div id="navbarNav" class="collapse navbar-collapse order-3">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item auth-link"><a class="nav-link" href="#" onclick="showSection('login')">تسجيل دخول</a></li>
-                    <li class="nav-item auth-link"><a class="nav-link" href="#" onclick="showSection('signup')">إنشاء حساب</a></li>
-                    <li class="nav-item user-link d-none"><a class="nav-link" href="#" onclick="showSection('profile')">👤 حسابي</a></li>
-                </ul>
-            </div>
+           <div id="navbarNav" class="collapse navbar-collapse order-3">
+    <ul class="navbar-nav ms-auto">
+        <li class="nav-item auth-link">
+            <a class="nav-link" href="#" onclick="showSection('login')">تسجيل دخول</a>
+        </li>
+        <li class="nav-item auth-link">
+            <a class="nav-link" href="#" onclick="showSection('signup')">إنشاء حساب</a>
+        </li>
+
+        <li class="nav-item user-link d-none">
+            <a class="nav-link" href="#" onclick="showSection('profile')">👤 حسابي</a>
+        </li>
+        <li class="nav-item user-link d-none">
+            <a class="nav-link text-danger" id="logoutBtn" href="#">
+                <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+            </a>
+        </li>
+    </ul>
+</div>
         </div>
     </nav>
 

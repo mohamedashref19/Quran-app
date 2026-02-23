@@ -240,3 +240,5 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
 
   createandsentToken(user, 200, res);
 });
+
+

@@ -10,7 +10,9 @@ router.post("/login", authControllers.login);
 router.get("/logout", authControllers.logout);
 router.post("/forgetPassword", authControllers.forgetPassword);
 router.patch("/resetPassword/:token", authControllers.resetPassword);
+
 router.use(authControllers.proctect);
+router.get("/me", userControllers.getMe);
 router.patch(
   "/updateMe",
   
