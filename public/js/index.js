@@ -1539,22 +1539,39 @@ if (liveStatus) {
       a.volume = parseFloat(this.value);
     });
   });
-
-  //(Fix Reload)
+// ─── (Fix Reload) ───
   const path = window.location.pathname;
-  if (path.startsWith('/quran')) {
-      const parts = path.split('/');
-      const page = (parts.length > 2 && !isNaN(parts[2])) ? parseInt(parts[2]) : 1;
-      window.showSection('quran');
-      setTimeout(() => window.loadQuranPage(page), 100);
-  } else if (path !== '/' && path !== '/index.html') {
-      const section = path.replace('/', '');
-      if (document.getElementById(`${section}-section`)) {
-          window.showSection(section);
+  
+  const initAppRouting = () => {
+      
+      if (path.startsWith('/quran')) {
+          const parts = path.split('/');
+          const page = (parts.length > 2 && !isNaN(parts[2])) ? parseInt(parts[2]) : 1;
+          
+          // 1. أظهر واجهة المصحف فوراً (لكي لا تبقى الشاشة بيضاء)
+          window.showSection('quran');
+          
+          // 2. انتظر ثانية واحدة فقط لضمان تهيئة الذاكرة وكل شيء، ثم ارسم الصفحة
+          setTimeout(() => {
+              if (window.loadQuranPage) {
+                  window.loadQuranPage(page);
+              }
+          }, 300);
+          
+      } else if (path !== '/' && path !== '/index.html') {
+          const section = path.replace('/', '');
+          if (document.getElementById(`${section}-section`)) {
+              window.showSection(section);
+          } else {
+              window.showSection('home');
+          }
+      } else {
+          window.showSection('home');
       }
-  } else {
-      window.showSection('home');
-  }
+  };
+
+  // تشغيل الموجه بدون await لكي لا نوقف المتصفح
+  initAppRouting();
 
   console.log(Capacitor.isNativePlatform() ? '📱 Mobile Mode Active' : '🌐 Web Mode Active');
 });
