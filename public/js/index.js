@@ -490,13 +490,15 @@ window.checkAuth = async () => {
       return true;
     }
   } catch (err) {
+    // 🚀 التعديل هنا: حماية الكود من الإيقاف عند عدم تسجيل الدخول
     if (!navigator.onLine || err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
       const wasLoggedIn = await localforage.getItem('is_logged_in');
-      await localforage.setItem('user_role', user.role);
+      const cachedRole = await localforage.getItem('user_role'); // 👈 نجلب الدور من الكاش بدلاً من المتغير الوهمي
+
       if (wasLoggedIn) {
         document.querySelectorAll('.auth-link').forEach(el => el.classList.add('d-none'));
         document.querySelectorAll('.user-link').forEach(el => el.classList.remove('d-none'));
-        if (cachedRole === 'admin') {
+        if (cachedRole === 'admin') { // 👈 الآن المتغير معرف ولن يسبب خطأ
             document.querySelectorAll('.admin-link').forEach(el => el.classList.remove('d-none'));
         }
         console.log('⚡ [OFFLINE] المستخدم مسجل دخول (من الكاش)');
@@ -504,9 +506,11 @@ window.checkAuth = async () => {
       }
     }
     
+    // إذا لم يكن هناك إنترنت وكان غير مسجل دخول، أو رُفض الطلب من السيرفر (401)
     document.querySelectorAll('.auth-link').forEach(el => el.classList.remove('d-none'));
     document.querySelectorAll('.user-link, .admin-link').forEach(el => el.classList.add('d-none'));
     await localforage.removeItem('is_logged_in');
+    await localforage.removeItem('user_role');
   }
   return false;
 };
