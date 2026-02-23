@@ -847,9 +847,12 @@ window.loadLiveAyahs = async () => {
   document.getElementById('live-controls').classList.remove('d-none');
 
   try {
-    const response = await axios.get(`https://api.alquran.cloud/v1/surah/${surah}`, {
-  withCredentials: false 
-})
+   const response = await axios.get(`https://api.alquran.cloud/v1/surah/${surah}`, {
+  withCredentials: false, 
+  headers: {
+    Authorization: undefined     
+  }
+});
     const filteredAyahs = response.data.data.ayahs.filter(a => a.numberInSurah >= startAyah && a.numberInSurah <= endAyah);
     container.innerHTML = '';
     if (!filteredAyahs.length) { container.innerHTML = '<p class="text-muted">لا توجد آيات في هذا النطاق.</p>'; return; }
