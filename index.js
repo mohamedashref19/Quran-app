@@ -136,13 +136,17 @@ app.use(
           "blob:",
           "capacitor://localhost",
           "http://localhost",
-          "https://*" 
+          "https:" ,
+          "https://*.googleusercontent.com",
+          "https://www.transparenttextures.com"
         ],
         
         mediaSrc: ["'self'", "https:", "data:", "blob:"], 
         
         connectSrc: [
           "'self'",
+          "https://www.transparenttextures.com",
+          "https://*.googleusercontent.com",
           "https://api.alquran.cloud",
           "https://aqra-app.serveftp.com",
           "https://cdn.jsdelivr.net",

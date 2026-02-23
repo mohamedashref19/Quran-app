@@ -7,6 +7,9 @@
     --gold: #d4af37;
     --dark-text: #2c3e50;
     --light-bg: #f8f9fa;
+    --quran-bg-image: url('/img/cream-paper2.png');
+    --quran-border-color: #d4af37;
+
 }
 
 @import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&display=swap');
@@ -743,7 +746,8 @@ footer {
     --shadow-color: rgba(0,0,0,0.5);
     --input-bg: #2d2d2d;
     --input-text: #fff;
-    
+    --quran-bg-image: url('/img/dark-paper.png');
+    --quran-border-color: #555;
     /* تعديل لون الجولد ليكون أسطع */
     --gold: #f1c40f;            
 }
@@ -1206,4 +1210,40 @@ test*/
         bottom: calc(64px + 10px); /* كان: 20px */
         left: 12px;
     }
+}
+
+#quran-book {
+    overscroll-behavior-x: none; /* تمنع تأثير المتصفح المزعج عند التقليب */
+    touch-action: pan-y; /* تسمح بالنزول والطلوع فقط وتترك السحب يمينا ويسارا للجافاسكريبت */
+}
+
+/* في ملف style.css */
+/* 📖 تنسيق حاوية المصحف */
+#quran-book {
+    /* استخدام المتغير لتحديد الخلفية */
+        overscroll-behavior-x: none; /* تمنع تأثير المتصفح المزعج عند التقليب */
+    touch-action: pan-y; 
+    background-image: var(--quran-bg-image);
+    
+    background-repeat: repeat;
+    background-position: center;
+    background-size: auto; /* أو cover حسب رغبتك */
+    
+    border: 12px solid transparent;
+    border: 3px solid var(--quran-border-color); 
+
+    box-shadow: 
+        0 4px 8px rgba(0,0,0,0.1), /* ظل خارجي ناعم */
+        inset 0 0 50px rgba(0,0,0,0.05); /* ظل داخلي لعمق الورقة */
+    
+    border-radius: 8px;
+    padding: 30px;
+    margin: 20px auto;
+    max-width: 900px;
+    transition: background-image 0.3s ease, border-color 0.3s ease; /* انتقال سلس عند تغيير الوضع */
+}
+
+/* تنسيق إضافي لصفحة المصحف داخل الكتاب لضمان قراءة مريحة */
+.quran-page-content {
+    color: var(--text-color); /* تأكد من وجود هذا المتغير في ملف CSS الخاص بك */
 }

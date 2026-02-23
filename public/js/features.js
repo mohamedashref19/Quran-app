@@ -1,4 +1,5 @@
 /* eslint-disable */
+import localforage from 'localforage';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 import axios from 'axios';
@@ -119,6 +120,19 @@ window.calculateSimilarity = function(text1, text2) {
   return commonCount / Math.max(words1.size, words2.size);
 };
 
+let _loadingPage = null;
+// 👈 إضافة الدالة المفقودة داخل features.js
+const getSurahNameByPageLocal = (pageNum) => {
+  const surahStartPages = { 1: 1, 2: 2, 3: 50, 4: 77, 5: 106, 6: 128, 7: 151, 8: 177, 9: 187, 10: 208, 11: 221, 12: 235, 13: 249, 14: 255, 15: 262, 16: 267, 17: 282, 18: 293, 19: 305, 20: 312, 21: 322, 22: 332, 23: 342, 24: 350, 25: 359, 26: 367, 27: 377, 28: 385, 29: 396, 30: 404, 31: 411, 32: 415, 33: 418, 34: 428, 35: 434, 36: 440, 37: 446, 38: 453, 39: 458, 40: 467, 41: 477, 42: 483, 43: 489, 44: 496, 45: 499, 46: 502, 47: 507, 48: 511, 49: 515, 50: 518, 51: 520, 52: 523, 53: 526, 54: 528, 55: 531, 56: 534, 57: 537, 58: 542, 59: 545, 60: 549, 61: 551, 62: 553, 63: 554, 64: 556, 65: 558, 66: 560, 67: 562, 68: 564, 69: 566, 70: 568, 71: 570, 72: 572, 73: 574, 74: 575, 75: 577, 76: 578, 77: 580, 78: 582, 79: 583, 80: 585, 81: 586, 82: 587, 83: 587, 84: 589, 85: 590, 86: 591, 87: 591, 88: 592, 89: 593, 90: 594, 91: 595, 92: 595, 93: 596, 94: 596, 95: 597, 96: 597, 97: 598, 98: 598, 99: 599, 100: 599, 101: 600, 102: 600, 103: 601, 104: 601, 105: 601, 106: 602, 107: 602, 108: 602, 109: 603, 110: 603, 111: 603, 112: 604, 113: 604, 114: 604 };
+  const surahNames = ["الفاتحة", "البقرة", "آل عمران", "النساء", "المائدة", "الأنعام", "الأعراف", "الأنفال", "التوبة", "يونس", "هود", "يوسف", "الرعد", "إبراهيم", "الحجر", "النحل", "الإسراء", "الكهف", "مريم", "طه", "الأنبياء", "الحج", "المؤمنون", "النور", "الفرقان", "الشعراء", "النمل", "القصص", "العنكبوت", "الروم", "لقمان", "السجدة", "الأحزاب", "سبأ", "فاطر", "يس", "الصافات", "ص", "الزمر", "غافر", "فصلت", "الشورى", "الزخرف", "الدخان", "الجاثية", "الأحقاف", "محمد", "الفتح", "الحجرات", "ق", "الذاريات", "الطور", "النجم", "القمر", "الرحمن", "الواقعة", "الحديد", "المجادلة", "الحشر", "الممتحنة", "الصف", "الجمعة", "المنافقون", "التغابن", "الطلاق", "التحريم", "الملك", "القلم", "الحاقة", "المعارج", "نوح", "الجن", "المزمل", "المدثر", "القيامة", "الإنسان", "المرسلات", "النبأ", "النازعات", "عبس", "التكوير", "الإنفطار", "المطففين", "الإنشقاق", "البروج", "الطارق", "الأعلى", "الغاشية", "الفجر", "البلد", "الشمس", "الليل", "الضحى", "الشرح", "التين", "العلق", "القدر", "البينة", "الزلزلة", "العاديات", "القارعة", "التكاثر", "العصر", "الهمزة", "الفيل", "قريش", "الماعون", "الكوثر", "الكافرون", "النصر", "المسد", "الإخلاص", "الفلق", "الناس"];
+  let sNum = 1;
+  for (let i = 1; i <= 114; i++) {
+    if (surahStartPages[i] <= pageNum) sNum = i; else break;
+  }
+  return surahNames[sNum - 1];
+};
+
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // ─── Bookmarks Session Cache ───────────────────────────────────────────────────
 // بدل ما نطلب /bookmarks في كل صفحة بنفتحها في المصحف،
@@ -158,12 +172,8 @@ const invalidateBookmarksCache = () => {
   console.log('🗑️ [BOOKMARKS CACHE] تم مسح الكاش');
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // ─── loadQuranPage Lock ────────────────────────────────────────────────────────
-// بنمنع نفس الصفحة تتحمل أكتر من مرة في نفس الوقت
-// (بيحصل لما openQuranAtCurrentKhatmah + khatmah scroll بيطلبوا نفس الصفحة)
-// ═══════════════════════════════════════════════════════════════════════════════
-let _loadingPage = null;
+
 
 function updateNavButtons() {
   const nextBtn = document.getElementById('next-surah-btn');
@@ -179,8 +189,28 @@ function updateNavButtons() {
   }
 }
 
+// 👈 أضف هذه الدالة هنا لكي تتعرف عليها loadQuranPage
+const getSurahNameByPage = (pageNum) => {
+  let sNum = 1;
+  // البحث في كائن surahStartPages عن أقرب سورة للصفحة الحالية
+  for (let i = 1; i <= 114; i++) {
+    if (surahStartPages[i] <= pageNum) {
+      sNum = i;
+    } else {
+      break;
+    }
+  }
+  return surahNames[sNum - 1] || "الفاتحة";
+};
+
+
+
 export async function loadQuranPage(pageNumber, targetSurah = null, targetAyah = null) {
   const pageNum = parseInt(pageNumber);
+  
+  // تحديث عنوان السورة في الأعلى بناءً على الدالة المحلية
+  const titleEl = document.getElementById('surah-title-display');
+  if (titleEl) titleEl.textContent = `سورة ${getSurahNameByPage(pageNum)}`;
 
   // ✅ لو نفس الصفحة بتتحمل دلوقتي، اتجاهل الطلب التاني
   if (_loadingPage === pageNum) {
@@ -225,8 +255,7 @@ export async function loadQuranPage(pageNumber, targetSurah = null, targetAyah =
       }
     }, 800);
 
-    // const { ayahs, khatmah } = pageData;
-     const { ayahs } = pageData;
+    const { ayahs } = pageData;
     let khatmah = await localforage.getItem('latest_khatmah');
     if (!khatmah && pageData.khatmah) {
         khatmah = pageData.khatmah;
@@ -253,10 +282,21 @@ export async function loadQuranPage(pageNumber, targetSurah = null, targetAyah =
       }
     }
 
-    if (ayahs.length > 0) document.title = `${ayahs[0].surahNameAr} - صفحة ${pageNum}`;
+    const container = document.getElementById('ayahs-container');
+    if (!container) return;
+    container.innerHTML = '';
 
-    const titleElem = document.getElementById('surah-name');
-    if (titleElem) titleElem.innerText = `${ayahs[0].surahNameAr || '...'}`;
+    // ─── بناء الـ HTML والتوافق مع الـ API الأصلي ───────────────────────────────
+    let fullTextHTML = '<div class="quran-page-content" style="text-align: justify; text-align-last: center; line-height: 2.8; font-family: \'Amiri\'; font-size: 22px; direction: rtl;">';
+
+    if (ayahs.length > 0) {
+      const firstAyah = ayahs[0];
+      let sNameAr = firstAyah.surahNameAr || (firstAyah.surah && firstAyah.surah.name) || '...';
+      if(sNameAr.startsWith("سُورَةُ ")) sNameAr = sNameAr.replace("سُورَةُ ", "سورة ");
+      document.title = `${sNameAr} - صفحة ${pageNum}`;
+      const titleElem = document.getElementById('surah-name');
+      if (titleElem) titleElem.innerText = sNameAr;
+    }
 
     const juzNum    = getJuzByPage(pageNum);
     const hizbNum   = getHizbByPage(pageNum);
@@ -268,11 +308,7 @@ export async function loadQuranPage(pageNumber, targetSurah = null, targetAyah =
       `;
     }
 
-    const container = document.getElementById('ayahs-container');
-    if (!container) return;
-    container.innerHTML = '';
-
-    // ─── Khatmah Scroll (بعد 500ms بدل 2000ms) ───────────────────────────────
+    // ─── Khatmah Scroll ───────────────────────────────
     if (khatmah) {
       const scrollSurah = targetSurah || khatmah.currentSurah;
       const scrollAyah  = targetAyah  || khatmah.currentAyah;
@@ -298,62 +334,57 @@ export async function loadQuranPage(pageNumber, targetSurah = null, targetAyah =
           scrollTarget.style.transition       = 'background 0.5s';
           scrollTarget.style.backgroundColor  = '#d1e7dd';
           setTimeout(() => { scrollTarget.style.backgroundColor = ''; }, 3000);
-          console.log(`✅ [KHATMAH SCROLL] وصلنا لـ ayah-${scrollSurah}-${scrollAyah}`);
-        } else {
-          console.warn(`⚠️ [KHATMAH SCROLL] مش لاقي ayah-${scrollSurah}-${scrollAyah}`);
         }
-      }, 500); // ✅ 500ms كافية بعد ما الـ DOM اتبنى
+      }, 500); 
     }
-
-    // ─── بناء الـ HTML ────────────────────────────────────────────────────────
-    let fullTextHTML = '<div class="quran-page-content" style="text-align: justify; text-align-last: center; line-height: 2.8; font-family: \'Amiri\'; font-size: 22px; direction: rtl;">';
 
     ayahs.forEach(ayah => {
       let ayahText  = ayah.text;
-      const ayahNum = ayah.ayahNumber;
+      
+      const ayahNum = ayah.ayahNumber || ayah.numberInSurah;
+      const surahNum = ayah.surahNumber || (ayah.surah && ayah.surah.number);
+      let surahName = ayah.surahNameAr || (ayah.surah && ayah.surah.name) || "";
+      if(surahName.startsWith("سُورَةُ ")) surahName = surahName.replace("سُورَةُ ", "سورة ");
 
       if (ayahNum === 1) {
-        if (ayah.surahNumber !== 1 && ayah.surahNumber !== 9) {
+        if (surahNum !== 1 && surahNum !== 9) {
           fullTextHTML += `
             <div class="surah-separator text-center my-4 p-2" style="background: #f4f4f4; border: 1px solid #ddd; border-radius: 5px;">
-              <h3 class="text-success m-0" style="font-family: 'Amiri';"> ${ayah.surahNameAr}</h3>
+              <h3 class="text-success m-0" style="font-family: 'Amiri';"> ${surahName}</h3>
             </div>
-            <div class="bismillah text-center mb-3" style="font-family: 'Amiri'; font-size: 1.5rem;">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
+            <div class="bismillah text-center mb-3" style="font-family: 'Amiri'; font-size: 1.5rem;">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
           `;
           const bismillahRegex = /^\s*ب[\u064B-\u065F\u0670]*س[\u064B-\u065F\u0670]*م[\u064B-\u065F\u0670]*\s*[ٱا]لل[\u064B-\u065F\u0670]*ه[\u064B-\u065F\u0670]*\s*[ٱا]لر[\u064B-\u065F\u0670]*ح[\u064B-\u065F\u0670]*م[\u064B-\u065F\u0670]*ٰ?ن[\u064B-\u065F\u0670]*\s*[ٱا]لر[\u064B-\u065F\u0670]*ح[\u064B-\u065F\u0670]*ي[\u064B-\u065F\u0670]*م[\u064B-\u065F\u0670]*/;
           ayahText = ayahText.replace(bismillahRegex, '').trim();
-        } else if (ayah.surahNumber === 1) {
+        } else if (surahNum === 1) {
           fullTextHTML += `<div class="surah-separator text-center my-4"><h3 class="text-success m-0" style="font-family: 'Amiri';">سورة الفاتحة</h3></div>`;
-        } else if (ayah.surahNumber === 9) {
+        } else if (surahNum === 9) {
           fullTextHTML += `<div class="surah-separator text-center my-4 p-2" style="background: #f4f4f4; border: 1px solid #ddd; border-radius: 5px;"><h3 class="text-success m-0" style="font-family: 'Amiri';">سورة التوبة</h3></div>`;
         }
       }
 
-      const isBookmarked  = userBookmarks.some(b => parseInt(b.surah) === ayah.surahNumber && parseInt(b.ayah) === ayahNum);
+      const isBookmarked  = userBookmarks.some(b => parseInt(b.surah) === surahNum && parseInt(b.ayah) === ayahNum);
       const iconClass     = isBookmarked ? 'fas' : 'far';
       const iconColor     = isBookmarked ? '#d4af37' : '#ccc';
 
       const isKhatmahActive = khatmah &&
-        parseInt(khatmah.currentSurah) == ayah.surahNumber &&
-        parseInt(khatmah.currentAyah)  == ayah.ayahNumber;
+        parseInt(khatmah.currentSurah) == surahNum &&
+        parseInt(khatmah.currentAyah)  == ayahNum;
       const khatmahClass  = isKhatmahActive ? 'fas' : 'far';
       const khatmahColor  = isKhatmahActive ? '#198754' : '#28a745';
 
       fullTextHTML += `
-        <span id="ayah-${ayah.surahNumber}-${ayahNum}" class="ayah-text ayah-clickable" data-surah="${ayah.surahNumber}" data-ayah="${ayahNum}" title="تفسير الآية ${ayahNum}" style="cursor: pointer;">${ayahText}</span>
+        <span id="ayah-${surahNum}-${ayahNum}" class="ayah-text ayah-clickable" data-surah="${surahNum}" data-ayah="${ayahNum}" title="تفسير الآية ${ayahNum}" style="cursor: pointer;">${ayahText}</span>
         <span class="ayah-end-wrapper" style="white-space: nowrap; display: inline-block;">
           <span class="ayah-end-symbol" style="color: #d4af37; font-family: sans-serif; margin: 0 5px; border: 1px solid #d4af37; border-radius: 50%; padding: 0 5px; font-size: 0.8em;">${ayahNum}</span>
-          <i class="${iconClass} fa-bookmark bookmark-icon-btn" data-surah="${ayah.surahNumber}" data-ayah="${ayahNum}" title="حفظ علامة مرجعية" style="cursor: pointer; color: ${iconColor}; font-size: 0.7em;"></i>
+          <i class="${iconClass} fa-bookmark bookmark-icon-btn" data-surah="${surahNum}" data-ayah="${ayahNum}" title="حفظ علامة مرجعية" style="cursor: pointer; color: ${iconColor}; font-size: 0.7em;"></i>
         </span>
-        <i class="${khatmahClass} fa-flag khatmah-icon-btn mx-1" data-surah="${ayah.surahNumber}" data-ayah="${ayah.ayahNumber}" title="${isKhatmahActive ? 'أنت تتوقف هنا' : 'تحديث الختمة هنا'}" style="cursor: pointer; color: ${khatmahColor}; font-size: 0.8em;"></i>
+        <i class="${khatmahClass} fa-flag khatmah-icon-btn mx-1" data-surah="${surahNum}" data-ayah="${ayahNum}" title="${isKhatmahActive ? 'أنت تتوقف هنا' : 'تحديث الختمة هنا'}" style="cursor: pointer; color: ${khatmahColor}; font-size: 0.8em;"></i>
       `;
     });
 
     fullTextHTML += '</div><div class="text-center mt-3 text-muted small">- ' + pageNum + ' -</div>';
     container.innerHTML = fullTextHTML;
-
-    console.log(`📄 [DOM] ayahs في الـ container: ${container.querySelectorAll('[id^="ayah-"]').length}`);
-    console.log(`🔍 [DOM] هل ayah-${targetSurah}-${targetAyah} موجود:`, !!document.getElementById(`ayah-${targetSurah}-${targetAyah}`));
 
     const duaBtnContainer = document.getElementById('khatmah-dua-btn-container');
     if (duaBtnContainer) {
@@ -364,8 +395,7 @@ export async function loadQuranPage(pageNumber, targetSurah = null, targetAyah =
       }
     }
 
-
-   document.querySelectorAll('.nav-prev, .nav-next, #prev-surah-mobile, #next-surah-mobile').forEach(btn => btn.classList.remove('d-none'));
+    document.querySelectorAll('.nav-prev, .nav-next, #prev-surah-mobile, #next-surah-mobile').forEach(btn => btn.classList.remove('d-none'));
     if (typeof updateNavButtons === 'function') updateNavButtons();
 
     if (!targetSurah || !targetAyah) {
@@ -378,8 +408,10 @@ export async function loadQuranPage(pageNumber, targetSurah = null, targetAyah =
 
   } catch (err) {
     console.error(err);
+    const container = document.getElementById('ayahs-container');
+    if (container) container.innerHTML = '<p class="text-center text-danger">حدث خطأ أثناء تحميل الصفحة، يرجى إعادة المحاولة.</p>';
   } finally {
-    _loadingPage = null; // ✅ فضّي الـ lock دايمًا حتى لو في error
+    _loadingPage = null; 
   }
 }
 
@@ -937,18 +969,33 @@ export async function loadReciters() {
 
     const reciterSurahNames = ["الفاتحة","البقرة","آل عمران","النساء","المائدة","الأنعام","الأعراف","الأنفال","التوبة","يونس","هود","يوسف","الرعد","إبراهيم","الحجر","النحل","الإسراء","الكهف","مريم","طه","الأنبياء","الحج","المؤمنون","النور","الفرقان","الشعراء","النمل","القصص","العنكبوت","الروم","لقمان","السجدة","الأحزاب","سبأ","فاطر","يس","الصافات","ص","الزمر","غافر","فصلت","الشورى","الزخرف","الدخان","الجاثية","الأحقاف","محمد","الفتح","الحجرات","ق","الذاريات","الطور","النجم","القمر","الرحمن","الواقعة","الحديد","المجادلة","الحشر","الممتحنة","الصف","الجمعة","المنافقون","التغابن","الطلاق","التحريم","الملك","القلم","الحاقة","المعارج","نوح","الجن","المزمل","المدثر","القيامة","الإنسان","المرسلات","النبأ","النازعات","عبس","التكوير","الإنفطار","المطففين","الإنشقاق","البروج","الطارق","الأعلى","الغاشية","الفجر","البلد","الشمس","الليل","الضحى","الشرح","التين","العلق","القدر","البينة","الزلزلة","العاديات","القارعة","التكاثر","العصر","الهمزة","الفيل","قريش","الماعون","الكوثر","الكافرون","النصر","المسد","الإخلاص","الفلق","الناس"];
     const reciterNamesAr = { "Mishary Rashid Alafasy": "مشاري راشد العفاسي", "Maher Al Muaiqly": "ماهر المعيقلي", "Mahmoud Khalil Al-Hussary": "محمود خليل الحصري", "Saud Al-Shuraim": "سعود الشريم", "Abdelbasset Abdessamad": "عبد الباسط عبد الصمد" };
+    const reciterImages = {
+      "Mishary Rashid Alafasy": "http://googleusercontent.com/image_collection/image_retrieval/18306682132696589195_0",
+      "Maher Al Muaiqly": "http://googleusercontent.com/image_collection/image_retrieval/15814499151494449978_0",
+      "Mahmoud Khalil Al-Hussary": "http://googleusercontent.com/image_collection/image_retrieval/3770990370796518444_0",
+      "Saud Al-Shuraim": "http://googleusercontent.com/image_collection/image_retrieval/16232397174650772139_0",
+      "Abdelbasset Abdessamad": "http://googleusercontent.com/image_collection/image_retrieval/479765615497959504_0"
+    };
+
 
     let optionsHTML = '';
     reciterSurahNames.forEach((name, index) => { optionsHTML += `<option value="${index + 1}">${index + 1}. ${name}</option>`; });
 
     recitersList.forEach(reciter => {
       const displayName = reciterNamesAr[reciter.name] || reciter.name;
+      const imageUrl = reciterImages[reciter.name] || "/img/default-reciter.jpg";
       const serverUrl   = reciter.server.endsWith('/') ? reciter.server.slice(0, -1) : reciter.server;
-      container.insertAdjacentHTML('beforeend', `
+     container.insertAdjacentHTML('beforeend', `
         <div class="col-md-4 col-sm-6">
           <div class="card h-100 shadow-sm border-0">
             <div class="card-body text-center">
-              <div class="mb-3"><i class="fas fa-user-circle fa-3x text-success"></i></div>
+              <div class="mb-3">
+                <img src="${imageUrl}" 
+                     loading="lazy" 
+                     alt="${displayName}" 
+                     class="rounded-circle shadow-sm" 
+                     style="width: 100px; height: 100px; object-fit: cover; border: 3px solid #198754;">
+              </div>
               <h5 class="card-title fw-bold text-dark">${displayName}</h5>
               <p class="small text-muted mb-3">رواية حفص عن عاصم</p>
               <div class="form-group mb-3">
