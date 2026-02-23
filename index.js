@@ -212,18 +212,27 @@ app.use("/api/v1/prayers", prayerRoutes);
 
 // 10. Handle Unhandled Routes
 app.all(/(.*)/, (req, res, next) => {
+  
   const ignoredPaths = [
     '/icons/icon-48.webp',
     '/icons/icon-192.webp',
+    '/icons/icon-256.webp',
     '/bundle.js.map',
-    '/.well-known/appspecific/com.chrome.devtools.json'
+    '/.well-known/appspecific/com.chrome.devtools.json',
+    '/manifest.json',
+    '/service-worker.js',
+    '/offline.html'
   ];
 
   if (ignoredPaths.includes(req.originalUrl)) {
     return res.status(404).json({ status: 'fail', message: 'Not found' });
   }
 
-  next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
+  if (req.originalUrl.startsWith('/api/')) {
+    return next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
+  }
+
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // 11. Global Error Handler

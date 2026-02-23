@@ -6,8 +6,11 @@ const router = express.Router();
 
 router.use(authController.isLoggedIn);
 
+// ✅ بدّل السطر ده
 router.get(
-  ['/', '/profile', '/admin', '/khatmah', '/bookmarks', '/live-recitation', '/ai-correction', '/surah-index'], 
+  ['/', '/profile', '/admin', '/khatmah', '/bookmarks', 
+   '/live-recitation', '/ai-correction', '/surah-index',
+   '/signup', '/login', '/reciters', '/forgot-password'], 
   viewsController.getOverview
 );
 
