@@ -1039,7 +1039,7 @@ export async function loadReciters() {
                 <select class="form-select surah-select" style="font-family: 'Amiri'" data-server="${serverUrl}">${optionsHTML}</select>
               </div>
               
-              <audio controls class="w-100 mt-2 quran-player" preload="none" data-url="${serverUrl}/001.mp3"></audio>
+             <audio controls class="w-100 mt-2 quran-player" preload="none" src="${serverUrl}/001.mp3" data-url="${serverUrl}/001.mp3"></audio>
               
               <button class="btn btn-sm btn-outline-secondary mt-2 download-audio-btn" onclick="window.downloadAudioOffline('${serverUrl}/001.mp3', this)">
                   <i class="fas fa-download"></i> حفظ للاستماع أوفلاين
@@ -1058,8 +1058,8 @@ export async function loadReciters() {
         
         const audioPlayer = cardBody.querySelector('audio');
         if (audioPlayer) { 
-            audioPlayer.dataset.url = newUrl; // تحديث الرابط فقط دون تشغيل
-            audioPlayer.src = ''; // تصفير المشغل
+      audioPlayer.dataset.url = newUrl; 
+    audioPlayer.src = newUrl;
         }
         
         const downloadBtn = cardBody.querySelector('.download-audio-btn');
@@ -1077,44 +1077,40 @@ export async function loadReciters() {
     });
 
     // 🚀 السحر الحقيقي: اعتراض زر الـ Play لقراءة الكاش أوفلاين
-    document.querySelectorAll('.quran-player').forEach(player => {
-        player.addEventListener('play', async function(e) {
-            // إيقاف أي مقطع آخر يعمل
-            document.querySelectorAll('audio').forEach(a => { if (a !== this) a.pause(); });
+   // استبدل الـ Event Listener الخاص بالـ play بهذا الكود:
+document.querySelectorAll('.quran-player').forEach(player => {
+    player.addEventListener('play', async function(e) {
+        // إيقاف أي مقطع آخر يعمل
+        document.querySelectorAll('audio').forEach(a => { if (a !== this) a.pause(); });
 
-            const targetUrl = this.dataset.url;
+        // إذا كان يقرأ من الكاش (Blob) دعه يعمل بسلام
+        if (this.src.startsWith('blob:')) return;
+
+        const targetUrl = this.dataset.url;
+        
+        try {
+            const cache = await caches.open('quran-audio-cache-v1');
+            const cachedRes = await cache.match(targetUrl);
             
-            // إذا كان المشغل لا يحتوي على الملف بعد
-            if (this.src !== targetUrl && !this.src.startsWith('blob:')) {
-                e.preventDefault(); // إيقاف التشغيل مؤقتاً
+            if (cachedRes) {
+                // 🟢 السورة موجودة في الجهاز: أوقف الاتصال بالنت وشغلها من الكاش!
+                e.preventDefault(); 
                 this.pause();
-                
-                try {
-                    const cache = await caches.open('quran-audio-cache-v1');
-                    const cachedRes = await cache.match(targetUrl);
-                    
-                    if (cachedRes) {
-                        // 🟢 السورة موجودة في الجهاز: تشغيل فوري أوفلاين!
-                        const blob = await cachedRes.blob();
-                        this.src = URL.createObjectURL(blob);
-                        this.play();
-                    } else {
-                        // 🔴 السورة غير موجودة
-                        if (!navigator.onLine) {
-                            Swal.fire('تنبيه', 'أنت غير متصل بالإنترنت، وهذه السورة لم تقم بحفظها مسبقاً للاستماع أوفلاين.', 'warning');
-                            return;
-                        }
-                        // 🌐 تشغيل من الإنترنت
-                        this.src = targetUrl;
-                        this.play();
-                    }
-                } catch(err) {
-                    console.error("Audio Play Error:", err);
-                }
+                const blob = await cachedRes.blob();
+                this.src = URL.createObjectURL(blob);
+                this.play();
+            } else if (!navigator.onLine) {
+                // 🔴 السورة غير موجودة ومفيش نت
+                e.preventDefault();
+                this.pause();
+                Swal.fire('تنبيه', 'أنت غير متصل بالإنترنت، وهذه السورة لم تقم بحفظها مسبقاً للاستماع أوفلاين.', 'warning');
             }
-        });
+            // 🌐 إذا لم تكن في الكاش وهناك إنترنت، المتصفح سيشغلها طبيعياً ولن نتدخل
+        } catch(err) {
+            console.error("Audio Play Error:", err);
+        }
     });
-
+});
   } catch (err) {
     console.error("Error loading reciters:", err);
     const container = document.getElementById('reciters-container');
@@ -1123,42 +1119,42 @@ export async function loadReciters() {
 }
 
 // دالة التحميل (كما هي في كودك تماماً)
-window.downloadAudioOffline = async (url, buttonElement) => {
-    try {
-        buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحميل...';
-        buttonElement.disabled = true;
+// window.downloadAudioOffline = async (url, buttonElement) => {
+//     try {
+//         buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحميل...';
+//         buttonElement.disabled = true;
 
-        const audioCache = await caches.open('quran-audio-cache-v1');
+//         const audioCache = await caches.open('quran-audio-cache-v1');
         
-        const existingResponse = await audioCache.match(url);
-        if (existingResponse) {
-            Swal.fire('موجود مسبقاً', 'هذه السورة محفوظة بالفعل في جهازك للاستماع بدون إنترنت!', 'info');
-            buttonElement.innerHTML = '<i class="fas fa-check text-success"></i> محفوظة أوفلاين';
-            return;
-        }
+//         const existingResponse = await audioCache.match(url);
+//         if (existingResponse) {
+//             Swal.fire('موجود مسبقاً', 'هذه السورة محفوظة بالفعل في جهازك للاستماع بدون إنترنت!', 'info');
+//             buttonElement.innerHTML = '<i class="fas fa-check text-success"></i> محفوظة أوفلاين';
+//             return;
+//         }
 
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Network response was not ok');
+//         const response = await fetch(url);
+//         if (!response.ok) throw new Error('Network response was not ok');
 
-        await audioCache.put(url, response.clone());
+//         await audioCache.put(url, response.clone());
 
-        buttonElement.innerHTML = '<i class="fas fa-check text-success"></i> محفوظة أوفلاين';
-        Swal.fire({
-            toast: true,
-            position: 'bottom-end',
-            icon: 'success',
-            title: 'تم حفظ السورة بنجاح للعمل أوفلاين ✅',
-            showConfirmButton: false,
-            timer: 3000
-        });
+//         buttonElement.innerHTML = '<i class="fas fa-check text-success"></i> محفوظة أوفلاين';
+//         Swal.fire({
+//             toast: true,
+//             position: 'bottom-end',
+//             icon: 'success',
+//             title: 'تم حفظ السورة بنجاح للعمل أوفلاين ✅',
+//             showConfirmButton: false,
+//             timer: 3000
+//         });
 
-    } catch (err) {
-        console.error('Audio download error:', err);
-        buttonElement.innerHTML = '<i class="fas fa-exclamation-triangle text-danger"></i> فشل، أعد المحاولة';
-        buttonElement.disabled = false;
-        Swal.fire('خطأ', 'فشل تحميل السورة، تأكد من اتصالك بالإنترنت.', 'error');
-    }
-};
+//     } catch (err) {
+//         console.error('Audio download error:', err);
+//         buttonElement.innerHTML = '<i class="fas fa-exclamation-triangle text-danger"></i> فشل، أعد المحاولة';
+//         buttonElement.disabled = false;
+//         Swal.fire('خطأ', 'فشل تحميل السورة، تأكد من اتصالك بالإنترنت.', 'error');
+//     }
+// };
 
 export const scheduleAllPrayers = async (prayerTimes) => {
   try {
