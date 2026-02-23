@@ -1009,7 +1009,6 @@ export async function loadReciters() {
     const reciterSurahNames = ["الفاتحة","البقرة","آل عمران","النساء","المائدة","الأنعام","الأعراف","الأنفال","التوبة","يونس","هود","يوسف","الرعد","إبراهيم","الحجر","النحل","الإسراء","الكهف","مريم","طه","الأنبياء","الحج","المؤمنون","النور","الفرقان","الشعراء","النمل","القصص","العنكبوت","الروم","لقمان","السجدة","الأحزاب","سبأ","فاطر","يس","الصافات","ص","الزمر","غافر","فصلت","الشورى","الزخرف","الدخان","الجاثية","الأحقاف","محمد","الفتح","الحجرات","ق","الذاريات","الطور","النجم","القمر","الرحمن","الواقعة","الحديد","المجادلة","الحشر","الممتحنة","الصف","الجمعة","المنافقون","التغابن","الطلاق","التحريم","الملك","القلم","الحاقة","المعارج","نوح","الجن","المزمل","المدثر","القيامة","الإنسان","المرسلات","النبأ","النازعات","عبس","التكوير","الإنفطار","المطففين","الإنشقاق","البروج","الطارق","الأعلى","الغاشية","الفجر","البلد","الشمس","الليل","الضحى","الشرح","التين","العلق","القدر","البينة","الزلزلة","العاديات","القارعة","التكاثر","العصر","الهمزة","الفيل","قريش","الماعون","الكوثر","الكافرون","النصر","المسد","الإخلاص","الفلق","الناس"];
     const reciterNamesAr = { "Mishary Rashid Alafasy": "مشاري راشد العفاسي", "Maher Al Muaiqly": "ماهر المعيقلي", "Mahmoud Khalil Al-Hussary": "محمود خليل الحصري", "Saud Al-Shuraim": "سعود الشريم", "Abdelbasset Abdessamad": "عبد الباسط عبد الصمد" };
     
-    // تأكد من وجود هذه الصور في مجلد public/img/reciters/
     const reciterImages = {
       "Mishary Rashid Alafasy": "/img/reciters/mishary.jpg",
       "Maher Al Muaiqly": "/img/reciters/maher.jpg",
@@ -1032,25 +1031,17 @@ export async function loadReciters() {
           <div class="card h-100 shadow-sm border-0">
             <div class="card-body text-center">
               <div class="mb-3">
-                <img src="${imageUrl}" 
-                     loading="lazy" 
-                     onerror="this.onerror=null; this.src='${fallbackImage}';"
-                     alt="${displayName}" 
-                     class="rounded-circle shadow-sm" 
-                     style="width: 100px; height: 100px; object-fit: cover; border: 3px solid #198754;">
+                <img src="${imageUrl}" loading="lazy" onerror="this.onerror=null; this.src='${fallbackImage}';" alt="${displayName}" class="rounded-circle shadow-sm" style="width: 100px; height: 100px; object-fit: cover; border: 3px solid #198754;">
               </div>
               <h5 class="card-title fw-bold text-dark">${displayName}</h5>
               <p class="small text-muted mb-3">رواية حفص عن عاصم</p>
               <div class="form-group mb-3">
                 <select class="form-select surah-select" style="font-family: 'Amiri'" data-server="${serverUrl}">${optionsHTML}</select>
               </div>
-              <audio controls class="w-100 mt-2 quran-player" preload="none">
-                <source src="${serverUrl}/001.mp3" type="audio/mpeg">
-                متصفحك لا يدعم تشغيل الصوت.
-              </audio>
               
-              <button id="btn-download-${reciter.name.replace(/\s+/g, '')}" class="btn btn-sm btn-outline-secondary mt-2 download-audio-btn" 
-                      onclick="window.downloadAudioOffline('${serverUrl}/001.mp3', this)">
+              <audio controls class="w-100 mt-2 quran-player" preload="none" data-url="${serverUrl}/001.mp3"></audio>
+              
+              <button class="btn btn-sm btn-outline-secondary mt-2 download-audio-btn" onclick="window.downloadAudioOffline('${serverUrl}/001.mp3', this)">
                   <i class="fas fa-download"></i> حفظ للاستماع أوفلاين
               </button>
             </div>
@@ -1063,41 +1054,66 @@ export async function loadReciters() {
       select.addEventListener('change', function() {
         const paddedSurah = this.value.toString().padStart(3, '0');
         const cardBody = this.parentElement.parentElement;
-        
-        // 1. تحديث مشغل الصوت
-        const audioPlayer = cardBody.querySelector('audio');
         const newUrl = `${this.dataset.server}/${paddedSurah}.mp3`;
+        
+        const audioPlayer = cardBody.querySelector('audio');
         if (audioPlayer) { 
-            audioPlayer.src = newUrl; 
-            audioPlayer.play(); 
+            audioPlayer.dataset.url = newUrl; // تحديث الرابط فقط دون تشغيل
+            audioPlayer.src = ''; // تصفير المشغل
         }
         
-        // 2. تحديث زر التحميل بالرابط الجديد
         const downloadBtn = cardBody.querySelector('.download-audio-btn');
         if (downloadBtn) {
-            // إعادة ضبط شكل الزر للرابط الجديد
             downloadBtn.innerHTML = '<i class="fas fa-download"></i> حفظ للاستماع أوفلاين';
             downloadBtn.disabled = false;
             downloadBtn.setAttribute('onclick', `window.downloadAudioOffline('${newUrl}', this)`);
-            
-            // تحقق سريع: هل هذه السورة الجديدة محملة مسبقاً؟
             caches.open('quran-audio-cache-v1').then(cache => {
                 cache.match(newUrl).then(response => {
-                    if(response) {
-                        downloadBtn.innerHTML = '<i class="fas fa-check text-success"></i> محفوظة أوفلاين';
-                    }
+                    if(response) downloadBtn.innerHTML = '<i class="fas fa-check text-success"></i> محفوظة أوفلاين';
                 });
             });
         }
       });
     });
 
-    // إيقاف باقي المقاطع عند تشغيل واحد جديد
-    document.addEventListener('play', function(e) {
-      if (e.target.tagName.toLowerCase() === 'audio') {
-        document.querySelectorAll('audio').forEach(audio => { if (audio !== e.target) audio.pause(); });
-      }
-    }, true);
+    // 🚀 السحر الحقيقي: اعتراض زر الـ Play لقراءة الكاش أوفلاين
+    document.querySelectorAll('.quran-player').forEach(player => {
+        player.addEventListener('play', async function(e) {
+            // إيقاف أي مقطع آخر يعمل
+            document.querySelectorAll('audio').forEach(a => { if (a !== this) a.pause(); });
+
+            const targetUrl = this.dataset.url;
+            
+            // إذا كان المشغل لا يحتوي على الملف بعد
+            if (this.src !== targetUrl && !this.src.startsWith('blob:')) {
+                e.preventDefault(); // إيقاف التشغيل مؤقتاً
+                this.pause();
+                
+                try {
+                    const cache = await caches.open('quran-audio-cache-v1');
+                    const cachedRes = await cache.match(targetUrl);
+                    
+                    if (cachedRes) {
+                        // 🟢 السورة موجودة في الجهاز: تشغيل فوري أوفلاين!
+                        const blob = await cachedRes.blob();
+                        this.src = URL.createObjectURL(blob);
+                        this.play();
+                    } else {
+                        // 🔴 السورة غير موجودة
+                        if (!navigator.onLine) {
+                            Swal.fire('تنبيه', 'أنت غير متصل بالإنترنت، وهذه السورة لم تقم بحفظها مسبقاً للاستماع أوفلاين.', 'warning');
+                            return;
+                        }
+                        // 🌐 تشغيل من الإنترنت
+                        this.src = targetUrl;
+                        this.play();
+                    }
+                } catch(err) {
+                    console.error("Audio Play Error:", err);
+                }
+            }
+        });
+    });
 
   } catch (err) {
     console.error("Error loading reciters:", err);
