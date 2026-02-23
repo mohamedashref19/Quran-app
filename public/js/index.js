@@ -4,6 +4,8 @@ import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Geolocation } from '@capacitor/geolocation';
 import { Preferences } from '@capacitor/preferences';
+import localforage from 'localforage';
+
 
 import axios from 'axios';
 import '@babel/polyfill';
@@ -16,7 +18,7 @@ import {
 
 // ─── 1. Config ────────────────────────────────────────────────────────────────
 axios.defaults.baseURL = 'https://aqra-app.serveftp.com';
-axios.defaults.withCredentials = true;
+axios.defaults.withCredentials =  Capacitor.isNativePlatform();
 
 axios.interceptors.response.use(
   (response) => response,
@@ -285,9 +287,9 @@ const requireLogin = (featureName = 'هذه الميزة') => {
 
 // ─── 6. التحقق من تسجيل الدخول ───────────────────────────────────────────────
 const isUserLoggedIn = () => {
-  const logoutBtn = document.getElementById('logoutBtn');
+  if (axios.defaults.headers.common['Authorization']) return true;
   const userLinks = document.querySelectorAll('.user-link:not(.d-none)');
-  return (logoutBtn !== null) || (userLinks.length > 0);
+  return userLinks.length > 0;
 };
 
 // ─── 7. Stop All Media ────────────────────────────────────────────────────────
@@ -1014,12 +1016,19 @@ const initNativeFeatures = async () => {
 document.addEventListener('DOMContentLoaded', async () => {
 
 try {
+  if (Capacitor.isNativePlatform()) {
     const { value: token } = await Preferences.get({ key: 'auth_token' });
     if (token) { 
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`; 
-        console.log('✅ Token restored from storage'); 
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`; 
     }
-  } catch { console.log('No saved token'); }
+  } else {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      console.log('✅ Token restored from localStorage');
+    }
+  }
+} catch { console.log('No saved token'); }
 
   initNativeFeatures();
   if (typeof initSearch === 'function') initSearch();

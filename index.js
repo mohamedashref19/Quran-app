@@ -148,7 +148,7 @@ app.use(
           "https://firebase.googleapis.com",
           "https://firebaseinstallations.googleapis.com",
           "https://*.google-analytics.com",
-          "https://www.gstatic.com",
+          "https://www.gstatic.com  ",
           "capacitor://localhost",
           "http://localhost",
           "ws://127.0.0.1:*", 
