@@ -13,9 +13,15 @@ export const login = async (email, password) => {
     const res = await axios({ method: 'POST', url: '/api/v1/users/login', data: { email, password } });
     const token = res.data.token;
 
-    if (token && Capacitor.isNativePlatform()) {
-      await Preferences.set({ key: 'auth_token', value: token });
+   if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      if (Capacitor.isNativePlatform()) {
+        await Preferences.set({ key: 'auth_token', value: token });
+      } else {
+        // ✅ في الـ web، احفظه في localStorage
+        localStorage.setItem('auth_token', token);
+      }
     }
 
     if (res.data.status === 'success') {
@@ -78,7 +84,12 @@ export const logout = async () => {
     if (res.data.status === 'success') {
       if (Capacitor.isNativePlatform()) {
         await Preferences.remove({ key: 'auth_token' });
-        delete axios.defaults.headers.common['Authorization'];
+      } else {
+        localStorage.removeItem('auth_token');
+      }
+      delete axios.defaults.headers.common['Authorization'];
+      
+      if (Capacitor.isNativePlatform()) {
         window.checkAuth();
         window.showSection('login');
       } else {
@@ -124,10 +135,14 @@ export const changePassword = async (currentPassword, newPassword, newPasswordCo
     });
     if (res.data.status === 'success') {
       showAlert('success', 'تم تغيير كلمة المرور بنجاح ✅');
-      if (res.data.token && Capacitor.isNativePlatform()) {
-        await Preferences.set({ key: 'auth_token', value: res.data.token });
-        axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
-      }
+      if (res.data.token) {
+  axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+  if (Capacitor.isNativePlatform()) {
+    await Preferences.set({ key: 'auth_token', value: res.data.token });
+  } else {
+    localStorage.setItem('auth_token', res.data.token);
+  }
+}
       const fields = ['current-password', 'new-password', 'confirm-new-password'];
       fields.forEach(id => {
         const el = document.getElementById(id);
