@@ -1,7 +1,6 @@
 require("dotenv").config()
 const express=require("express")
 const path = require("path")
-
 const cors=require("cors")
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
@@ -35,64 +34,9 @@ app.use(cors({
   ],
   credentials: true ,
   allowedHeaders: ['Content-Type', 'Authorization']
-
 }));
+
 // 1. Security Middleware (Helmet)
-
-
-// app.use(
-//   helmet({
-//     contentSecurityPolicy: {
-//       directives: {
-//         defaultSrc: ["'self'", "data:", "blob:", "https:", "ws:"],
-//         baseUri: ["'self'"],
-//         fontSrc: ["'self'", "https:", "data:"],
-//         manifestSrc: ["'self'"],
-//         mediaSrc: ["'self'", "https:", "data:", "blob:"],
-//         scriptSrc: [
-//           "'self'",
-//           "https:",
-//           "http:",
-//           "blob:", 
-//           "https://*.mapbox.com",
-//           "https://js.stripe.com",
-//           "https://cdn.jsdelivr.net",
-//           "'unsafe-inline'"
-//         ],
-//         scriptSrcAttr: ["'unsafe-inline'"],
-//         frameSrc: ["'self'", "https://js.stripe.com"],
-//         objectSrc: ["'none'"],
-//         styleSrc: ["'self'", "https:", "'unsafe-inline'"],
-//         workerSrc: ["'self'", "data:", "blob:"],
-//         childSrc: ["blob:"], 
-//         imgSrc: [
-//           "'self'",
-//           "data:",
-//           "blob:",
-//           "https://i.imgur.com",
-//           "https://www.transparenttextures.com",
-//         ],
-//         connectSrc: [
-//           "'self'",
-//           "data:",
-//           "blob:",
-//           "ws://127.0.0.1:*/",
-//           "http://127.0.0.1:3000", 
-//           "https://cdn.jsdelivr.net",
-//           "https://nominatim.openstreetmap.org",
-//           "https://cdnjs.cloudflare.com",
-//           "https://www.transparenttextures.com",
-//           "https://api.alquran.cloud",
-//           "https://aqra-app.serveftp.com",
-//           "capacitor://localhost", 
-//           "http://localhost",      
-          
-//         ],
-//       },
-//     },
-//   })
-// );
-
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -136,29 +80,40 @@ app.use(
           "blob:",
           "capacitor://localhost",
           "http://localhost",
-          "https:" ,
+          "https:",
           "https://*.googleusercontent.com",
-          "https://www.transparenttextures.com"
+          "https://www.transparenttextures.com",
+          "https://ui-avatars.com" // 👈 تمت إضافة هذا لتشغيل صور المشايخ البديلة
         ],
         
-        mediaSrc: ["'self'", "https:", "data:", "blob:"], 
+        mediaSrc: [
+          "'self'", 
+          "https:", 
+          "data:", 
+          "blob:",
+          "https://*.mp3quran.net"
+        ], 
         
         connectSrc: [
           "'self'",
           "https://www.transparenttextures.com",
           "https://*.googleusercontent.com",
           "https://api.alquran.cloud",
+          "https://*.mp3quran.net",
+          "https://server12.mp3quran.net",
+          "https://server8.mp3quran.net",
+          "https://server11.mp3quran.net",
+          "https://js-de.sentry-cdn.com",
+          "https://www.googletagmanager.com",
           "https://aqra-app.serveftp.com",
           "https://cdn.jsdelivr.net",
           "https://*.sentry.io",
           "https://firebase.googleapis.com",
-          "https://js-de.sentry-cdn.com",
           "https://firebaseinstallations.googleapis.com",
           "https://*.google-analytics.com",
-          "https://www.googletagmanager.com",
-          "https://www.gstatic.com  ",
-           "https://cdnjs.cloudflare.com",
-           "https://everyayah.com", 
+          "https://www.gstatic.com", // تمت إزالة المسافات الزائدة هنا
+          "https://cdnjs.cloudflare.com",
+          "https://everyayah.com", 
           "capacitor://localhost",
           "http://localhost",
           "ws://127.0.0.1:*", 
@@ -167,15 +122,13 @@ app.use(
         
         workerSrc: ["'self'", "blob:"], 
         childSrc: ["blob:"],
-        
         frameSrc: ["'none'"],   
         objectSrc: ["'none'"],
-        upgradeInsecureRequests: [],
+        // تم حذف upgradeInsecureRequests الخاطئة
       },
     },
   })
 );
-
 
 // 2. Logging (Development)
 if (process.env.NODE_ENV === "development") {
@@ -186,13 +139,10 @@ app.set('view engine', 'pug');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 
-
-
 // 3. Body Parser & Cookie Parser
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
-
 
 // 5. Rate Limiting
 const limiter = rateLimit({
@@ -202,8 +152,7 @@ const limiter = rateLimit({
 });
 app.use("/api", limiter);
 
-
-
+// 6. XSS Sanitization
 app.use((req, res, next) => {
   const sanitizeValue = (value) => {
     if (typeof value === 'string') {
@@ -228,7 +177,6 @@ app.use((req, res, next) => {
   next();
 });
 
-
 // 7. Prevent Parameter Pollution
 app.use(
   hpp({
@@ -249,7 +197,6 @@ app.use(compression());
 // 8. Test Middleware
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
-  // console.log(req.cookies);
   next();
 });
 
@@ -283,6 +230,3 @@ app.all(/(.*)/, (req, res, next) => {
 app.use(globalErrorHandler);
 
 module.exports = app;
-
-
-

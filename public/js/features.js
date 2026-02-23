@@ -74,6 +74,49 @@ const getHizbByPage = (pageNum) => {
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+// دالة لتحميل الملف الصوتي وحفظه للعمل أوفلاين
+// window.downloadAudioOffline = async (url, buttonElement) => {
+//     try {
+//         // تغيير شكل الزر ليُظهر أنه جاري التحميل
+//         buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحميل...';
+//         buttonElement.disabled = true;
+
+//         // فتح (أو إنشاء) كاش مخصص للصوتيات
+//         const audioCache = await caches.open('quran-audio-cache-v1');
+        
+//         // التحقق مما إذا كان الملف موجوداً بالفعل
+//         const existingResponse = await audioCache.match(url);
+//         if (existingResponse) {
+//             Swal.fire('موجود مسبقاً', 'هذه السورة محفوظة بالفعل في جهازك للاستماع بدون إنترنت!', 'info');
+//             buttonElement.innerHTML = '<i class="fas fa-check text-success"></i> محفوظة';
+//             return;
+//         }
+
+//         // جلب الملف الصوتي من السيرفر
+//         const response = await fetch(url);
+//         if (!response.ok) throw new Error('Network response was not ok');
+
+//         // حفظ الملف في الكاش
+//         await audioCache.put(url, response.clone());
+
+//         // نجاح العملية
+//         buttonElement.innerHTML = '<i class="fas fa-check text-success"></i> تم الحفظ';
+//         Swal.fire({
+//             toast: true,
+//             position: 'bottom-end',
+//             icon: 'success',
+//             title: 'تم حفظ السورة للعمل بدون إنترنت',
+//             showConfirmButton: false,
+//             timer: 3000
+//         });
+
+//     } catch (err) {
+//         console.error('Audio download error:', err);
+//         buttonElement.innerHTML = '<i class="fas fa-download"></i> فشل، أعد المحاولة';
+//         buttonElement.disabled = false;
+//     }
+// };
+
 const requireLogin = (featureName = 'هذه الميزة') => {
   Swal.fire({
     icon: 'warning',
@@ -951,10 +994,6 @@ function resetRecitationUI() {
 }
 
 export async function loadReciters() {
-  // if (!checkConnection()) {
-  //   document.getElementById('reciters-container').innerHTML = '<h5 class="text-muted mt-4">لا يمكن تحميل القراء حالياً لعدم وجود إنترنت.</h5>';
-  //   return; 
-  // }
   try {
     const res = await axios.get('/api/v1/audio/reciters');
     const container = document.getElementById('reciters-container');
@@ -969,29 +1008,33 @@ export async function loadReciters() {
 
     const reciterSurahNames = ["الفاتحة","البقرة","آل عمران","النساء","المائدة","الأنعام","الأعراف","الأنفال","التوبة","يونس","هود","يوسف","الرعد","إبراهيم","الحجر","النحل","الإسراء","الكهف","مريم","طه","الأنبياء","الحج","المؤمنون","النور","الفرقان","الشعراء","النمل","القصص","العنكبوت","الروم","لقمان","السجدة","الأحزاب","سبأ","فاطر","يس","الصافات","ص","الزمر","غافر","فصلت","الشورى","الزخرف","الدخان","الجاثية","الأحقاف","محمد","الفتح","الحجرات","ق","الذاريات","الطور","النجم","القمر","الرحمن","الواقعة","الحديد","المجادلة","الحشر","الممتحنة","الصف","الجمعة","المنافقون","التغابن","الطلاق","التحريم","الملك","القلم","الحاقة","المعارج","نوح","الجن","المزمل","المدثر","القيامة","الإنسان","المرسلات","النبأ","النازعات","عبس","التكوير","الإنفطار","المطففين","الإنشقاق","البروج","الطارق","الأعلى","الغاشية","الفجر","البلد","الشمس","الليل","الضحى","الشرح","التين","العلق","القدر","البينة","الزلزلة","العاديات","القارعة","التكاثر","العصر","الهمزة","الفيل","قريش","الماعون","الكوثر","الكافرون","النصر","المسد","الإخلاص","الفلق","الناس"];
     const reciterNamesAr = { "Mishary Rashid Alafasy": "مشاري راشد العفاسي", "Maher Al Muaiqly": "ماهر المعيقلي", "Mahmoud Khalil Al-Hussary": "محمود خليل الحصري", "Saud Al-Shuraim": "سعود الشريم", "Abdelbasset Abdessamad": "عبد الباسط عبد الصمد" };
+    
+    // تأكد من وجود هذه الصور في مجلد public/img/reciters/
     const reciterImages = {
-      "Mishary Rashid Alafasy": "http://googleusercontent.com/image_collection/image_retrieval/18306682132696589195_0",
-      "Maher Al Muaiqly": "http://googleusercontent.com/image_collection/image_retrieval/15814499151494449978_0",
-      "Mahmoud Khalil Al-Hussary": "http://googleusercontent.com/image_collection/image_retrieval/3770990370796518444_0",
-      "Saud Al-Shuraim": "http://googleusercontent.com/image_collection/image_retrieval/16232397174650772139_0",
-      "Abdelbasset Abdessamad": "http://googleusercontent.com/image_collection/image_retrieval/479765615497959504_0"
+      "Mishary Rashid Alafasy": "/img/reciters/mishary.jpg",
+      "Maher Al Muaiqly": "/img/reciters/maher.jpg",
+      "Mahmoud Khalil Al-Hussary": "/img/reciters/hussary.jpg",
+      "Saud Al-Shuraim": "/img/reciters/shuraim.jpg",
+      "Abdelbasset Abdessamad": "/img/reciters/abdelbasset.jpg"
     };
-
 
     let optionsHTML = '';
     reciterSurahNames.forEach((name, index) => { optionsHTML += `<option value="${index + 1}">${index + 1}. ${name}</option>`; });
 
     recitersList.forEach(reciter => {
       const displayName = reciterNamesAr[reciter.name] || reciter.name;
-      const imageUrl = reciterImages[reciter.name] || "/img/default-reciter.jpg";
-      const serverUrl   = reciter.server.endsWith('/') ? reciter.server.slice(0, -1) : reciter.server;
-     container.insertAdjacentHTML('beforeend', `
+      const fallbackImage = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=198754&color=fff&size=128&font-size=0.33`;
+      const imageUrl = reciterImages[reciter.name] || fallbackImage;
+      const serverUrl = reciter.server.endsWith('/') ? reciter.server.slice(0, -1) : reciter.server;
+      
+      container.insertAdjacentHTML('beforeend', `
         <div class="col-md-4 col-sm-6">
           <div class="card h-100 shadow-sm border-0">
             <div class="card-body text-center">
               <div class="mb-3">
                 <img src="${imageUrl}" 
                      loading="lazy" 
+                     onerror="this.onerror=null; this.src='${fallbackImage}';"
                      alt="${displayName}" 
                      class="rounded-circle shadow-sm" 
                      style="width: 100px; height: 100px; object-fit: cover; border: 3px solid #198754;">
@@ -1005,19 +1048,51 @@ export async function loadReciters() {
                 <source src="${serverUrl}/001.mp3" type="audio/mpeg">
                 متصفحك لا يدعم تشغيل الصوت.
               </audio>
+              
+              <button id="btn-download-${reciter.name.replace(/\s+/g, '')}" class="btn btn-sm btn-outline-secondary mt-2 download-audio-btn" 
+                      onclick="window.downloadAudioOffline('${serverUrl}/001.mp3', this)">
+                  <i class="fas fa-download"></i> حفظ للاستماع أوفلاين
+              </button>
             </div>
           </div>
         </div>`);
     });
 
+    // 🚀 التحديث الديناميكي لرابط التحميل عند تغيير السورة
     document.querySelectorAll('.surah-select').forEach(select => {
       select.addEventListener('change', function() {
         const paddedSurah = this.value.toString().padStart(3, '0');
-        const audioPlayer = this.parentElement.parentElement.querySelector('audio');
-        if (audioPlayer) { audioPlayer.src = `${this.dataset.server}/${paddedSurah}.mp3`; audioPlayer.play(); }
+        const cardBody = this.parentElement.parentElement;
+        
+        // 1. تحديث مشغل الصوت
+        const audioPlayer = cardBody.querySelector('audio');
+        const newUrl = `${this.dataset.server}/${paddedSurah}.mp3`;
+        if (audioPlayer) { 
+            audioPlayer.src = newUrl; 
+            audioPlayer.play(); 
+        }
+        
+        // 2. تحديث زر التحميل بالرابط الجديد
+        const downloadBtn = cardBody.querySelector('.download-audio-btn');
+        if (downloadBtn) {
+            // إعادة ضبط شكل الزر للرابط الجديد
+            downloadBtn.innerHTML = '<i class="fas fa-download"></i> حفظ للاستماع أوفلاين';
+            downloadBtn.disabled = false;
+            downloadBtn.setAttribute('onclick', `window.downloadAudioOffline('${newUrl}', this)`);
+            
+            // تحقق سريع: هل هذه السورة الجديدة محملة مسبقاً؟
+            caches.open('quran-audio-cache-v1').then(cache => {
+                cache.match(newUrl).then(response => {
+                    if(response) {
+                        downloadBtn.innerHTML = '<i class="fas fa-check text-success"></i> محفوظة أوفلاين';
+                    }
+                });
+            });
+        }
       });
     });
 
+    // إيقاف باقي المقاطع عند تشغيل واحد جديد
     document.addEventListener('play', function(e) {
       if (e.target.tagName.toLowerCase() === 'audio') {
         document.querySelectorAll('audio').forEach(audio => { if (audio !== e.target) audio.pause(); });
@@ -1030,6 +1105,44 @@ export async function loadReciters() {
     if (container) container.innerHTML = '<p class="text-danger text-center">حدث خطأ في تحميل القراء.</p>';
   }
 }
+
+// دالة التحميل (كما هي في كودك تماماً)
+window.downloadAudioOffline = async (url, buttonElement) => {
+    try {
+        buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحميل...';
+        buttonElement.disabled = true;
+
+        const audioCache = await caches.open('quran-audio-cache-v1');
+        
+        const existingResponse = await audioCache.match(url);
+        if (existingResponse) {
+            Swal.fire('موجود مسبقاً', 'هذه السورة محفوظة بالفعل في جهازك للاستماع بدون إنترنت!', 'info');
+            buttonElement.innerHTML = '<i class="fas fa-check text-success"></i> محفوظة أوفلاين';
+            return;
+        }
+
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Network response was not ok');
+
+        await audioCache.put(url, response.clone());
+
+        buttonElement.innerHTML = '<i class="fas fa-check text-success"></i> محفوظة أوفلاين';
+        Swal.fire({
+            toast: true,
+            position: 'bottom-end',
+            icon: 'success',
+            title: 'تم حفظ السورة بنجاح للعمل أوفلاين ✅',
+            showConfirmButton: false,
+            timer: 3000
+        });
+
+    } catch (err) {
+        console.error('Audio download error:', err);
+        buttonElement.innerHTML = '<i class="fas fa-exclamation-triangle text-danger"></i> فشل، أعد المحاولة';
+        buttonElement.disabled = false;
+        Swal.fire('خطأ', 'فشل تحميل السورة، تأكد من اتصالك بالإنترنت.', 'error');
+    }
+};
 
 export const scheduleAllPrayers = async (prayerTimes) => {
   try {
