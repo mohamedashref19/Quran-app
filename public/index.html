@@ -291,8 +291,7 @@
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-aqra shadow-sm py-2 sticky-top">
         <div class="container d-flex align-items-center">
-            <a class="navbar-brand fw-bold order-0" href="#" onclick="showSection('home')"> اقرأ📖 </a>
-            
+   <a class="navbar-brand fw-bold order-0" href="/" onclick="event.preventDefault(); showSection('home');"> اقرأ📖 </a>           
             <div class="d-flex align-items-center mx-auto order-1" style="flex: 1; max-width: 600px; justify-content: center;">
                 <div class="search-container position-relative w-100" style="max-width: 450px;">
                     <input id="search-input" class="form-control rounded-pill px-4 py-2 test2" type="text" placeholder=" ابحث ب الاّيه ..." style="border: 2px solid #1e5f31; padding-left: 40px;">
@@ -317,6 +316,11 @@
 
         <li class="nav-item user-link d-none">
             <a class="nav-link" href="#" onclick="showSection('profile')">👤 حسابي</a>
+        </li>
+        <li class="nav-item admin-link d-none">
+            <a class="nav-link text-warning fw-bold" href="#" onclick="showSection('admin'); loadAllUsers();">
+                <i class="fas fa-users-cog"></i> إدارة المستخدمين
+            </a>
         </li>
         <li class="nav-item user-link d-none">
             <a class="nav-link text-danger" id="logoutBtn" href="#">
@@ -816,6 +820,31 @@
                 </div>
             </div>
         </div>
+        <div id="admin-section" class="d-none">
+    <div class="d-flex align-items-center mb-4">
+        <button class="btn btn-sm btn-secondary me-3" onclick="showSection('home')"><i class="fas fa-arrow-right"></i></button>
+        <h3 class="flex-grow-1 text-center m-0 text-warning fw-bold">
+            <i class="fas fa-users-cog me-2"></i> لوحة تحكم الإدارة
+        </h3>
+    </div>
+    
+    <div class="card shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-success">
+                    <tr>
+                        <th>الاسم</th>
+                        <th>البريد الإلكتروني</th>
+                        <th>الصلاحية</th>
+                        <th>إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="users-table-body">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
     </div>
 

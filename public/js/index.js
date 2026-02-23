@@ -252,7 +252,135 @@ const getSurahNameByPage = (pageNum) => {
   return surahNames[idx];
 };
 
-// دالة فحص الإنترنت
+window.loadAllUsers = async () => {
+    const tbody = document.getElementById('users-table-body');
+    if (!tbody) return;
+
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4"><div class="spinner-border text-success"></div><p>جاري تحميل المستخدمين...</p></td></tr>';
+    
+    try {
+        const res = await axios.get('/api/v1/users'); 
+        
+        const users = res.data.data.data; 
+        
+        tbody.innerHTML = '';
+        if(!users || users.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">لا يوجد مستخدمين.</td></tr>';
+            return;
+        }
+
+        users.forEach(user => {
+            const roleBadge = user.role === 'admin' 
+                ? '<span class="badge bg-warning text-dark">مدير</span>' 
+                : '<span class="badge bg-secondary">مستخدم</span>';
+                
+            tbody.innerHTML += `
+                <tr>
+                    <td class="fw-bold">${user.name}</td>
+                    <td>${user.email}</td>
+                    <td>${roleBadge}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteUserHandler('${user._id}')">
+                            <i class="fas fa-trash"></i> حذف
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+    } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger">فشل في تحميل البيانات. تأكد من صلاحيات الإدارة.</td></tr>';
+        console.error("Admin Load Users Error:", err);
+    }
+};
+
+window.deleteUserHandler = async (id) => {
+    const result = await Swal.fire({
+      title: 'هل أنت متأكد؟',
+      text: "سيتم حذف هذا المستخدم نهائياً!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'نعم، احذف',
+      cancelButtonText: 'تراجع'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            await axios.delete(`/api/v1/users/${id}`);
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'تم الحذف',
+                text: 'تم حذف المستخدم بنجاح.',
+                timer: 1500,
+                showConfirmButton: false
+            });
+            
+            window.loadAllUsers(); 
+        } catch (err) {
+            Swal.fire('خطأ', 'فشل حذف المستخدم، قد لا تمتلك الصلاحية', 'error');
+        }
+    }
+};
+
+// دالة التحميل الصامت للمصحف كاملاً في الخلفية
+window.downloadEntireQuranOffline = async () => {
+    const isFullyCached = await localforage.getItem('quran_fully_cached');
+    if (isFullyCached) {
+        console.log('✅ المصحف كاملاً موجود بالفعل في الذاكرة (Offline Ready)');
+        return;
+    }
+
+    console.log('🔄 جاري تحميل المصحف في الخلفية للعمل بدون إنترنت...');
+    let successCount = 0;
+
+    for (let page = 1; page <= 604; page++) {
+        // 👈 التعديل هنا: استخدمنا cacheGet الخاصة بقاعدة بيانات المصحف
+        const pageExists = await window.cacheGet(page);
+
+        if (!pageExists) {
+            try {
+                const response = await fetch(`https://api.alquran.cloud/v1/page/${page}/quran-uthmani`);
+                if (!response.ok) throw new Error('Network Error');
+                
+                const data = await response.json();
+                
+                // 👈 التعديل هنا: استخدمنا cacheSet الخاصة بقاعدة بيانات المصحف
+                await window.cacheSet(page, data.data);
+                successCount++;
+
+                await new Promise(resolve => setTimeout(resolve, 200));
+
+            } catch (err) {
+                console.warn(`⚠️ توقف التحميل عند صفحة ${page} بسبب مشكلة في الاتصال، سيتم الإكمال لاحقاً.`);
+                break; 
+            }
+        }
+    }
+
+    if (successCount > 0) {
+        let allSaved = true;
+        for(let i=1; i<=604; i++){
+            // 👈 التعديل هنا: للتحقق النهائي
+            if(!(await window.cacheGet(i))) { allSaved = false; break; }
+        }
+        
+        if(allSaved) {
+            await localforage.setItem('quran_fully_cached', true);
+            console.log('🎉 تمت بنجاح! المصحف متاح الآن للعمل 100% بدون إنترنت.');
+        }
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        downloadEntireQuranOffline();
+    }, 3000);
+});
+
+
+
 function checkConnection() {
   if (!navigator.onLine) {
     Swal.fire({
@@ -349,24 +477,35 @@ window.checkAuth = async () => {
   try {
     const res = await axios.get('/api/v1/users/me');
     if (res.data.status === 'success') {
+      const user = res.data.data.doc;
       document.querySelectorAll('.auth-link').forEach(el => el.classList.add('d-none'));
       document.querySelectorAll('.user-link').forEach(el => el.classList.remove('d-none'));
+      if (user.role === 'admin') {
+          document.querySelectorAll('.admin-link').forEach(el => el.classList.remove('d-none'));
+      } else {
+          document.querySelectorAll('.admin-link').forEach(el => el.classList.add('d-none'));
+      }
       await localforage.setItem('is_logged_in', true);
+      await localforage.setItem('user_role', user.role);
       return true;
     }
   } catch (err) {
     if (!navigator.onLine || err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
       const wasLoggedIn = await localforage.getItem('is_logged_in');
+      await localforage.setItem('user_role', user.role);
       if (wasLoggedIn) {
         document.querySelectorAll('.auth-link').forEach(el => el.classList.add('d-none'));
         document.querySelectorAll('.user-link').forEach(el => el.classList.remove('d-none'));
+        if (cachedRole === 'admin') {
+            document.querySelectorAll('.admin-link').forEach(el => el.classList.remove('d-none'));
+        }
         console.log('⚡ [OFFLINE] المستخدم مسجل دخول (من الكاش)');
         return true;
       }
     }
     
     document.querySelectorAll('.auth-link').forEach(el => el.classList.remove('d-none'));
-    document.querySelectorAll('.user-link').forEach(el => el.classList.add('d-none'));
+    document.querySelectorAll('.user-link, .admin-link').forEach(el => el.classList.add('d-none'));
     await localforage.removeItem('is_logged_in');
   }
   return false;
@@ -463,16 +602,38 @@ window.showTafseer = async (surahId, ayahId) => {
 };
 
 window.showSection = (sectionName) => {
-  stopAllMedia();
-  document.querySelectorAll('[id$="-section"]').forEach(el => el.classList.add('d-none'));
-  const target = document.getElementById(`${sectionName}-section`);
-  if (!target) return;
-  target.classList.remove('d-none');
-  window.scrollTo(0, 0);
-  const newPath = sectionName === 'home' ? '/' : `/${sectionName}`;
-  if (window.location.pathname !== newPath) window.history.pushState({ section: sectionName }, '', newPath);
+stopAllMedia();
+    document.querySelectorAll('[id$="-section"]').forEach(el => el.classList.add('d-none'));
+    const target = document.getElementById(`${sectionName}-section`);
+    if (!target) return;
 
-  if (sectionName === 'home') { window.checkAuth(); loadPrayers(); if (document.getElementById('active-khatmah')) manageKhatmah().catch(() => {}); }
+    target.classList.remove('d-none');
+    window.scrollTo(0, 0);
+  
+  const newPath = sectionName === 'home' ? '/' : `/${sectionName}`;
+  const titles = {
+        'home': 'Aqra | اقرأ📖',
+        'surah-index': 'المصحف الشريف',
+        'reciters': 'القراء والمشايخ',
+        'bookmarks': 'علاماتي المرجعية',
+        'khatmah': 'ختمتي الحالية',
+        'profile': 'إعدادات الحساب',
+        'live-recitation': 'تتبع التلاوة المباشر',
+        'ai-correction': 'المصحح الذكي'
+    };
+    if (sectionName !== 'quran') {
+        document.title = titles[sectionName] || "تطبيق اقرأ";
+    }
+    if (window.location.pathname !== newPath) {
+        window.history.pushState({ section: sectionName }, '', newPath);
+    }
+   if (sectionName === 'home') {
+      window.checkAuth();
+        loadPrayers();
+        if (document.getElementById('active-khatmah')) manageKhatmah().catch(() => { });
+   
+  }
+  // if (sectionName === 'home') { window.checkAuth(); loadPrayers(); if (document.getElementById('active-khatmah')) manageKhatmah().catch(() => {}); }
   if (sectionName === 'surah-index') window.loadSurahIndex();
   if (sectionName === 'reciters') loadReciters();
   if (sectionName === 'bookmarks') loadBookmarks();
@@ -623,12 +784,43 @@ window.openQuranAtCurrentKhatmah = async () => {
 };
 
 
-window.loadQuranPage = async (pageNum, targetSurah = null, targetAyah = null) => {
-  window.currentPage = pageNum;
-  const titleEl = document.getElementById('surah-title-display');
-  if (titleEl) titleEl.textContent = `سورة ${getSurahNameByPage(pageNum)}`;
-  await loadQuranPage(pageNum, targetSurah, targetAyah);
-};
+// ─── الدالة المصححة ───────────────────────────────────────────
+// window.loadQuranPage = async (pageNum, targetSurah = null, targetAyah = null) => {  
+//   window.currentPage = pageNum;
+  
+//   const titleEl = document.getElementById('surah-title-display');
+//   if (titleEl) titleEl.textContent = `سورة ${getSurahNameByPage(pageNum)}`;
+
+//   try {
+//       const cachedData = await cacheGet(pageNum);
+      
+//       if (cachedData) {
+//           console.log(`⚡ [OFFLINE] جاري عرض صفحة ${pageNum} من الذاكرة المحلية`);
+//           // نفترض أن دالة loadQuranPage المستوردة من features.js يمكنها استقبال البيانات مباشرة
+//           // أو أنك ستستدعي دالة الرسم الخاصة بك هنا. 
+//           // إذا كانت دالة loadQuranPage القديمة (المستوردة) هي التي ترسم، فيجب تمرير البيانات لها.
+          
+//           // (سنفترض هنا أنك تستدعي دالة الرسم الموجودة في features.js)
+//           if(typeof renderQuranPage === 'function'){
+//              renderQuranPage(cachedData, targetSurah, targetAyah);
+//              return;
+//           }
+//       }
+
+//       // 2. إذا لم تكن في الذاكرة، اجلبها من الـ API باستخدام الدالة الأصلية المستوردة
+//       // ⚠️ ملاحظة: بما أنك قمت باستيراد loadQuranPage من features، لا تعيد تسميتها بـ window.loadQuranPage
+//       // لتجنب الـ Infinite Loop. سنكتفي هنا بتحديث الـ State.
+      
+//       if(typeof loadQuranPage === 'function') {
+//          await loadQuranPage(pageNum, targetSurah, targetAyah); // هذه هي الدالة المستوردة من features.js
+//       }
+
+//   } catch (err) {
+//       console.error('خطأ في تحميل صفحة القرآن:', err);
+//       showAlert('error', 'تعذر تحميل الصفحة.');
+//   }
+// };
+window.loadQuranPage = loadQuranPage;
 window.startSurahReading = startSurahReading;
 
 // ✅ تعريض دوال المصادقة على الـ window للاستخدام من HTML
@@ -847,15 +1039,14 @@ window.loadLiveAyahs = async () => {
   document.getElementById('live-controls').classList.remove('d-none');
 
   try {
-   const response = await axios.get(`https://api.alquran.cloud/v1/surah/${surah}`, {
-  withCredentials: false, 
-  headers: {
-    Authorization: undefined     
-  }
-});
-    const filteredAyahs = response.data.data.ayahs.filter(a => a.numberInSurah >= startAyah && a.numberInSurah <= endAyah);
+ const response = await fetch(`https://api.alquran.cloud/v1/surah/${surah}`);
+    const data = await response.json();
+    
+    const filteredAyahs = data.data.ayahs.filter(a => a.numberInSurah >= startAyah && a.numberInSurah <= endAyah);
+    
     container.innerHTML = '';
     if (!filteredAyahs.length) { container.innerHTML = '<p class="text-muted">لا توجد آيات في هذا النطاق.</p>'; return; }
+    
 
     lastMatchedIndex = -1;
     searchStartIndex = 0;
@@ -940,24 +1131,52 @@ document.addEventListener('click', async (e) => {
 
 // ─── 14. Swipe ────────────────────────────────────────────────────────────────
 let touchstartX = 0;
+let touchstartY = 0;
+let startTime = 0;
+
 document.addEventListener('touchstart', e => {
-  if (!document.getElementById('quran-section').classList.contains('d-none')) touchstartX = e.changedTouches[0].screenX;
+  const qs = document.getElementById('quran-section');
+  if (qs && !qs.classList.contains('d-none')) {
+    const touchObj = e.changedTouches[0];
+    touchstartX = touchObj.screenX;
+    touchstartY = touchObj.screenY;
+    startTime = new Date().getTime(); 
+  }
 }, { passive: true });
+
 document.addEventListener('touchend', e => {
   const qs = document.getElementById('quran-section');
   if (!qs || qs.classList.contains('d-none')) return;
-  const diff = e.changedTouches[0].screenX - touchstartX;
-  if (diff > 80)       document.getElementById('btn-prev-page')?.click();
-  else if (diff < -80) document.getElementById('btn-next-page')?.click();
+
+  const touchObj = e.changedTouches[0];
+  const distX = touchObj.screenX - touchstartX;
+  const distY = touchObj.screenY - touchstartY;
+  const elapsedTime = new Date().getTime() - startTime;
+
+  // ⚙️ إعدادات الحساسية (يمكنك تعديلها حسب رغبتك)
+  const minSwipeDistance = 90;     
+  const maxVerticalTolerance = 60;  
+  const maxSwipeTime = 400;       
+
+  // التأكد أن السحبة كانت سريعة
+  if (elapsedTime <= maxSwipeTime) {
+    if (Math.abs(distX) >= minSwipeDistance && Math.abs(distY) <= maxVerticalTolerance) {
+      if (distX > 0) {
+        document.getElementById('btn-prev-page')?.click();
+      } else {
+        document.getElementById('btn-next-page')?.click();
+      }
+    }
+  }
 }, { passive: true });
 
-// ─── 15. Nav Buttons ──────────────────────────────────────────────────────────
+
+// ─── 15. Nav Buttons ───────
 document.getElementById('btn-prev-page')?.addEventListener('click', () => {
   if (window.currentPage < 604) {
     window.currentPage++;
     window.loadQuranPage(window.currentPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    // Prefetch الصفحات القادمة في الخلفية
     prefetchPage(window.currentPage + 1);
     prefetchPage(window.currentPage + 2);
   }
@@ -967,7 +1186,6 @@ document.getElementById('btn-next-page')?.addEventListener('click', () => {
     window.currentPage--;
     window.loadQuranPage(window.currentPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    // Prefetch الصفحات السابقة في الخلفية
     prefetchPage(window.currentPage - 1);
     prefetchPage(window.currentPage - 2);
   }
@@ -1049,22 +1267,89 @@ try {
   window.checkAuth();
   if (document.getElementById('prayers-list')) loadPrayers();
   if (document.getElementById('active-khatmah')) manageKhatmah().catch(() => {});
+  // (Initial Route Handler)
+  const initialPath = window.location.pathname;
+  
+  if (initialPath === '/' || initialPath === '/index.html') {
+      window.showSection('home');
+  } else if (initialPath.startsWith('/quran')) {
+      window.showSection('quran');
+      const parts = initialPath.split('/');
+      const pageToLoad = (parts.length > 2 && !isNaN(parts[2])) ? parseInt(parts[2]) : window.currentPage || 1;
+      
+      setTimeout(() => {
+          if (window.loadQuranPage) window.loadQuranPage(pageToLoad);
+      }, 100);
+      
+  } else if (initialPath.includes('admin') || initialPath.includes('manage-users')) {
+      window.showSection('admin');
+      if (window.loadAllUsers) window.loadAllUsers();
+  } else {
+      const sectionName = initialPath.replace('/', '');
+      if (document.getElementById(`${sectionName}-section`)) {
+          window.showSection(sectionName);
+      } else {
+          window.showSection('home');
+      }
+  }
 
-  const handleForm = (id, action) => { const f = document.getElementById(id); if (f) f.addEventListener('submit', (e) => { e.preventDefault(); action(); }); };
-  handleForm('loginFormPage',     () => login(document.getElementById('login-email').value, document.getElementById('login-password').value));
-  handleForm('signupFormPage',    () => signup(document.getElementById('signup-name').value, document.getElementById('signup-email').value, document.getElementById('signup-password').value, document.getElementById('signup-passwordConfirm').value));
-  handleForm('verifyOTPFormPage', () => verifyOTP(document.getElementById('verify-email').value, document.getElementById('verify-otp').value));
+// دالة مساعدة لربط الفورم مع منع التحديث التلقائي
+const handleForm = (id, action) => { 
+    const f = document.getElementById(id); 
+    if (f) {
+        // نتأكد أننا لم نضف المستمع سابقاً لتجنب التكرار
+        f.removeEventListener('submit', f._handler);
+        f._handler = (e) => { 
+            e.preventDefault(); 
+            action(); 
+        };
+        f.addEventListener('submit', f._handler);
+    }
+};
 
-  // ✅ معالج تحديث البيانات الشخصية
-  handleForm('updateUserForm', () => {
-    const name  = document.getElementById('profile-name').value;
+// 1. معالجة تسجيل الدخول (يدعم الأسماء الجديدة والقديمة)
+// المحاولة الأولى: الأسماء الجديدة (index.html)
+handleForm('loginFormPage', () => {
+    const emailEl = document.getElementById('login-email');
+    const passEl = document.getElementById('login-password');
+    if (emailEl && passEl) login(emailEl.value, passEl.value);
+});
+
+handleForm('loginForm', () => {
+    const emailEl = document.getElementById('email');
+    const passEl = document.getElementById('password');
+    if (emailEl && passEl) login(emailEl.value, passEl.value);
+});
+
+handleForm('signupFormPage', () => {
+    signup(
+        document.getElementById('signup-name').value, 
+        document.getElementById('signup-email').value, 
+        document.getElementById('signup-password').value, 
+        document.getElementById('signup-passwordConfirm').value
+    );
+});
+
+handleForm('signupForm', () => {
+    signup(
+        document.getElementById('name').value, 
+        document.getElementById('email').value, 
+        document.getElementById('password').value, 
+        document.getElementById('passwordConfirm').value
+    );
+});
+
+handleForm('verifyOTPFormPage', () => verifyOTP(document.getElementById('verify-email').value, document.getElementById('verify-otp').value));
+handleForm('verifyOTPForm', () => verifyOTP(document.getElementById('email').value, document.getElementById('otp').value));
+
+handleForm('updateUserForm', () => {
+    const name = document.getElementById('profile-name').value;
     const email = document.getElementById('profile-email').value;
     updateSettings({ name, email }, 'data');
-  });
+});
 
-  document.getElementById('logoutBtnProfile')?.addEventListener('click', (e) => { e.preventDefault(); logout(); });
-  document.getElementById('logoutBtn')?.addEventListener('click',        (e) => { e.preventDefault(); logout(); });
-
+document.getElementById('logoutBtnProfile')?.addEventListener('click', (e) => { e.preventDefault(); logout(); });
+document.getElementById('logoutBtn')?.addEventListener('click', (e) => { e.preventDefault(); logout(); });
   // AI Upload
   const triggerUpload = document.getElementById('triggerUpload');
   const audioFile     = document.getElementById('audioFile');
@@ -1254,6 +1539,22 @@ if (liveStatus) {
       a.volume = parseFloat(this.value);
     });
   });
+
+  //(Fix Reload)
+  const path = window.location.pathname;
+  if (path.startsWith('/quran')) {
+      const parts = path.split('/');
+      const page = (parts.length > 2 && !isNaN(parts[2])) ? parseInt(parts[2]) : 1;
+      window.showSection('quran');
+      setTimeout(() => window.loadQuranPage(page), 100);
+  } else if (path !== '/' && path !== '/index.html') {
+      const section = path.replace('/', '');
+      if (document.getElementById(`${section}-section`)) {
+          window.showSection(section);
+      }
+  } else {
+      window.showSection('home');
+  }
 
   console.log(Capacitor.isNativePlatform() ? '📱 Mobile Mode Active' : '🌐 Web Mode Active');
 });
