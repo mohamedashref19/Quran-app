@@ -75,47 +75,47 @@ const getHizbByPage = (pageNum) => {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 // دالة لتحميل الملف الصوتي وحفظه للعمل أوفلاين
-// window.downloadAudioOffline = async (url, buttonElement) => {
-//     try {
-//         // تغيير شكل الزر ليُظهر أنه جاري التحميل
-//         buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحميل...';
-//         buttonElement.disabled = true;
+window.downloadAudioOffline = async (url, buttonElement) => {
+    try {
+        // تغيير شكل الزر ليُظهر أنه جاري التحميل
+        buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحميل...';
+        buttonElement.disabled = true;
 
-//         // فتح (أو إنشاء) كاش مخصص للصوتيات
-//         const audioCache = await caches.open('quran-audio-cache-v1');
+        // فتح (أو إنشاء) كاش مخصص للصوتيات
+        const audioCache = await caches.open('quran-audio-cache-v1');
         
-//         // التحقق مما إذا كان الملف موجوداً بالفعل
-//         const existingResponse = await audioCache.match(url);
-//         if (existingResponse) {
-//             Swal.fire('موجود مسبقاً', 'هذه السورة محفوظة بالفعل في جهازك للاستماع بدون إنترنت!', 'info');
-//             buttonElement.innerHTML = '<i class="fas fa-check text-success"></i> محفوظة';
-//             return;
-//         }
+        // التحقق مما إذا كان الملف موجوداً بالفعل
+        const existingResponse = await audioCache.match(url);
+        if (existingResponse) {
+            Swal.fire('موجود مسبقاً', 'هذه السورة محفوظة بالفعل في جهازك للاستماع بدون إنترنت!', 'info');
+            buttonElement.innerHTML = '<i class="fas fa-check text-success"></i> محفوظة';
+            return;
+        }
 
-//         // جلب الملف الصوتي من السيرفر
-//         const response = await fetch(url);
-//         if (!response.ok) throw new Error('Network response was not ok');
+        // جلب الملف الصوتي من السيرفر
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Network response was not ok');
 
-//         // حفظ الملف في الكاش
-//         await audioCache.put(url, response.clone());
+        // حفظ الملف في الكاش
+        await audioCache.put(url, response.clone());
 
-//         // نجاح العملية
-//         buttonElement.innerHTML = '<i class="fas fa-check text-success"></i> تم الحفظ';
-//         Swal.fire({
-//             toast: true,
-//             position: 'bottom-end',
-//             icon: 'success',
-//             title: 'تم حفظ السورة للعمل بدون إنترنت',
-//             showConfirmButton: false,
-//             timer: 3000
-//         });
+        // نجاح العملية
+        buttonElement.innerHTML = '<i class="fas fa-check text-success"></i> تم الحفظ';
+        Swal.fire({
+            toast: true,
+            position: 'bottom-end',
+            icon: 'success',
+            title: 'تم حفظ السورة للعمل بدون إنترنت',
+            showConfirmButton: false,
+            timer: 3000
+        });
 
-//     } catch (err) {
-//         console.error('Audio download error:', err);
-//         buttonElement.innerHTML = '<i class="fas fa-download"></i> فشل، أعد المحاولة';
-//         buttonElement.disabled = false;
-//     }
-// };
+    } catch (err) {
+        console.error('Audio download error:', err);
+        buttonElement.innerHTML = '<i class="fas fa-download"></i> فشل، أعد المحاولة';
+        buttonElement.disabled = false;
+    }
+};
 
 const requireLogin = (featureName = 'هذه الميزة') => {
   Swal.fire({
