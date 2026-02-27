@@ -280,8 +280,42 @@
             text-align: justify;
             text-align-last: center;
         }
-    </style>
+    </style> 
+<style id="navbar-critical-fix">
+nav#main-navbar {
+    background-color: #1e5f31 !important;
+    border-bottom: 3px solid #145a28 !important;
+}
+[data-theme="dark"] nav#main-navbar {
+    background-color: #1e5f31 !important; /* نفس اللون في الدارك مود - مش أغمق */
+    border-bottom: 3px solid #0d3d1a !important;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.5) !important;
+}
+nav#main-navbar *:not(.navbar-toggler-icon),
+nav#main-navbar .navbar-brand,
+nav#main-navbar .nav-link,
+nav#main-navbar a,
+nav#main-navbar i {
+    color: #ffffff !important;
+    opacity: 1 !important;
+}
+nav#main-navbar input.form-control {
+    background-color: rgba(255,255,255,0.2) !important;
+    color: #ffffff !important;
+    border-color: rgba(255,255,255,0.3) !important;
+}
+nav#main-navbar input.form-control::placeholder {
+    color: rgba(255,255,255,0.75) !important;
+    opacity: 1 !important;
+}
+nav#main-navbar {
+    padding-top: env(safe-area-inset-top) !important;
+    margin-top: 0 !important;
+    background-color: #1e5f31 !important;
+}
+</style>
     <script
+    
   src="https://js-de.sentry-cdn.com/0af56875ddd4565c69cab0d50f1798a9.min.js"
   crossorigin="anonymous"
 ></script>
@@ -289,7 +323,7 @@
 
 <body class="d-flex flex-column min-vh-100">
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-aqra shadow-sm py-2 sticky-top">
+<nav id="main-navbar" class="navbar navbar-expand-lg navbar-dark shadow-sm py-2 sticky-top">
         <div class="container d-flex align-items-center">
    <a class="navbar-brand fw-bold order-0" href="/" onclick="event.preventDefault(); showSection('home');"> اقرأ📖 </a>           
             <div class="d-flex align-items-center mx-auto order-1" style="flex: 1; max-width: 600px; justify-content: center;">
