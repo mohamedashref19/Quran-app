@@ -86,6 +86,32 @@ exports.getTafser= catchAsync(async(req,res,next)=>{
 
 })
 
+exports.getTafseerBySurah = catchAsync(async (req, res, next) => {
+  const { surah } = req.params;
+  const surahNum = Number(surah);
+
+  if (!surahNum || surahNum < 1 || surahNum > 114) {
+    return next(new AppError('رقم السورة غير صحيح', 400));
+  }
+
+  const ayahs = await Ayah.find({ surahNumber: surahNum })
+    .sort({ ayahNumber: 1 })
+    .select('ayahNumber tafseer -_id');
+
+  if (!ayahs || ayahs.length === 0) {
+    return next(new AppError('لم يتم العثور على تفسير لهذه السورة', 404));
+  }
+
+  res.status(200).json({
+    status: 'success',
+    results: ayahs.length,
+    data: ayahs.map(a => ({
+      ayah: a.ayahNumber,
+      tafseer: a.tafseer || 'التفسير غير متوفر حالياً لهذه الآية'
+    }))
+  });
+});
+
 exports.getPage = catchAsync(async (req, res, next) => {
   const page = req.params.page * 1; 
 

@@ -763,13 +763,60 @@ body {
 }
 
 /* العناوين والنصوص المهمة */
-h1, h2, h3, h4, h5, h6, .navbar-brand {
+h1, h2, h3, h4, h5, h6 {
     color: var(--heading-color) !important;
 }
 
-/* النصوص العادية والفقرات */
-p, span, label, .lead {
+/* navbar-brand يفضل أبيض دايماً */
+.navbar-brand {
+    color: #ffffff !important;
+}
+
+
+/* النصوص العادية والفقرات - مع استثناء النافبار */
+p:not(#main-navbar *), 
+span:not(#main-navbar *), 
+label:not(#main-navbar *), 
+.lead {
     color: var(--text-color);
+}
+
+/* ─── النافبار: إجبار كل عناصره تكون بيضاء (بعد كل الـ rules) ─── */
+#main-navbar,
+#main-navbar.navbar {
+    background-color: var(--main-green) !important;
+}
+
+#main-navbar *:not(.fa-sun):not(.fa-moon),
+#main-navbar .navbar-brand,
+#main-navbar .nav-link,
+#main-navbar span,
+#main-navbar p,
+#main-navbar label,
+#main-navbar h1,
+#main-navbar h2,
+#main-navbar h3,
+#main-navbar h4,
+#main-navbar h5,
+#main-navbar h6 {
+    color: #ffffff !important;
+}
+
+#main-navbar .form-control {
+    background-color: rgba(255,255,255,0.15) !important;
+    color: #ffffff !important;
+    border-color: rgba(255,255,255,0.3) !important;
+}
+
+#main-navbar .form-control::placeholder {
+    color: rgba(255,255,255,0.7) !important;
+    opacity: 1 !important;
+}
+
+[data-theme="dark"] #main-navbar {
+    background-color: #1e5f31 !important;
+    border-bottom: 3px solid #0d3d1a !important;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.5) !important;
 }
 
 /* الكروت والحاويات */
@@ -1246,4 +1293,198 @@ test*/
 /* تنسيق إضافي لصفحة المصحف داخل الكتاب لضمان قراءة مريحة */
 .quran-page-content {
     color: var(--text-color); /* تأكد من وجود هذا المتغير في ملف CSS الخاص بك */
+}
+
+/* =========================================
+   14. إصلاحات الـ Highlight في الوضع الليلي
+   ========================================= */
+
+/* ─── الآية المضغوط عليها أو المميزة (highlight-ayah) ─── */
+[data-theme="dark"] .highlight-ayah {
+    background-color: rgba(250, 204, 21, 0.25) !important;
+    border: 1px solid rgba(250, 204, 21, 0.6);
+    border-radius: 6px;
+    color: #ffffff !important;
+    box-shadow: 0 0 12px rgba(250, 204, 21, 0.3);
+    animation: none !important;
+}
+
+/* ─── إصلاح النص جوّا الـ highlight في الدارك مود ─── */
+[data-theme="dark"] .highlight-ayah span,
+[data-theme="dark"] .highlight-ayah .ayah-clickable,
+[data-theme="dark"] .highlight-ayah * {
+    color: #ffffff !important;
+}
+
+/* ─── الآية النشطة أثناء التسميع (ayah-matched) ─── */
+[data-theme="dark"] .ayah-matched {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.15), rgba(46, 204, 113, 0.08)) !important;
+    border-right: 4px solid #2ecc71 !important;
+    color: #fff !important;
+    box-shadow: 0 0 12px rgba(46, 204, 113, 0.2);
+    animation: ayahGlowDark 1.2s ease infinite alternate;
+}
+
+@keyframes ayahGlowDark {
+    0%   { box-shadow: 0 0 5px rgba(46, 204, 113, 0.2); }
+    100% { box-shadow: 0 0 18px rgba(46, 204, 113, 0.5); }
+}
+
+/* ─── الآية التالية (listening) ─── */
+[data-theme="dark"] .ayah-listening {
+    background: rgba(255, 193, 7, 0.1) !important;
+    border-right: 4px solid rgba(255, 193, 7, 0.6) !important;
+    color: #e5e7eb !important;
+    opacity: 0.9;
+}
+
+/* ─── الآية عند hover (ayah-clickable) ─── */
+[data-theme="dark"] .ayah-clickable:hover {
+    color: #2ecc71 !important;
+    background-color: rgba(46, 204, 113, 0.12) !important;
+}
+
+/* ─── تحسين رقم الآية في الدارك مود ─── */
+[data-theme="dark"] .ayah-end-symbol {
+    color: #f1c40f !important;
+    border-color: #f1c40f !important;
+    background-color: rgba(241, 196, 15, 0.08);
+}
+
+/* ─── إصلاح لون الـ blur (الكلمات المخفية في وضع الحفظ) ─── */
+[data-theme="dark"] .word-hidden {
+    text-shadow: 0 0 18px rgba(255, 255, 255, 0.2) !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* ─── النص المصحف العام في الدارك مود ─── */
+[data-theme="dark"] .quran-text,
+[data-theme="dark"] .quran-container {
+    color: var(--quran-text-color) !important;
+}
+
+/* ─── إصلاح النص جوّا المصحف (span, .ayah-clickable) ─── */
+[data-theme="dark"] #ayahs-container span,
+[data-theme="dark"] #ayahs-container .ayah-clickable,
+[data-theme="dark"] .quran-text span {
+    color: #ffffff !important;
+}
+
+/* ─── الآية المحددة من الختمة أو العلامات ─── */
+[data-theme="dark"] .ayah-clickable {
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .ayah-clickable:hover {
+    color: #2ecc71 !important;
+    background-color: rgba(46, 204, 113, 0.12) !important;
+}
+
+/* ─── كلمات التصحيح الآلي في الدارك مود ─── */
+[data-theme="dark"] .word-correct {
+    color: #2ecc71 !important;
+    background-color: rgba(46, 204, 113, 0.08) !important;
+}
+
+[data-theme="dark"] .word-wrong {
+    color: #ff6b6b !important;
+    background-color: rgba(255, 107, 107, 0.12) !important;
+    text-decoration: underline wavy #ff6b6b !important;
+}
+
+[data-theme="dark"] .word-missing {
+    color: #ffa94d !important;
+    background-color: rgba(255, 169, 77, 0.12) !important;
+    border-bottom: 2px dashed #ffa94d !important;
+}
+
+/* ─── الآية الدائرية في الدارك مود ─── */
+[data-theme="dark"] .ayah-circle {
+    border-color: #f1c40f !important;
+    color: #f1c40f !important;
+    background-color: rgba(241, 196, 15, 0.08);
+}
+
+/* ─── Blurred text في الدارك مود ─── */
+[data-theme="dark"] .blurred-text {
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.4) !important;
+}
+
+
+/* ══ NAVBAR HEIGHT FIX ══ */
+nav#main-navbar .container {
+    min-height: 56px !important;
+}
+
+nav#main-navbar .search-container {
+    display: flex !important;
+    visibility: visible !important;
+}
+
+nav#main-navbar #search-input {
+    border-color: rgba(255,255,255,0.3) !important;
+    display: block !important;
+}
+
+@media (max-width: 991px) {
+    nav#main-navbar .order-1 {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+}
+
+
+/* ══ CAPACITOR STATUS BAR FIX ══ */
+nav#main-navbar.sticky-top {
+    top: 0 !important;
+    position: sticky !important;
+    padding-top: env(safe-area-inset-top) !important;
+}
+
+/* منع أي padding على الـ body من ملفات تانية */
+body {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+
+
+/* ══════════════════════════════════════════════
+   ─── إصلاح ألوان قائمة نتائج البحث ────────────
+   ══════════════════════════════════════════════ */
+#search-results .list-group-item {
+    background-color: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* لون اسم السورة ورقم الآية */
+#search-results .list-group-item span.text-success {
+    color: var(--main-green) !important;
+}
+
+/* لون نص الآية */
+#search-results .list-group-item p.text-muted {
+    color: #555 !important;
+}
+
+/* بادج رقم الصفحة */
+#search-results .list-group-item .badge {
+    background-color: #f8f9fa !important;
+    color: #000 !important;
+    border: 1px solid #ddd !important;
+}
+
+/* ─── التوافق مع الوضع الليلي (Dark Mode) ─── */
+[data-theme="dark"] #search-results .list-group-item span.text-success {
+    color: #2ecc71 !important;
+}
+
+[data-theme="dark"] #search-results .list-group-item p.text-muted {
+    color: #bbb !important;
+}
+
+[data-theme="dark"] #search-results .list-group-item .badge {
+    background-color: #333 !important;
+    color: #fff !important;
+    border-color: #555 !important;
 }

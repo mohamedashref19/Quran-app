@@ -5,6 +5,7 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { Geolocation } from '@capacitor/geolocation';
 import { Preferences } from '@capacitor/preferences';
 import localforage from 'localforage';
+import { StatusBar, Style } from '@capacitor/status-bar';
 
 
 import axios from 'axios';
@@ -62,6 +63,11 @@ let chunkTimeout = null;
 let lastMatchedIndex = -1;   
 let searchStartIndex = 0;    
 let accumulatedBuffer = '';
+
+
+
+
+
 
 // ─── Quran IndexedDB Cache ─────────────────────────────────────────────────
 const DB_NAME    = 'QuranAppDB';
@@ -140,6 +146,30 @@ const prefetchPage = async (pageNum) => {
 Object.assign(window, { cacheSet, cacheGet, prefetchPage });
 
 initQuranDB().catch(e => console.warn('IDB init failed:', e));
+
+
+
+// ─── Tafseer Cache ────────────────────────────────
+const tafseerSet = async (surah, ayah, text) => {
+  try {
+    await localforage.setItem(`tafseer_${surah}_${ayah}`, text);
+    console.log(`💾 [TAFSEER SAVED] سورة ${surah} - آية ${ayah}`);
+    return true;
+  } catch (e) {
+    console.error('❌ [TAFSEER] فشل الحفظ:', e);
+    return false;
+  }
+};
+
+const tafseerGet = async (surah, ayah) => {
+  try {
+    const cached = await localforage.getItem(`tafseer_${surah}_${ayah}`);
+    if (cached) console.log(`⚡ [TAFSEER CACHE HIT] سورة ${surah} - آية ${ayah} - من الكاش`);
+    return cached || null;
+  } catch (e) {
+    return null;
+  }
+};
 
 // ─── 3. Helpers ───────────────────────────────────────────────────────────────
 const normalizeArabic = (text) => {
@@ -317,10 +347,56 @@ window.downloadEntireQuranOffline = async () => {
     }
 };
 
+window.downloadEntireTafseerOffline = async () => {
+  const isFullyCached = await localforage.getItem('tafseer_fully_cached');
+  if (isFullyCached) {
+    console.log('✅ [TAFSEER] التفسير كاملاً موجود بالفعل في الذاكرة');
+    return;
+  }
+
+  if (!navigator.onLine) return;
+
+  console.log('🔄 [TAFSEER] جاري تحميل التفسير في الخلفية...');
+
+  let savedSurahs = 0;
+
+  for (let surah = 1; surah <= 114; surah++) {
+    if (!navigator.onLine) {
+      console.warn('⚠️ [TAFSEER] انقطع الاتصال - سيكمل عند عودة النت');
+      return;
+    }
+
+    // لو السورة دي اتحفظت قبل كده تجاوزها
+    const firstAyah = await localforage.getItem(`tafseer_${surah}_1`);
+    if (firstAyah) { savedSurahs++; continue; }
+
+    try {
+      const res = await axios.get(`/api/v1/quran/tafseer/${surah}`);
+      const ayahs = res.data.data;
+
+      for (const item of ayahs) {
+        await localforage.setItem(`tafseer_${surah}_${item.ayah}`, item.tafseer);
+      }
+
+      savedSurahs++;
+      console.log(`📥 [TAFSEER] سورة ${savedSurahs}/114 ✅`);
+      await new Promise(r => setTimeout(r, 500));
+
+    } catch (err) {
+      console.warn(`⚠️ [TAFSEER] فشل سورة ${surah} - متجاوز...`);
+      await new Promise(r => setTimeout(r, 500));
+      continue; // ← بدل return
+    }
+  }
+
+  await localforage.setItem('tafseer_fully_cached', true);
+  console.log('🎉 [TAFSEER] التفسير كاملاً متاح الآن بدون إنترنت!');
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { downloadEntireQuranOffline(); }, 3000);
+    setTimeout(() => { window.downloadEntireTafseerOffline(); }, 10000);
 });
-
 // ─── 5. requireLogin ──────────────────────────────────────────────────────────
 const requireLogin = (featureName = 'هذه الميزة') => {
   Swal.fire({
@@ -361,6 +437,15 @@ const stopAllMedia = () => {
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
     resetUIButtons();
   }
+   document.querySelectorAll('.live-ayah-text').forEach(el => {
+    el.style.backgroundColor = '';
+    el.style.color = '';
+    el.style.borderRadius = '';
+    el.style.padding = '';
+  });
+  document.querySelectorAll('.live-ayah-item').forEach(el => {
+    el.classList.remove('ayah-active');
+  });
 };
 
 const resetUIButtons = () => {
@@ -515,14 +600,44 @@ window.loadJuzIndex = () => {
 
 window.showTafseer = async (surahId, ayahId) => {
   try {
-    Swal.fire({ title: 'جاري جلب التفسير...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-    const res = await axios.get(`/api/v1/quran/tafseer/${surahId}/${ayahId}`);
-    Swal.fire({
-      title: `<span class="text-success" style="font-family:'Amiri'">تفسير الآية ${ayahId}</span>`,
-      html: `<div style="font-family:'Amiri';font-size:1.2rem;line-height:1.8;text-align:justify;direction:rtl">${res.data.data.tafseer}</div>`,
-      confirmButtonText: 'إغلاق', confirmButtonColor: '#198754',
-    });
-  } catch { Swal.fire({ icon: 'error', title: 'خطأ', text: 'تعذر جلب التفسير.' }); }
+    const cached = await tafseerGet(surahId, ayahId);
+    if (cached) {
+      showTafseerModal(ayahId, cached);
+    } else {
+      Swal.fire({ title: 'جاري جلب التفسير...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      const res = await axios.get(`/api/v1/quran/tafseer/${surahId}/${ayahId}`);
+      const tafseer = res.data.data.tafseer;
+      await tafseerSet(surahId, ayahId, tafseer);
+      showTafseerModal(ayahId, tafseer);
+    }
+  } catch {
+    const cached = await tafseerGet(surahId, ayahId);
+    if (cached) {
+      showTafseerModal(ayahId, cached);
+    } else {
+      Swal.fire({ icon: 'error', title: 'لا يوجد اتصال', text: 'التفسير غير متاح بدون إنترنت حتى الآن' });
+    }
+  }
+};
+
+// ─── Helper Modal ──────────────────────────────────
+const showTafseerModal = (ayahId, tafseer) => {
+  Swal.fire({
+    title: `<span class="text-success" style="font-family:'Amiri'">تفسير الآية ${ayahId}</span>`,
+    html: `
+      <div style="font-family:'Amiri';font-size:1.2rem;line-height:1.8;
+                  text-align:justify;direction:rtl;
+                  max-height:60vh;overflow-y:auto;padding-right:5px;">
+        ${tafseer}
+      </div>
+      <div style="margin-top:15px;padding-top:10px;border-top:1px solid #e0e0e0;text-align:center;">
+        <small style="color:#6c757d;font-family:'Amiri'">
+          📚 المصدر: <span style="color:#198754;font-weight:bold">التفسير الميسر</span>
+        </small>
+      </div>`,
+    confirmButtonText: 'إغلاق',
+    confirmButtonColor: '#198754',
+  });
 };
 
 // ─── showSection ──────────────────────────────────────────────────────────────
@@ -813,6 +928,12 @@ window.loadLiveAyahs = async () => {
     container.innerHTML = '';
     if (!filteredAyahs.length) { container.innerHTML = '<p class="text-muted">لا توجد آيات في هذا النطاق.</p>'; return; }
     lastMatchedIndex = -1; searchStartIndex = 0; accumulatedBuffer = '';
+    document.querySelectorAll('.live-ayah-text').forEach(el => {
+    el.style.backgroundColor = '';
+    el.style.color = '';
+    el.style.borderRadius = '';
+    el.style.padding = '';
+});
     filteredAyahs.forEach(ayah => {
       const s = String(surah).padStart(3, '0');
       const a = String(ayah.numberInSurah).padStart(3, '0');
@@ -1006,6 +1127,16 @@ document.body.addEventListener('click', (e) => {
 const initNativeFeatures = async () => {
   if (!Capacitor.isNativePlatform()) return;
   try {
+    const isDark = localStorage.getItem('theme') === 'dark';
+   await StatusBar.setOverlaysWebView({ overlay: true });
+    if (isDark) {
+        await StatusBar.setBackgroundColor({ color: '#1e5f31' });
+        await StatusBar.setStyle({ style: Style.Dark });
+    } else {
+        await StatusBar.setBackgroundColor({ color: '#1e5f31' }); 
+        await StatusBar.setStyle({ style: Style.Dark }); 
+    }
+
     if ('serviceWorker' in navigator) {
       const regs = await navigator.serviceWorker.getRegistrations();
       for (let r of regs) await r.unregister();
@@ -1249,16 +1380,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.body.setAttribute('data-theme', 'dark');
     if (icon) { icon.classList.replace('fa-moon', 'fa-sun'); icon.classList.add('text-warning'); }
   }
-  toggleBtn?.addEventListener('click', () => {
+ toggleBtn?.addEventListener('click', async () => {
     const isDark = document.body.getAttribute('data-theme') === 'dark';
     if (isDark) {
       document.body.removeAttribute('data-theme');
       localStorage.setItem('theme', 'light');
       if (icon) { icon.classList.remove('fa-sun', 'text-warning'); icon.classList.add('fa-moon'); }
+      if (Capacitor.isNativePlatform()) {
+       await StatusBar.setOverlaysWebView({ overlay: true });
+          await StatusBar.setBackgroundColor({ color: '#1e5f31' });
+          await StatusBar.setStyle({ style: Style.Dark });
+      }
     } else {
       document.body.setAttribute('data-theme', 'dark');
       localStorage.setItem('theme', 'dark');
       if (icon) { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun', 'text-warning'); }
+      if (Capacitor.isNativePlatform()) {
+          await StatusBar.setBackgroundColor({ color: '#1a2e1f' });;
+          await StatusBar.setStyle({ style: Style.Dark });
+      }
     }
   });
 

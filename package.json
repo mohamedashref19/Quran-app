@@ -23,6 +23,7 @@
     "@capacitor/geolocation": "^8.1.0",
     "@capacitor/local-notifications": "^8.0.1",
     "@capacitor/preferences": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.1",
     "@sendgrid/mail": "^8.1.6",
     "adhan": "^4.4.3",
     "axios": "^1.13.5",
