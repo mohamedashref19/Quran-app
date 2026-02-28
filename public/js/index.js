@@ -1269,7 +1269,11 @@ const initNativeFeatures = async () => {
       const regs = await navigator.serviceWorker.getRegistrations();
       for (let r of regs) await r.unregister();
       const keys = await caches.keys();
-      for (let k of keys) await caches.delete(k);
+      for (let k of keys) {
+  if (k !== 'quran-audio-cache-v1') {
+    await caches.delete(k);
+  }
+}
     }
     await LocalNotifications.cancel({ notifications: [{ id: 101 }] });
     await App.removeAllListeners();
