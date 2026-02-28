@@ -653,16 +653,23 @@ export async function updateKhatmahProgress(surah, ayah) {
     return;
   }
 
+  // ✅ حساب الـ page صح مرة واحدة في الأول
+  const currentPage = (window.currentPage && window.currentPage >= 1)
+    ? window.currentPage
+    : (surahStartPages[parseInt(surah)] || 1);
+
   if (!navigator.onLine) {
     await addToOfflineQueue('UPDATE_KHATMAH', {
       surah,
       ayah,
-      page: window.currentPage || 1
+      page: currentPage  // ✅
     });
 
+    // ✅ حفظ الـ page في الكاش
     await localforage.setItem('latest_khatmah', {
       currentSurah: surah,
       currentAyah: ayah,
+      page: currentPage,  // ✅
       updatedAt: Date.now()
     });
 
@@ -698,14 +705,16 @@ export async function updateKhatmahProgress(surah, ayah) {
   }
 
   try {
-    let pageToSave = window.currentPage || 1;
-    if (pageToSave === 1) {
-      pageToSave = surahStartPages[parseInt(surah)] || 1;
-    }
-    const res = await axios.patch('/api/v1/khatmah', { surah, ayah, page: pageToSave });
+    const res = await axios.patch('/api/v1/khatmah', { surah, ayah, page: currentPage });  // ✅
 
     if (res.data.status === 'success') {
-      await localforage.setItem('latest_khatmah', { currentSurah: surah, currentAyah: ayah });
+      // ✅ حفظ الـ page في الكاش
+      await localforage.setItem('latest_khatmah', {
+        currentSurah: surah,
+        currentAyah: ayah,
+        page: currentPage,  // ✅
+        updatedAt: Date.now()
+      });
 
       document.querySelectorAll('.khatmah-icon-btn').forEach(btn => {
         btn.classList.remove('fas', 'khatmah-active-pulse');
@@ -751,10 +760,13 @@ export async function updateKhatmahProgress(surah, ayah) {
   } catch (err) {
     console.error("❌ خطأ في التحديث:", err);
     if (!navigator.onLine || err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
-      await addToOfflineQueue('UPDATE_KHATMAH', { surah, ayah, page: window.currentPage || 1 });
+      await addToOfflineQueue('UPDATE_KHATMAH', { surah, ayah, page: currentPage });  // ✅
+      
+      // ✅ حفظ الـ page في الكاش
       await localforage.setItem('latest_khatmah', {
         currentSurah: surah,
         currentAyah: ayah,
+        page: currentPage,  // ✅
         updatedAt: Date.now()
       });
 
@@ -942,7 +954,7 @@ export async function manageKhatmah() {
   const surahSelect     = document.getElementById('currentSurah');
   const currentAyahInput = document.getElementById('currentAyah');
 
-  const loadFromCache = async () => {
+const loadFromCache = async () => {
     const offlineKhatmah = await localforage.getItem('latest_khatmah');
     const offlineMeta    = await localforage.getItem('khatmah_meta');
     if (!offlineKhatmah) return null;
@@ -950,6 +962,7 @@ export async function manageKhatmah() {
     return {
       currentSurah: offlineKhatmah.currentSurah,
       currentAyah:  offlineKhatmah.currentAyah,
+      page:         offlineKhatmah.page || null, // ✅
       name: offlineMeta ? offlineMeta.name : 'ختمتي الحالية'
     };
   };
@@ -984,7 +997,11 @@ export async function manageKhatmah() {
     try {
       const res = await axios.get('/api/v1/khatmah');
       k = res.data.data.khatmah;
-      await localforage.setItem('latest_khatmah', { currentSurah: k.currentSurah, currentAyah: k.currentAyah });
+     await localforage.setItem('latest_khatmah', { 
+  currentSurah: k.currentSurah, 
+  currentAyah: k.currentAyah,
+  page: k.page || null  // ✅
+});
       await localforage.setItem('khatmah_meta', { name: k.name, targetMsg: res.data.data.message || "واصل تقدمك لختم القرآن الكريم ✨" });
       if (kTargetEl) kTargetEl.innerText = res.data.data.message || "واصل تقدمك لختم القرآن الكريم ✨";
     } catch (apiErr) {

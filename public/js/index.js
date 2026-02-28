@@ -835,7 +835,8 @@ window.openQuranAtCurrentKhatmah = async () => {
     const currentAyah    = parseInt(k.currentAyah);
     const surahFirstPage = surahPageMap[currentSurah - 1] || 1;
     const savedPage      = k.page ? parseInt(k.page) : 0;
-    const isSavedPageValid = savedPage > surahFirstPage;
+    const isSavedPageValid = savedPage >= surahFirstPage && savedPage <= 604;
+ 
     let targetPage;
     if (isSavedPageValid) {
       targetPage = savedPage;
@@ -874,13 +875,16 @@ window.openQuranAtCurrentKhatmah = async () => {
     if (err.response?.status === 401) requireLogin('متابعة الختمة');
     else if (err.response?.status === 404) window.showSection('khatmah');
     else if (!navigator.onLine || err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
-    // السيرفر واقع - نحاول نفتح من الكاش
-    const offlineKhatmah = await localforage.getItem('latest_khatmah');
-    if (offlineKhatmah && offlineKhatmah.currentSurah && offlineKhatmah.currentAyah) {
-        const currentSurah = parseInt(offlineKhatmah.currentSurah);
-        const currentAyah  = parseInt(offlineKhatmah.currentAyah);
-       // const surahPageMap = [1,2,50,77,106,128,151,177,187,208,221,235,249,255,262,267,282,293,305,312,322,332,342,350,359,367,377,385,396,404,411,415,418,428,434,440,446,499,502,507,511,515,518,520,523,526,528,531,534,537,542,545,549,551,553,554,556,558,560,562,564,566,568,570,572,574,575,577,578,580,582,583,585,586,587,587,589,590,591,591,592,593,594,595,596,596,597,597,598,598,599,599,600,600,601,601,601,602,602,602,603,603,603,604,604,604,604];
-        const targetPage = surahPageMap[currentSurah - 1] || 1;
+      const offlineKhatmah = await localforage.getItem('latest_khatmah');
+      if (offlineKhatmah && offlineKhatmah.currentSurah && offlineKhatmah.currentAyah) {
+        const currentSurah   = parseInt(offlineKhatmah.currentSurah);
+        const currentAyah    = parseInt(offlineKhatmah.currentAyah);
+        const surahFirstPage = surahPageMap[currentSurah - 1] || 1;
+        const savedPage      = offlineKhatmah.page ? parseInt(offlineKhatmah.page) : 0;
+        // ✅ استخدم الـ page المحفوظة لو صحيحة، غير كده أول صفحة السورة
+        const targetPage = (savedPage >= surahFirstPage && savedPage <= 604)
+          ? savedPage
+          : surahFirstPage;
         document.querySelectorAll('[id$="-section"]').forEach(el => el.classList.add('d-none'));
         document.getElementById('quran-section')?.classList.remove('d-none');
         window.scrollTo(0, 0);
@@ -888,12 +892,12 @@ window.openQuranAtCurrentKhatmah = async () => {
         document.querySelectorAll('.bottom-nav-item').forEach(btn => btn.classList.remove('active'));
         document.getElementById('bnav-quran')?.classList.add('active');
         await window.loadQuranPage(targetPage, currentSurah, currentAyah);
+      } else {
+        window.showSection('khatmah');
+      }
     } else {
-        window.showSection('khatmah'); // يروح لصفحة الختمة عادي
+      showAlert('error', 'تعذر تحميل الختمة');
     }
-} else {
-    showAlert('error', 'تعذر تحميل الختمة');
-}
   }
 };
 
