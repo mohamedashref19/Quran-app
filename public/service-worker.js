@@ -29,7 +29,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) {
+          if (cache !== CACHE_NAME && cache !== 'quran-audio-cache-v1'){
             console.log('🗑️ [SW] Clearing old cache:', cache);
             return caches.delete(cache);
           }
