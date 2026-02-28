@@ -141,7 +141,6 @@
             padding-bottom: env(safe-area-inset-bottom);
         }
 
-        /* Dark mode للـ bottom nav */
         [data-theme="dark"] .bottom-nav {
             background: #1a1a1a;
             border-top-color: rgba(25, 135, 84, 0.25);
@@ -267,7 +266,6 @@
             border-color: #1a1a1a;
         }
 
-        /* padding للـ body عشان المحتوى ميتغطاش بالـ navbar */
         body {
             padding-bottom: calc(72px + env(safe-area-inset-bottom));
         }
@@ -280,6 +278,68 @@
             text-align: justify;
             text-align-last: center;
         }
+
+        /* ─── 🕋 Qibla & Tasbeeh Styles ─── */
+        .qibla-compass {
+            width: 250px;
+            height: 250px;
+            border-radius: 50%;
+            border: 8px solid #198754;
+            position: relative;
+            margin: 0 auto;
+            background: url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="48" fill="none" stroke="%23ccc" stroke-width="1"/><line x1="50" y1="0" x2="50" y2="100" stroke="%23ccc" stroke-width="1"/><line x1="0" y1="50" x2="100" y2="50" stroke="%23ccc" stroke-width="1"/></svg>') center/cover;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .qibla-dial {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            position: relative;
+            transition: transform 0.1s ease-out;
+        }
+        .qibla-kaaba {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2.5rem;
+            color: #1a1a1a;
+            z-index: 10;
+        }
+        .qibla-needle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            height: 100px;
+            width: 4px;
+            background: linear-gradient(to top, transparent 50%, #d33 50%);
+        }
+
+        .tasbeeh-circle {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #1e5f31, #198754);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            font-weight: bold;
+            font-family: Arial, sans-serif;
+            margin: 0 auto;
+            box-shadow: 0 10px 20px rgba(25, 135, 84, 0.4);
+            cursor: pointer;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .tasbeeh-circle:active {
+            transform: scale(0.92);
+            box-shadow: 0 5px 10px rgba(25, 135, 84, 0.4);
+            background: linear-gradient(135deg, #145a28, #145a28);
+        }
     </style> 
 <style id="navbar-critical-fix">
 nav#main-navbar {
@@ -287,7 +347,7 @@ nav#main-navbar {
     border-bottom: 3px solid #145a28 !important;
 }
 [data-theme="dark"] nav#main-navbar {
-    background-color: #1e5f31 !important; /* نفس اللون في الدارك مود - مش أغمق */
+    background-color: #1e5f31 !important;
     border-bottom: 3px solid #0d3d1a !important;
     box-shadow: 0 2px 15px rgba(0,0,0,0.5) !important;
 }
@@ -315,7 +375,6 @@ nav#main-navbar {
 }
 </style>
     <script
-    
   src="https://js-de.sentry-cdn.com/0af56875ddd4565c69cab0d50f1798a9.min.js"
   crossorigin="anonymous"
 ></script>
@@ -379,23 +438,12 @@ nav#main-navbar {
                     </div>
                 </div>
             </div>
+            
             <div class="row g-3">
                 <div class="col-6 col-md-4">
                     <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow" onclick="showSection('surah-index'); loadSurahIndex();" style="cursor: pointer;">
                         <div class="mb-2"><i class="fas fa-book-open fa-2x text-success"></i></div>
                         <h6 class="fw-bold">المصحف</h6>
-                    </div>
-                </div>
-                <div class="col-6 col-md-4">
-                    <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow" onclick="showSection('reciters')" style="cursor: pointer;">
-                        <div class="mb-2"><i class="fas fa-headphones-alt fa-2x text-success"></i></div>
-                        <h6 class="fw-bold">القراء</h6>
-                    </div>
-                </div>
-                <div class="col-6 col-md-4">
-                    <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow" onclick="showSection('ai-correction')" style="cursor: pointer;">
-                        <div class="mb-2"><i class="fas fa-microphone-alt fa-2x text-warning"></i></div>
-                        <h6 class="fw-bold">المصحح الذكي</h6>
                     </div>
                 </div>
                 <div class="col-6 col-md-4">
@@ -405,9 +453,33 @@ nav#main-navbar {
                     </div>
                 </div>
                 <div class="col-6 col-md-4">
+                    <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow" onclick="showSection('reciters')" style="cursor: pointer;">
+                        <div class="mb-2"><i class="fas fa-headphones-alt fa-2x text-success"></i></div>
+                        <h6 class="fw-bold">القراء</h6>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4">
+                    <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow" onclick="showSection('azkar')" style="cursor: pointer;">
+                        <div class="mb-2"><i class="fas fa-praying-hands fa-2x text-success"></i></div>
+                        <h6 class="fw-bold">الأذكار والمسبحة</h6>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4">
+                    <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow" onclick="showSection('qibla')" style="cursor: pointer;">
+                        <div class="mb-2"><i class="fas fa-kaaba fa-2x text-success"></i></div>
+                        <h6 class="fw-bold">اتجاه القبلة</h6>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4">
                     <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow" onclick="showSection('bookmarks')" style="cursor: pointer;">
                         <div class="mb-2"><i class="fas fa-bookmark fa-2x text-success"></i></div>
                         <h6 class="fw-bold">العلامات</h6>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4">
+                    <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow" onclick="showSection('ai-correction')" style="cursor: pointer;">
+                        <div class="mb-2"><i class="fas fa-microphone-alt fa-2x text-warning"></i></div>
+                        <h6 class="fw-bold">المصحح الذكي</h6>
                     </div>
                 </div>
                 <div class="col-6 col-md-4">
@@ -417,6 +489,133 @@ nav#main-navbar {
                     </div>
                 </div>
             </div>
+        </div>
+
+        <div id="qibla-section" class="d-none">
+            <div class="d-flex align-items-center mb-4">
+                <button class="btn btn-sm btn-secondary me-3" onclick="showSection('home')"><i class="fas fa-arrow-right"></i></button>
+                <h3 class="flex-grow-1 text-center m-0 text-success fw-bold">
+                    <i class="fas fa-kaaba me-2"></i> اتجاه القبلة
+                </h3>
+            </div>
+            
+            <div class="card border-0 shadow-sm p-4 text-center mx-auto" style="max-width: 500px; border-radius: 20px;">
+                <p class="text-muted small mb-4">ضع هاتفك بشكل مسطح للحصول على أدق نتيجة. <br> <i class="fas fa-info-circle text-primary mt-1"></i> حرك الهاتف على شكل رقم (8) لمعايرة البوصلة.</p>
+                
+                <div class="qibla-compass mb-4" id="qibla-compass-container">
+                    <div class="qibla-dial" id="qibla-dial">
+                        <div class="qibla-kaaba"><i class="fas fa-kaaba text-dark"></i></div>
+                        <div class="qibla-needle"></div>
+                    </div>
+                </div>
+                
+                <h2 class="fw-bold text-success mb-1" id="qibla-angle-text" style="font-family: sans-serif; direction: ltr;">0°</h2>
+                <p id="qibla-status" class="text-muted small mb-4">جاري تحديد الموقع...</p>
+                
+                <button class="btn btn-outline-success rounded-pill px-4" onclick="initQibla()">
+                    <i class="fas fa-sync-alt me-2"></i> إعادة المعايرة والبحث
+                </button>
+            </div>
+        </div>
+
+        <div id="azkar-section" class="d-none">
+            <div class="d-flex align-items-center mb-4">
+                <button class="btn btn-sm btn-secondary me-3" onclick="showSection('home')"><i class="fas fa-arrow-right"></i></button>
+                <h3 class="flex-grow-1 text-center m-0 text-success fw-bold">
+                    <i class="fas fa-praying-hands me-2"></i> الأذكار والمسبحة
+                </h3>
+            </div>
+            
+            <ul class="nav nav-pills nav-fill mb-4 p-1 bg-white rounded-pill border shadow-sm" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active rounded-pill fw-bold" id="tasbeeh-tab" data-bs-toggle="pill" data-bs-target="#tasbeeh-pane" type="button" role="tab">
+                        <i class="fas fa-gem me-1"></i> المسبحة
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link rounded-pill fw-bold" id="azkar-tab" data-bs-toggle="pill" data-bs-target="#azkar-pane" type="button" role="tab">
+                        <i class="fas fa-book-open me-1"></i> الأذكار
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="tasbeeh-pane" role="tabpanel">
+                    <div class="card shadow-sm border-0 text-center p-4 bg-white" style="border-radius: 20px;">
+                        
+                        <div class="dropdown mb-4">
+                            <button class="btn btn-light border dropdown-toggle w-100 fs-5 fw-bold text-success" style="font-family: 'Amiri', serif;" type="button" id="tasbeeh-type-btn" data-bs-toggle="dropdown">
+                                سُبْحَانَ اللَّهِ
+                            </button>
+                            <ul class="dropdown-menu w-100 text-end" style="font-family: 'Amiri', serif; font-size: 1.2rem;">
+                                <li><a class="dropdown-item" href="#" onclick="changeTasbeehType('سُبْحَانَ اللَّهِ')">سُبْحَانَ اللَّهِ</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="changeTasbeehType('الْحَمْدُ لِلَّهِ')">الْحَمْدُ لِلَّهِ</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="changeTasbeehType('اللَّهُ أَكْبَرُ')">اللَّهُ أَكْبَرُ</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="changeTasbeehType('لَا إِلَهَ إِلَّا اللَّهُ')">لَا إِلَهَ إِلَّا اللَّهُ</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="changeTasbeehType('أَسْتَغْفِرُ اللَّهَ')">أَسْتَغْفِرُ اللَّهَ</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="changeTasbeehType('الصلاة على النبي ﷺ')">الصلاة على النبي ﷺ</a></li>
+                            </ul>
+                        </div>
+                        
+                        <div class="tasbeeh-circle" id="tasbeeh-counter-btn" onclick="incrementTasbeeh()">
+                            0
+                        </div>
+                        
+                        <div class="mt-4">
+                            <button class="btn btn-outline-danger px-4 rounded-pill" onclick="resetTasbeeh()">
+                                <i class="fas fa-redo-alt me-1"></i> تصفير العداد
+                            </button>
+                        </div>
+                        <p class="mt-3 text-muted small"><i class="fas fa-save me-1"></i> يتم حفظ تقدمك تلقائياً</p>
+                    </div>
+                </div>
+                
+                <div class="tab-pane fade" id="azkar-pane" role="tabpanel">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <div class="card border-0 border-start border-success border-4 shadow-sm hover-shadow" style="cursor: pointer;" onclick="showSection('azkar-detail'); loadAzkarList('morning')">
+                                <div class="card-body d-flex justify-content-between align-items-center p-3">
+                                    <h5 class="mb-0 fw-bold" style="font-family: 'Amiri';"><i class="fas fa-sun text-warning me-2 fs-4"></i>أذكار الصباح</h5>
+                                    <i class="fas fa-chevron-left text-muted"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="card border-0 border-start border-dark border-4 shadow-sm hover-shadow" style="cursor: pointer;" onclick="showSection('azkar-detail'); loadAzkarList('evening')">
+                                <div class="card-body d-flex justify-content-between align-items-center p-3">
+                                    <h5 class="mb-0 fw-bold" style="font-family: 'Amiri';"><i class="fas fa-moon text-dark me-2 fs-4"></i>أذكار المساء</h5>
+                                    <i class="fas fa-chevron-left text-muted"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="card border-0 border-start border-primary border-4 shadow-sm hover-shadow" style="cursor: pointer;" onclick="showSection('azkar-detail'); loadAzkarList('post_prayer')">
+                                <div class="card-body d-flex justify-content-between align-items-center p-3">
+                                    <h5 class="mb-0 fw-bold" style="font-family: 'Amiri';"><i class="fas fa-mosque text-primary me-2 fs-4"></i>أذكار بعد الصلاة</h5>
+                                    <i class="fas fa-chevron-left text-muted"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="card border-0 border-start border-secondary border-4 shadow-sm hover-shadow" style="cursor: pointer;" onclick="showSection('azkar-detail'); loadAzkarList('sleep')">
+                                <div class="card-body d-flex justify-content-between align-items-center p-3">
+                                    <h5 class="mb-0 fw-bold" style="font-family: 'Amiri';"><i class="fas fa-bed text-secondary me-2 fs-4"></i>أذكار النوم</h5>
+                                    <i class="fas fa-chevron-left text-muted"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="azkar-detail-section" class="d-none">
+            <div class="d-flex align-items-center mb-3 sticky-top bg-white pt-2 pb-2" style="top: 60px; z-index: 100;">
+                <button class="btn btn-sm btn-secondary me-3" onclick="showSection('azkar')"><i class="fas fa-arrow-right"></i></button>
+                <h3 class="flex-grow-1 text-center m-0 text-success fw-bold" id="azkar-detail-title" style="font-family: 'Amiri';">الأذكار</h3>
+            </div>
+            <div id="azkar-detail-container" class="pb-4">
+                </div>
         </div>
 
         <div id="khatmah-section" class="d-none">
@@ -531,17 +730,17 @@ nav#main-navbar {
                 </div>
                 
                 <div class="dua-container text-dark">
-                    <p>اللَّهُمَّ ارْحَمْنِي بالقُرْءَانِ وَاجْعَلهُ لِي إِمَاماً وَنُوراً وَهُدًى وَرَحْمَةً.</p>
-                    <p>اللَّهُمَّ ذَكِّرْنِي مِنْهُ مَانَسِيتُ وَعَلِّمْنِي مِنْهُ مَاجَهِلْتُ وَارْزُقْنِي تِلاَوَتَهُ آنَاءَ اللَّيْلِ وَأَطْرَافَ النَّهَارِ وَاجْعَلهُ لِي حُجَّةً يَارَبَّ العَالَمِينَ.</p>
-                    <p>اللَّهُمَّ أَصْلِحْ لِي دِينِي الَّذِي هُوَ عِصْمَةُ أَمْرِي، وَأَصْلِحْ لِي دُنْيَايَ الَّتِي فِيهَا مَعَاشِي، وَأَصْلِحْ لِي آخِرَتِي الَّتِي فِيهَا مَعَادِي، وَاجْعَلِ الحَيَاةَ زِيَادَةً لِي فِي كُلِّ خَيْرٍ وَاجْعَلِ المَوْتَ رَاحَةً لِي مِنْ كُلِّ شَرٍّ.</p>
-                    <p>اللَّهُمَّ اجْعَلْ خَيْرَ عُمْرِي آخِرَهُ وَخَيْرَ عَمَلِي خَوَاتِمَهُ وَخَيْرَ أَيَّامِي يَوْمَ أَلْقَاكَ فِيهِ.</p>
-                    <p>اللَّهُمَّ إِنِّي أَسْأَلُكَ عِيشَةً هَنِيَّةً وَمِيتَةً سَوِيَّةً وَمَرَدًّا غَيْرَ مُخْزٍ وَلاَ فَاضِحٍ.</p>
-                    <p>اللَّهُمَّ إِنِّي أَسْأَلُكَ خَيْرَ المَسْأَلةِ وَخَيْرَ الدُّعَاءِ وَخَيْرَ النَّجَاحِ وَخَيْرَ العِلْمِ وَخَيْرَ العَمَلِ وَخَيْرَ الثَّوَابِ وَخَيْرَ الحَيَاةِ وَخيْرَ المَمَاتِ وَثَبِّتْنِي وَثَقِّلْ مَوَازِينِي وَحَقِّقْ إِيمَانِي وَارْفَعْ دَرَجَتِي وَتَقَبَّلْ صَلاَتِي وَاغْفِرْ خَطِيئَاتِي وَأَسْأَلُكَ العُلَا مِنَ الجَنَّةِ.</p>
-                    <p>اللَّهُمَّ إِنِّي أَسْأَلُكَ مُوجِبَاتِ رَحْمَتِكَ وَعَزَائِمِ مَغْفِرَتِكَ وَالسَّلاَمَةَ مِنْ كُلِّ إِثْمٍ وَالغَنِيمَةَ مِنْ كُلِّ بِرٍّ وَالفَوْزَ بِالجَنَّةِ وَالنَّجَاةَ مِنَ النَّارِ.</p>
-                    <p>اللَّهُمَّ أَحْسِنْ عَاقِبَتَنَا فِي الأُمُورِ كُلِّهَا، وَأَجِرْنَا مِنْ خِزْيِ الدُّنْيَا وَعَذَابِ الآخِرَةِ.</p>
-                    <p>اللَّهُمَّ اقْسِمْ لَنَا مِنْ خَشْيَتِكَ مَاتَحُولُ بِهِ بَيْنَنَا وَبَيْنَ مَعْصِيَتِكَ وَمِنْ طَاعَتِكَ مَاتُبَلِّغُنَا بِهَا جَنَّتَكَ وَمِنَ اليَقِينِ مَاتُهَوِّنُ بِهِ عَلَيْنَا مَصَائِبَ الدُّنْيَا وَمَتِّعْنَا بِأَسْمَاعِنَا وَأَبْصَارِنَا وَقُوَّتِنَا مَاأَحْيَيْتَنَا وَاجْعَلْهُ الوَارِثَ مِنَّا وَاجْعَلْ ثَأْرَنَا عَلَى مَنْ ظَلَمَنَا وَانْصُرْنَا عَلَى مَنْ عَادَانَا وَلاَ تجْعَلْ مُصِيبَتَنَا فِي دِينِنَا وَلاَ تَجْعَلِ الدُّنْيَا أَكْبَرَ هَمِّنَا وَلَا مَبْلَغَ عِلْمِنَا وَلاَ تُسَلِّطْ عَلَيْنَا مَنْ لَا يَرْحَمُنَا.</p>
-                    <p>اللَّهُمَّ لَا تَدَعْ لَنَا ذَنْبًا إِلَّا غَفَرْتَهُ وَلَا هَمَّا إِلَّا فَرَّجْتَهُ وَلَا دَيْنًا إِلَّا قَضَيْتَهُ وَلَا حَاجَةً مِنْ حَوَائِجِ الدُّنْيَا وَالآخِرَةِ إِلَّا قَضَيْتَهَا يَاأَرْحَمَ الرَّاحِمِينَ.</p>
-                    <p>رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ وَصَلَّى اللهُ عَلَى سَيِّدِنَا وَنَبِيِّنَا مُحَمَّدٍ وَعَلَى آلِهِ وَأَصْحَابِهِ الأَخْيَارِ وَسَلَّمَ تَسْلِيمًا كَثِيراً.</p>
+                    <p>اللَّهُمَّ ارْحَمْنِي بالقُرْءَانِ وَاجْعَلهُ لِي إِمَاماً وَنُوراً وَهُدًى وَرَحْمَةً.</p>
+                    <p>اللَّهُمَّ ذَكِّرْنِي مِنْهُ مَانَسِيتُ وَعَلِّمْنِي مِنْهُ مَاجَهِلْتُ وَارْزُقْنِي تِلاَوَتَهُ آنَاءَ اللَّيْلِ وَأَطْرَافَ النَّهَارِ وَاجْعَلهُ لِي حُجَّةً يَارَبَّ العَالَمِينَ.</p>
+                    <p>اللَّهُمَّ أَصْلِحْ لِي دِينِي الَّذِي هُوَ عِصْمَةُ أَمْرِي، وَأَصْلِحْ لِي دُنْيَايَ الَّتِي فِيهَا مَعَاشِي، وَأَصْلِحْ لِي آخِرَتِي الَّتِي فِيهَا مَعَادِي، وَاجْعَلِ الحَيَاةَ زِيَادَةً لِي فِي كُلِّ خَيْرٍ وَاجْعَلِ المَوْتَ رَاحَةً لِي مِنْ كُلِّ شَرٍّ.</p>
+                    <p>اللَّهُمَّ اجْعَلْ خَيْرَ عُمْرِي آخِرَهُ وَخَيْرَ عَمَلِي خَوَاتِمَهُ وَخَيْرَ أَيَّامِي يَوْمَ أَلْقَاكَ فِيهِ.</p>
+                    <p>اللَّهُمَّ إِنِّي أَسْأَلُكَ عِيشَةً هَنِيَّةً وَمِيتَةً سَوِيَّةً وَمَرَدًّا غَيْرَ مُخْزٍ وَلاَ فَاضِحٍ.</p>
+                    <p>اللَّهُمَّ إِنِّي أَسْأَلُكَ خَيْرَ المَسْأَلةِ وَخَيْرَ الدُّعَاءِ وَخَيْرَ النَّجَاحِ وَخَيْرَ العِلْمِ وَخَيْرَ العَمَلِ وَخَيْرَ الثَّوَابِ وَخَيْرَ الحَيَاةِ وَخيْرَ المَمَاتِ وَثَبِّتْنِي وَثَقِّلْ مَوَازِينِي وَحَقِّقْ إِيمَانِي وَارْفَعْ دَرَجَتِي وَتَقَبَّلْ صَلاَتِي وَاغْفِرْ خَطِيئَاتِي وَأَسْأَلُكَ العُلَا مِنَ الجَنَّةِ.</p>
+                    <p>اللَّهُمَّ إِنِّي أَسْأَلُكَ مُوجِبَاتِ رَحْمَتِكَ وَعَزَائِمِ مَغْفِرَتِكَ وَالسَّلاَمَةَ مِنْ كُلِّ إِثْمٍ وَالغَنِيمَةَ مِنْ كُلِّ بِرٍّ وَالفَوْزَ بِالجَنَّةِ وَالنَّجَاةَ مِنَ النَّارِ.</p>
+                    <p>اللَّهُمَّ أَحْسِنْ عَاقِبَتَنَا فِي الأُمُورِ كُلِّهَا، وَأَجِرْنَا مِنْ خِزْيِ الدُّنْيَا وَعَذَابِ الآخِرَةِ.</p>
+                    <p>اللَّهُمَّ اقْسِمْ لَنَا مِنْ خَشْيَتِكَ مَاتَحُولُ بِهِ بَيْنَنَا وَبَيْنَ مَعْصِيَتِكَ وَمِنْ طَاعَتِكَ مَاتُبَلِّغُنَا بِهَا جَنَّتَكَ وَمِنَ اليَقِينِ مَاتُهَوِّنُ بِهِ عَلَيْنَا مَصَائِبَ الدُّنْيَا وَمَتِّعْنَا بِأَسْمَاعِنَا وَأَبْصَارِنَا وَقُوَّتِنَا مَاأَحْيَيْتَنَا وَاجْعَلْهُ الوَارِثَ مِنَّا وَاجْعَلْ ثَأْرَنَا عَلَى مَنْ ظَلَمَنَا وَانْصُرْنَا عَلَى مَنْ عَادَانَا وَلاَ تجْعَلْ مُصِيبَتَنَا فِي دِينِنَا وَلاَ تَجْعَلِ الدُّنْيَا أَكْبَرَ هَمِّنَا وَلَا مَبْلَغَ عِلْمِنَا وَلاَ تُسَلِّطْ عَلَيْنَا مَنْ لَا يَرْحَمُنَا.</p>
+                    <p>اللَّهُمَّ لَا تَدَعْ لَنَا ذَنْبًا إِلَّا غَفَرْتَهُ وَلَا هَمَّا إِلَّا فَرَّجْتَهُ وَلَا دَيْنًا إِلَّا قَضَيْتَهُ وَلَا حَاجَةً مِنْ حَوَائِجِ الدُّنْيَا وَالآخِرَةِ إِلَّا قَضَيْتَهَا يَاأَرْحَمَ الرَّاحِمِينَ.</p>
+                    <p>رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ وَصَلَّى اللهُ عَلَى سَيِّدِنَا وَنَبِيِّنَا مُحَمَّدٍ وَعَلَى آلِهِ وَأَصْحَابِهِ الأَخْيَارِ وَسَلَّمَ تَسْلِيمًا كَثِيراً.</p>
                 </div>
             </div>
         </div>
@@ -958,7 +1157,10 @@ const analytics = getAnalytics(app);
                 'quran':           'bnav-quran',
                 'bookmarks':       'bnav-bookmarks',
                 'profile':         'bnav-profile',
-                'khatmah-dua':     'bnav-quran' // يبقي الـ active على المصحف لما تفتح الدعاء
+                'khatmah-dua':     'bnav-quran', // يبقي الـ active على المصحف لما تفتح الدعاء
+                'qibla':           'bnav-home',  // نرجع للرئيسية كمسار
+                'azkar':           'bnav-home',
+                'azkar-detail':    'bnav-home'
             };
 
             const _origShowSection = window.showSection;
@@ -997,14 +1199,18 @@ const analytics = getAnalytics(app);
             }
         }
 
-        function handleForgotPassword() {
-            const email = document.getElementById('forgot-email').value;
-            if (window.forgotPasswordHandler) {
-                window.forgotPasswordHandler(email);
-            }
-        }
+function handleForgotPassword() {
+    const email = document.getElementById('forgot-email').value;
+    if (!email) return;
+    if (window.forgotPasswordHandler) {
+        window.forgotPasswordHandler(email);
+    } else {
+        Swal.fire({ icon: 'info', title: 'جاري التحميل...', text: 'يرجى الانتظار لحظة ثم المحاولة مجدداً', timer: 2000 });
+    }
+}
 
         function switchIndexTab(tab) {
+              if (!document.getElementById('view-surahs')) return;
             const surahsView = document.getElementById('view-surahs');
             const juzView    = document.getElementById('view-juz');
             const tabSurahs  = document.getElementById('tab-surahs');
@@ -1029,6 +1235,24 @@ const analytics = getAnalytics(app);
                 if (window.loadJuzIndex) window.loadJuzIndex();
             }
         }
+
+        // ─── دوال وهمية مؤقتة للسبحة (سيتم استبدالها في feature.js) ───
+window.tasbeehCount = 0;
+window.incrementTasbeeh = window.incrementTasbeeh || function() {
+    window.tasbeehCount++;
+    const btn = document.getElementById('tasbeeh-counter-btn');
+    if (btn) btn.innerText = window.tasbeehCount;
+};
+window.resetTasbeeh = window.resetTasbeeh || function() {
+    window.tasbeehCount = 0;
+    const btn = document.getElementById('tasbeeh-counter-btn');
+    if (btn) btn.innerText = '0';
+};
+window.changeTasbeehType = window.changeTasbeehType || function(type) {
+    const btn = document.getElementById('tasbeeh-type-btn');
+    if (btn) btn.innerText = type;
+    window.resetTasbeeh();
+};
     </script>
 </body>
 </html>

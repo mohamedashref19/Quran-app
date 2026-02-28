@@ -14,24 +14,37 @@ import { login, logout, signup, verifyOTP, updateSettings, forgotPassword, reset
 import { 
   loadSurahs, startSurahReading, manageKhatmah, createKhatmah, updateKhatmahProgress,
   checkRecitation, loadReciters, loadPrayers, loadBookmarks, loadQuranPage,
-  toggleBookmark, deleteBookmark, deleteKhatmah, initSearch, initBookmarksSearch
+  toggleBookmark, deleteBookmark, deleteKhatmah, initSearch, initBookmarksSearch,scheduleFridayKahfNotification
 } from './features';
 
 // ─── 1. Config ────────────────────────────────────────────────────────────────
 axios.defaults.baseURL = 'https://aqra-app.serveftp.com';
 axios.defaults.withCredentials =  Capacitor.isNativePlatform();
-
+const OFFLINE_HANDLED_URLS = [
+  '/api/v1/bookmarks',
+  '/api/v1/khatmah',
+  '/api/v1/audio/reciters',
+  '/api/v1/quran',
+  '/api/v1/prayers',
+  '/api/v1/users/me',
+];
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
     if (!navigator.onLine || error.message === 'Network Error') {
-      Swal.fire({
-        icon: 'error',
-        title: 'لا يوجد اتصال بالإنترنت',
-        text: 'يرجى التحقق من اتصالك بالشبكة والمحاولة مرة أخرى.',
-        confirmButtonText: 'فهمت',
-        confirmButtonColor: '#1e5f31'
-      });
+      // لو الـ endpoint بيتعامل مع الأوفلاين بنفسه، متطلعش الـ error
+      const requestUrl = error.config?.url || '';
+      const isOfflineHandled = OFFLINE_HANDLED_URLS.some(url => requestUrl.includes(url));
+      
+      if (!isOfflineHandled) {
+        Swal.fire({
+          icon: 'error',
+          title: 'لا يوجد اتصال بالإنترنت',
+          text: 'يرجى التحقق من اتصالك بالشبكة والمحاولة مرة أخرى.',
+          confirmButtonText: 'فهمت',
+          confirmButtonColor: '#1e5f31'
+        });
+      }
     }
     return Promise.reject(error);
   }
@@ -39,16 +52,90 @@ axios.interceptors.response.use(
 
 window.addEventListener('offline', () => {
   Swal.fire({
-    toast: true, position: 'top-end', icon: 'warning',
-    title: 'انقطع الاتصال بالإنترنت', showConfirmButton: false, timer: 3000
+    toast: true,
+    position: 'top',
+    icon: 'warning',
+    title: '📶 انقطع الاتصال بالإنترنت',
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true
   });
 });
+// ─── Offline Queue Processor ──────────────────────────────────────────────────
+const processOfflineQueue = async () => {
+  if (!navigator.onLine) return;
+  try {
+    const queue = await localforage.getItem('offline_actions_queue') || [];
+    if (queue.length === 0) return;
+
+    console.log(`🔄 [OFFLINE QUEUE] معالجة ${queue.length} عملية معلقة...`);
+    const failed = [];
+    let successCount = 0;
+
+    for (const action of queue) {
+      try {
+        if (action.type === 'ADD_BOOKMARK') {
+  await axios.post('/api/v1/bookmarks', {
+    surahNumber: action.payload.surahNumber,
+    ayahNumber:  action.payload.ayahNumber,
+    ayahText:    action.payload.ayahText || '',
+    note:        action.payload.note    || ''
+  });
+  successCount++;
+}else if (action.type === 'DELETE_BOOKMARK') {
+          const res = await axios.get('/api/v1/bookmarks');
+          const bookmarks = res.data.data.bookmarks;
+          const found = bookmarks.find(
+            b => parseInt(b.surah) === parseInt(action.payload.surah) &&
+                 parseInt(b.ayah)  === parseInt(action.payload.ayah)
+          );
+          if (found) {
+            await axios.delete(`/api/v1/bookmarks/${found._id}`);
+            successCount++;
+          }
+        } else if (action.type === 'UPDATE_KHATMAH') {
+          await axios.patch('/api/v1/khatmah', action.payload);
+          successCount++;
+        }
+      } catch (err) {
+        if (!err.response || err.response.status >= 500) {
+          failed.push(action);
+        }
+      }
+    }
+
+    await localforage.setItem('offline_actions_queue', failed);
+
+    if (successCount > 0) {
+  // ✅ بعد الزامنة، نحدث الكاش من السيرفر عشان يشمل العلامات الجديدة
+  try {
+    const freshRes = await axios.get('/api/v1/bookmarks');
+    await localforage.setItem('offline_bookmarks', freshRes.data.data.bookmarks);
+    console.log(`🔄 [SYNC] تم تحديث كاش العلامات بعد الزامنة (${freshRes.data.data.bookmarks.length} علامة)`);
+  } catch (e) { /* تجاهل */ }
+
+  Swal.fire({
+    toast: true, position: 'top-end', icon: 'success',
+    title: `✅ تمت مزامنة ${successCount} عملية محفوظة`,
+    showConfirmButton: false, timer: 3000
+  });
+}
+  } catch (e) {
+    console.error('❌ [OFFLINE QUEUE] خطأ في المعالجة:', e);
+  }
+};
 
 window.addEventListener('online', () => {
   Swal.fire({
-    toast: true, position: 'top-end', icon: 'success',
-    title: 'عاد الاتصال بالإنترنت', showConfirmButton: false, timer: 3000
+    toast: true,
+    position: 'top',
+    icon: 'success',
+    title: '✅ عاد الاتصال بالإنترنت',
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true
   });
+  setTimeout(() => processOfflineQueue(), 2000);
 });
 
 // ─── 2. Global State ──────────────────────────────────────────────────────────
@@ -153,7 +240,7 @@ initQuranDB().catch(e => console.warn('IDB init failed:', e));
 const tafseerSet = async (surah, ayah, text) => {
   try {
     await localforage.setItem(`tafseer_${surah}_${ayah}`, text);
-    console.log(`💾 [TAFSEER SAVED] سورة ${surah} - آية ${ayah}`);
+  //  console.log(`💾 [TAFSEER SAVED] سورة ${surah} - آية ${ayah}`);
     return true;
   } catch (e) {
     console.error('❌ [TAFSEER] فشل الحفظ:', e);
@@ -317,7 +404,7 @@ window.downloadEntireQuranOffline = async () => {
         console.log('✅ المصحف كاملاً موجود بالفعل في الذاكرة (Offline Ready)');
         return;
     }
-    console.log('🔄 جاري تحميل المصحف في الخلفية للعمل بدون إنترنت...');
+    //console.log('🔄 جاري تحميل المصحف في الخلفية للعمل بدون إنترنت...');
     let successCount = 0;
     for (let page = 1; page <= 604; page++) {
         const pageExists = await window.cacheGet(page);
@@ -356,13 +443,13 @@ window.downloadEntireTafseerOffline = async () => {
 
   if (!navigator.onLine) return;
 
-  console.log('🔄 [TAFSEER] جاري تحميل التفسير في الخلفية...');
+  //console.log('🔄 [TAFSEER] جاري تحميل التفسير في الخلفية...');
 
   let savedSurahs = 0;
 
   for (let surah = 1; surah <= 114; surah++) {
     if (!navigator.onLine) {
-      console.warn('⚠️ [TAFSEER] انقطع الاتصال - سيكمل عند عودة النت');
+    //  console.warn('⚠️ [TAFSEER] انقطع الاتصال - سيكمل عند عودة النت');
       return;
     }
 
@@ -379,7 +466,7 @@ window.downloadEntireTafseerOffline = async () => {
       }
 
       savedSurahs++;
-      console.log(`📥 [TAFSEER] سورة ${savedSurahs}/114 ✅`);
+    //  console.log(`📥 [TAFSEER] سورة ${savedSurahs}/114 ✅`);
       await new Promise(r => setTimeout(r, 500));
 
     } catch (err) {
@@ -709,6 +796,27 @@ window.showSection = (sectionName) => {
   };
   if (sectionName === 'ai-correction') fillSelect('ai-surah-select');
   if (sectionName === 'live-recitation') fillSelect('live-surah-select');
+    if (sectionName === 'qibla') {
+    // تأجيل بسيط لضمان ظهور الـ DOM قبل بدء الـ sensors
+    setTimeout(() => {
+      if (window.initQibla) window.initQibla();
+    }, 300);
+  }
+
+  if (sectionName === 'azkar') {
+    // تحميل المسبحة من الكاش عند فتح قسم الأذكار
+    if (window.loadTasbeeh) window.loadTasbeeh();
+  }
+
+  
+
+  // تنظيف بوصلة القبلة عند مغادرة الصفحة
+  if (sectionName !== 'qibla') {
+    // cleanupQibla مُستدعاة تلقائياً في initQibla عند الفتح التالي
+    // لكن نوقف الـ sensors فوراً إذا غادر المستخدم
+    window.removeEventListener('deviceorientationabsolute', window._qiblaOrientationHandler);
+    window.removeEventListener('deviceorientation', window._qiblaOrientationHandler);
+  }
 };
 
 window.openQuranAtCurrentKhatmah = async () => {
@@ -765,7 +873,27 @@ window.openQuranAtCurrentKhatmah = async () => {
     Swal.close();
     if (err.response?.status === 401) requireLogin('متابعة الختمة');
     else if (err.response?.status === 404) window.showSection('khatmah');
-    else showAlert('error', 'تعذر تحميل الختمة');
+    else if (!navigator.onLine || err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
+    // السيرفر واقع - نحاول نفتح من الكاش
+    const offlineKhatmah = await localforage.getItem('latest_khatmah');
+    if (offlineKhatmah && offlineKhatmah.currentSurah && offlineKhatmah.currentAyah) {
+        const currentSurah = parseInt(offlineKhatmah.currentSurah);
+        const currentAyah  = parseInt(offlineKhatmah.currentAyah);
+       // const surahPageMap = [1,2,50,77,106,128,151,177,187,208,221,235,249,255,262,267,282,293,305,312,322,332,342,350,359,367,377,385,396,404,411,415,418,428,434,440,446,499,502,507,511,515,518,520,523,526,528,531,534,537,542,545,549,551,553,554,556,558,560,562,564,566,568,570,572,574,575,577,578,580,582,583,585,586,587,587,589,590,591,591,592,593,594,595,596,596,597,597,598,598,599,599,600,600,601,601,601,602,602,602,603,603,603,604,604,604,604];
+        const targetPage = surahPageMap[currentSurah - 1] || 1;
+        document.querySelectorAll('[id$="-section"]').forEach(el => el.classList.add('d-none'));
+        document.getElementById('quran-section')?.classList.remove('d-none');
+        window.scrollTo(0, 0);
+        window.history.pushState({ section: 'quran' }, '', '/quran');
+        document.querySelectorAll('.bottom-nav-item').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('bnav-quran')?.classList.add('active');
+        await window.loadQuranPage(targetPage, currentSurah, currentAyah);
+    } else {
+        window.showSection('khatmah'); // يروح لصفحة الختمة عادي
+    }
+} else {
+    showAlert('error', 'تعذر تحميل الختمة');
+}
   }
 };
 
@@ -1150,14 +1278,69 @@ const initNativeFeatures = async () => {
       if (home && !home.classList.contains('d-none')) { stopAllMedia(); canGoBack ? window.history.back() : App.exitApp(); }
       else window.showSection('home');
     });
+    LocalNotifications.addListener('localNotificationActionPerformed', (notif) => {
+      if (notif.notification.actionTypeId === 'OPEN_KAHF') {
+        // سورة الكهف رقم 18 - صفحة 293
+        window.showSection('quran');
+        window.loadQuranPage(293);
+      }
+    });
+
     const notifs = await LocalNotifications.requestPermissions();
     if (notifs.display === 'granted') {
       await LocalNotifications.createChannel({ id: 'azan-channel', name: 'تنبيهات الصلاة', importance: 5, sound: 'azan_short.mp3', visibility: 1, vibration: true });
       await LocalNotifications.createChannel({ id: 'khatmah-channel', name: 'تنبيهات الورد', importance: 4, visibility: 1, vibration: true });
+      await scheduleFridayKahfNotification();
+    console.log('✅ [FRIDAY] تنبيه سورة الكهف مجدول');
     }
     try { await Geolocation.requestPermissions(); } catch (e) { console.log('Geo permission:', e); }
   } catch (err) { console.error('Native Init Error:', err); }
 };
+
+const scheduleWebFridayReminder = () => {
+  // على الويب نستخدم setTimeout لليوم الحالي فقط (لا يوجد persistent notifications)
+  const now = new Date();
+  const isFriday = now.getDay() === 5;
+  const hour = now.getHours();
+
+  // لو النهارده جمعة وقبل الساعة 12 ظهراً - نعرض تذكير
+  if (isFriday && hour < 12) {
+    // تحقق إذا أُظهر التذكير بالفعل اليوم
+    const lastShown = localStorage.getItem('kahf_reminder_shown');
+    const today     = now.toDateString();
+
+    if (lastShown !== today) {
+      // نأجره 5 ثوانٍ بعد فتح التطبيق حتى لا يزعج المستخدم فوراً
+      setTimeout(() => {
+        Swal.fire({
+          title: '📖 يوم الجمعة المبارك',
+          html: `
+            <div style="font-family:'Amiri'; direction:rtl; text-align:right;">
+              <p style="font-size:1.1rem; line-height:1.8;">
+                <strong>من قرأ سورة الكهف يوم الجمعة أضاء له النور ما بين الجمعتين</strong>
+              </p>
+              <p class="text-muted small">رواه البيهقي والحاكم</p>
+            </div>`,
+          confirmButtonText: '📖 اقرأ سورة الكهف الآن',
+          cancelButtonText:  'لاحقاً',
+          showCancelButton:   true,
+          confirmButtonColor: '#198754',
+          cancelButtonColor:  '#6c757d',
+          imageUrl: null,
+        }).then(result => {
+          if (result.isConfirmed) {
+            // سورة الكهف رقم 18 - الصفحة 293
+            window.showSection('quran');
+            window.loadQuranPage(293);
+          }
+        });
+        localStorage.setItem('kahf_reminder_shown', today);
+      }, 5000);
+    }
+  }
+};
+
+
 
 // ─── 18. DOMContentLoaded ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
@@ -1178,13 +1361,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   initNativeFeatures();
   if (typeof initSearch === 'function') initSearch();
+if (typeof initBookmarksSearch === 'function') initBookmarksSearch();
 
   // ✅ await عشان الـ routing يشتغل بعد ما نعرف حالة المستخدم
   await window.checkAuth().catch(() => {});
+  // مزامنة أي عمليات معلقة عند فتح التطبيق
+if (navigator.onLine) {
+  setTimeout(() => processOfflineQueue(), 5000);
+}
 
   if (document.getElementById('prayers-list')) loadPrayers();
   if (document.getElementById('active-khatmah')) manageKhatmah().catch(() => {});
-
+document.getElementById('tasbeeh-tab')?.addEventListener('shown.bs.tab', () => {
+    if (window.loadTasbeeh) window.loadTasbeeh();
+});
   // ✅ الـ Routing
   const initialPath = window.location.pathname;
 
@@ -1451,4 +1641,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   console.log(Capacitor.isNativePlatform() ? '📱 Mobile Mode Active' : '🌐 Web Mode Active');
+    scheduleWebFridayReminder();
 });
