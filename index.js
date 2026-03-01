@@ -70,6 +70,7 @@ app.use(
         fontSrc: [
           "'self'",
           "https://fonts.gstatic.com",
+          "https://fonts.googleapis.com",
           "https://cdnjs.cloudflare.com",
           "data:"
         ],
@@ -83,7 +84,7 @@ app.use(
           "https:",
           "https://*.googleusercontent.com",
           "https://www.transparenttextures.com",
-          "https://ui-avatars.com" // 👈 تمت إضافة هذا لتشغيل صور المشايخ البديلة
+          "https://ui-avatars.com"
         ],
         
         mediaSrc: [
@@ -91,7 +92,10 @@ app.use(
           "https:", 
           "data:", 
           "blob:",
-          "https://*.mp3quran.net"
+          "https://*.mp3quran.net",
+          "https://everyayah.com",        
+          "https://archive.org",          
+          "https://*.archive.org"
         ], 
         
         connectSrc: [
@@ -111,9 +115,13 @@ app.use(
           "https://firebase.googleapis.com",
           "https://firebaseinstallations.googleapis.com",
           "https://*.google-analytics.com",
-          "https://www.gstatic.com", // تمت إزالة المسافات الزائدة هنا
+          "https://www.gstatic.com",
           "https://cdnjs.cloudflare.com",
-          "https://everyayah.com", 
+          "https://everyayah.com",
+          "https://archive.org",         
+          "https://*.archive.org",        
+          "https://fonts.googleapis.com", 
+          "https://fonts.gstatic.com",    
           "capacitor://localhost",
           "http://localhost",
           "ws://127.0.0.1:*", 
@@ -124,7 +132,6 @@ app.use(
         childSrc: ["blob:"],
         frameSrc: ["'none'"],   
         objectSrc: ["'none'"],
-        // تم حذف upgradeInsecureRequests الخاطئة
       },
     },
   })
