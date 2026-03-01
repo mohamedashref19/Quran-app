@@ -17,6 +17,8 @@ import {
   toggleBookmark, deleteBookmark, deleteKhatmah, initSearch, initBookmarksSearch,scheduleFridayKahfNotification
 } from './features';
 
+import { surahNames, surahPageMap, juzData, getSurahNameByPage } from './constants';
+
 // ─── 1. Config ────────────────────────────────────────────────────────────────
 axios.defaults.baseURL = 'https://aqra-app.serveftp.com';
 axios.defaults.withCredentials =  Capacitor.isNativePlatform();
@@ -27,6 +29,7 @@ const OFFLINE_HANDLED_URLS = [
   '/api/v1/quran',
   '/api/v1/prayers',
   '/api/v1/users/me',
+  '/api/v1/prayers/get-location'
 ];
 axios.interceptors.response.use(
   (response) => response,
@@ -282,71 +285,7 @@ function calculateSimilarity(spoken, ayah) {
   return (spokenAccuracy * 0.6) + (ayahCompletion * 0.4);
 }
 
-// ─── 4. Data ──────────────────────────────────────────────────────────────────
-const surahNames = [
-  "الفاتحة","البقرة","آل عمران","النساء","المائدة","الأنعام","الأعراف","الأنفال","التوبة","يونس",
-  "هود","يوسف","الرعد","إبراهيم","الحجر","النحل","الإسراء","الكهف","مريم","طه",
-  "الأنبياء","الحج","المؤمنون","النور","الفرقان","الشعراء","النمل","القصص","العنكبوت","الروم",
-  "لقمان","السجدة","الأحزاب","سبأ","فاطر","يس","الصافات","ص","الزمر","غافر",
-  "فصلت","الشورى","الزخرف","الدخان","الجاثية","الأحقاف","محمد","الفتح","الحجرات","ق",
-  "الذاريات","الطور","النجم","القمر","الرحمن","الواقعة","الحديد","المجادلة","الحشر","الممتحنة",
-  "الصف","الجمعة","المنافقون","التغابن","الطلاق","التحريم","الملك","القلم","الحاقة","المعارج",
-  "نوح","الجن","المزمل","المدثر","القيامة","الإنسان","المرسلات","النبأ","النازعات","عبس",
-  "التكوير","الإنفطار","المطففين","الإنشقاق","البروج","الطارق","الأعلى","الغاشية","الفجر","البلد",
-  "الشمس","الليل","الضحى","الشرح","التين","العلق","القدر","البينة","الزلزلة","العاديات",
-  "القارعة","التكاثر","العصر","الهمزة","الفيل","قريش","الماعون","الكوثر","الكافرون","النصر",
-  "المسد","الإخلاص","الفلق","الناس"
-];
 
-const surahPageMap = [
-  1,2,50,77,106,128,151,177,187,208,221,235,249,255,262,267,282,293,305,312,
-  322,332,342,350,359,367,377,385,396,404,411,415,418,428,434,440,446,453,458,467,
-  477,483,489,496,499,502,507,511,515,518,520,523,526,528,531,534,537,542,545,549,
-  551,553,554,556,558,560,562,564,566,568,570,572,574,575,577,578,580,582,583,585,
-  586,587,587,589,590,591,591,592,593,594,595,596,596,597,597,598,598,599,599,600,
-  600,601,601,601,602,602,602,603,603,603,604,604,604,604
-];
-
-const juzData = [
-  { juz: 1,  page: 1,   name: "الم",                surahs: "الفاتحة - البقرة" },
-  { juz: 2,  page: 22,  name: "سَيَقُولُ",           surahs: "البقرة" },
-  { juz: 3,  page: 42,  name: "تِلْكَ الرُّسُلُ",    surahs: "البقرة - آل عمران" },
-  { juz: 4,  page: 62,  name: "لَنْ تَنَالُوا",      surahs: "آل عمران - النساء" },
-  { juz: 5,  page: 82,  name: "وَالْمُحْصَنَاتُ",    surahs: "النساء - المائدة" },
-  { juz: 6,  page: 102, name: "لَا يُحِبُّ اللَّهُ", surahs: "المائدة - الأنعام" },
-  { juz: 7,  page: 121, name: "وَإِذَا سَمِعُوا",    surahs: "الأنعام - الأعراف" },
-  { juz: 8,  page: 142, name: "وَلَوْ أَنَّنَا",     surahs: "الأعراف - الأنفال" },
-  { juz: 9,  page: 162, name: "قَالَ الْمَلَأُ",     surahs: "الأنفال - التوبة" },
-  { juz: 10, page: 182, name: "وَاعْلَمُوا",         surahs: "التوبة - هود" },
-  { juz: 11, page: 201, name: "يَعْتَذِرُونَ",       surahs: "هود - يوسف" },
-  { juz: 12, page: 221, name: "وَمَا مِنْ دَابَّةٍ", surahs: "هود - يوسف - الرعد" },
-  { juz: 13, page: 241, name: "وَمَا أُبَرِّئُ",     surahs: "يوسف - إبراهيم - الحجر" },
-  { juz: 14, page: 261, name: "رُبَمَا",             surahs: "الحجر - النحل" },
-  { juz: 15, page: 281, name: "سُبْحَانَ الَّذِي",   surahs: "الإسراء - الكهف" },
-  { juz: 16, page: 301, name: "قَالَ أَلَمْ",        surahs: "الكهف - طه" },
-  { juz: 17, page: 321, name: "اقْتَرَبَ",           surahs: "الأنبياء - الحج" },
-  { juz: 18, page: 341, name: "قَدْ أَفْلَحَ",       surahs: "المؤمنون - الفرقان" },
-  { juz: 19, page: 361, name: "وَقَالَ الَّذِينَ",   surahs: "الفرقان - النمل" },
-  { juz: 20, page: 381, name: "أَمَّنْ خَلَقَ",      surahs: "النمل - العنكبوت" },
-  { juz: 21, page: 401, name: "اتْلُ مَا أُوحِيَ",   surahs: "العنكبوت - الأحزاب" },
-  { juz: 22, page: 421, name: "وَمَنْ يَقْنُتْ",     surahs: "الأحزاب - يس" },
-  { juz: 23, page: 441, name: "وَمَا لِيَ",          surahs: "يس - الزمر" },
-  { juz: 24, page: 461, name: "فَمَنْ أَظْلَمُ",     surahs: "الزمر - فصلت" },
-  { juz: 25, page: 481, name: "إِلَيْهِ يُرَدُّ",    surahs: "فصلت - الجاثية" },
-  { juz: 26, page: 501, name: "حم",                  surahs: "الأحقاف - الذاريات" },
-  { juz: 27, page: 521, name: "قَالَ فَمَا خَطْبُكُمْ", surahs: "الذاريات - الحديد" },
-  { juz: 28, page: 541, name: "قَدْ سَمِعَ اللَّهُ", surahs: "المجادلة - التحريم" },
-  { juz: 29, page: 561, name: "تَبَارَكَ الَّذِي",   surahs: "الملك - المرسلات" },
-  { juz: 30, page: 581, name: "عَمَّ يَتَسَاءَلُونَ", surahs: "النبأ - الناس" },
-];
-
-const getSurahNameByPage = (pageNum) => {
-  let idx = 0;
-  for (let i = 0; i < surahPageMap.length; i++) {
-    if (surahPageMap[i] <= pageNum) idx = i; else break;
-  }
-  return surahNames[idx];
-};
 
 window.loadAllUsers = async () => {
     const tbody = document.getElementById('users-table-body');
@@ -493,6 +432,7 @@ const requireLogin = (featureName = 'هذه الميزة') => {
     showCancelButton: true, confirmButtonColor: '#198754', cancelButtonColor: '#6c757d',
   }).then((result) => { if (result.isConfirmed) window.showSection('login'); });
 };
+window.requireLogin = requireLogin;
 
 // ─── 6. isUserLoggedIn ────────────────────────────────────────────────────────
 const isUserLoggedIn = () => {
@@ -1053,19 +993,26 @@ window.loadLiveAyahs = async () => {
   const container = document.getElementById('live-quran-container');
   container.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-success"></div><p>جاري جلب الآيات...</p></div>';
   document.getElementById('live-controls').classList.remove('d-none');
+  
   try {
     const response = await fetch(`https://api.alquran.cloud/v1/surah/${surah}`);
     const data = await response.json();
     const filteredAyahs = data.data.ayahs.filter(a => a.numberInSurah >= startAyah && a.numberInSurah <= endAyah);
     container.innerHTML = '';
-    if (!filteredAyahs.length) { container.innerHTML = '<p class="text-muted">لا توجد آيات في هذا النطاق.</p>'; return; }
+    
+    if (!filteredAyahs.length) { 
+        container.innerHTML = '<p class="text-muted">لا توجد آيات في هذا النطاق.</p>'; 
+        return; 
+    }
+    
     lastMatchedIndex = -1; searchStartIndex = 0; accumulatedBuffer = '';
     document.querySelectorAll('.live-ayah-text').forEach(el => {
-    el.style.backgroundColor = '';
-    el.style.color = '';
-    el.style.borderRadius = '';
-    el.style.padding = '';
-});
+        el.style.backgroundColor = '';
+        el.style.color = '';
+        el.style.borderRadius = '';
+        el.style.padding = '';
+    });
+    
     filteredAyahs.forEach(ayah => {
       const s = String(surah).padStart(3, '0');
       const a = String(ayah.numberInSurah).padStart(3, '0');
@@ -1073,20 +1020,34 @@ window.loadLiveAyahs = async () => {
       const btnId    = `btn-play-${s}-${a}`;
       const blurClass = isBlur ? 'blurred-text' : '';
       const cleanText = normalizeArabic(ayah.text);
+
+      // 🛠️ تمرير نص الآية على قاموس التصحيح لضمان اتصال الحروف
+      let ayahText = ayah.text;
+      if (typeof UTHMANI_FIXES !== 'undefined') {
+          Object.keys(UTHMANI_FIXES).forEach(wrongWord => {
+              ayahText = ayahText.split(wrongWord).join(UTHMANI_FIXES[wrongWord]);
+          });
+      }
+
       container.insertAdjacentHTML('beforeend', `
-        <div class="live-ayah-item" data-clean="${cleanText}"
-          style="border-bottom:1px solid #eee;padding:10px 0;display:flex;align-items:center;justify-content:space-between;transition:all 0.3s ease;">
-          <button id="${btnId}" class="btn live-play-btn btn-outline-success rounded-circle"
-            style="width:40px;height:40px;padding:0;flex-shrink:0"
+        <div class="live-ayah-item" data-clean="${cleanText}">
+          <button id="${btnId}" class="btn live-play-btn btn-outline-success rounded-circle ms-3"
+            style="width:45px;height:45px;padding:0;flex-shrink:0"
             onclick="playLiveAudio('${audioUrl}','${btnId}')">
             <i class="fas fa-play"></i>
           </button>
+          
           <div class="live-ayah-text ${blurClass}" id="text-${btnId}"
-            style="flex-grow:1;text-align:right;margin-right:15px;font-family:'Amiri';font-size:1.3rem;line-height:2;transition:all 0.3s ease;">
-            ${ayah.text}
-            <span class="badge bg-light text-dark ms-1 rounded-circle border">${ayah.numberInSurah}</span>
+            style="flex-grow:1; text-align:right; margin-left:15px;
+                  font-family:'Amiri Quran', 'Amiri', serif; font-size:28px;
+                   line-height:2.4; transition:all 0.3s ease;">
+            ${ayahText}
+            <span class="badge bg-light text-dark ms-2 rounded-circle border" style="font-family: sans-serif; font-size: 0.9rem; vertical-align: middle;">
+              ${ayah.numberInSurah}
+            </span>
           </div>
-        </div>`);
+        </div>
+      `);
     });
   } catch (err) {
     console.error(err);
@@ -1626,23 +1587,24 @@ document.getElementById('tasbeeh-tab')?.addEventListener('shown.bs.tab', () => {
 
   // Volume Control
   const volumeSliderAi  = document.getElementById('volume-slider-ai');
-  const volumeControlAi = document.getElementById('volume-control-ai');
+  // const volumeControlAi = document.getElementById('volume-control-ai');
   if (volumeSliderAi) {
     volumeSliderAi.addEventListener('input', function() {
       document.querySelectorAll('#result-container audio').forEach(audio => { audio.volume = parseFloat(this.value); });
     });
   }
-  const resultContainer = document.getElementById('result-container');
-  if (resultContainer) {
-    const observer = new MutationObserver(() => {
-      if (!resultContainer.classList.contains('d-none')) {
-        if (volumeControlAi) volumeControlAi.classList.remove('d-none');
-      } else {
-        if (volumeControlAi) volumeControlAi.classList.add('d-none');
-      }
-    });
-    observer.observe(resultContainer, { attributes: true, attributeFilter: ['class'] });
-  }
+const resultContainer = document.getElementById('result-container');
+if (resultContainer) {
+  const observer = new MutationObserver(() => {
+    const volumeControlAi = document.getElementById('volume-control-ai'); // ← جوا الـ observer
+    if (!resultContainer.classList.contains('d-none')) {
+      if (volumeControlAi) volumeControlAi.classList.remove('d-none');
+    } else {
+      if (volumeControlAi) volumeControlAi.classList.add('d-none');
+    }
+  });
+  observer.observe(resultContainer, { attributes: true, attributeFilter: ['class'] });
+}
   document.getElementById('volume-slider-live')?.addEventListener('input', function() {
     if (window.currentAudio) window.currentAudio.volume = parseFloat(this.value);
     document.querySelectorAll('#live-quran-container audio').forEach(a => { a.volume = parseFloat(this.value); });
