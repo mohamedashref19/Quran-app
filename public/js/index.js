@@ -1331,6 +1331,21 @@ const scheduleWebFridayReminder = () => {
 
 // ─── 18. DOMContentLoaded ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+  if ('serviceWorker' in navigator) {
+    try {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for (let r of regs) await r.unregister();
+      const keys = await caches.keys();
+      for (let k of keys) {
+        if (k !== 'quran-audio-cache-v1') {
+          await caches.delete(k);
+        }
+      }
+      console.log('🧹 تم تنظيف الكاش القديم بنجاح');
+    } catch (e) {
+      console.error('خطأ في مسح الكاش:', e);
+    }
+  }
 
   // 1. استرجاع التوكن أول حاجة
   try {
