@@ -107,8 +107,26 @@ const showOfflineAudioMessage = (surahName) => {
 //   });
 // };
 
-const requireLogin = window.requireLogin;
+// const requireLogin = window.requireLogin;
 
+const requireLogin = (...args) => {
+  if (window.requireLogin) {
+    window.requireLogin(...args);
+  } else {
+    Swal.fire({
+      icon: 'warning',
+      title: 'يجب تسجيل الدخول أولاً',
+      text: `سجّل دخولك لتتمكن من ${args[0] || 'هذه الميزة'}`,
+      confirmButtonText: 'تسجيل الدخول',
+      cancelButtonText: 'لاحقاً',
+      showCancelButton: true,
+      confirmButtonColor: '#198754',
+      cancelButtonColor: '#6c757d',
+    }).then((result) => {
+      if (result.isConfirmed) window.showSection('login');
+    });
+  }
+};
 
 function checkConnection() {
   if (!navigator.onLine) {
@@ -126,6 +144,7 @@ function checkConnection() {
 
 const isUserLoggedIn = () => {
   if (axios.defaults.headers.common['Authorization']) return true;
+  if (localStorage.getItem('auth_token')) return true; // ← أضف هذا السطر
   const userLinks = document.querySelectorAll('.user-link:not(.d-none)');
   return userLinks.length > 0;
 };
@@ -144,17 +163,15 @@ let _loadingPage = null;
 
 
 
-// ═══════════════════════════════════════════════════════════════════════════════
+
 // ─── Bookmarks Session Cache ───────────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════════════
+
 let _bookmarksCache    = null;
 let _bookmarksFetching = false;
 
 const getBookmarks = async () => {
-  if (_bookmarksCache !== null) {
-    console.log('⚡ [BOOKMARKS CACHE] من الكاش بدون API');
-    return _bookmarksCache;
-  }
+  if (!isUserLoggedIn()) return []; // ← تحقق أولاً
+  if (_bookmarksCache !== null) return _bookmarksCache;
   if (_bookmarksFetching) {
     await new Promise(r => setTimeout(r, 300));
     return _bookmarksCache || [];
@@ -163,11 +180,16 @@ const getBookmarks = async () => {
   try {
     const res = await axios.get('/api/v1/bookmarks');
     _bookmarksCache = res.data.data.bookmarks;
-    console.log(`✅ [BOOKMARKS] تم تحميل ${_bookmarksCache.length} علامة وحفظها في الكاش`);
+    console.log(`✅ [BOOKMARKS] تم تحميل ${_bookmarksCache.length} علامة`);
     return _bookmarksCache;
   } catch (err) {
+    if (err.response?.status === 401) {
+      _bookmarksCache = [];
+      return []; // جلسة منتهية - لا تقرأ من كاش قديم
+    }
+    // أي خطأ تاني (Network Error وغيره) → اقرأ من الكاش المحلي
     console.warn('⚠️ [BOOKMARKS] فشل تحميل العلامات:', err.message);
-    return [];
+    return await localforage.getItem('offline_bookmarks') || [];
   } finally {
     _bookmarksFetching = false;
   }
@@ -194,9 +216,9 @@ function updateNavButtons() {
 
 
 
-// ═══════════════════════════════════════════════════════════════════════════════
+
 // ─── loadQuranPage ─────────────────────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════════════
+
 export async function loadQuranPage(pageNumber, targetSurah = null, targetAyah = null) {
   const pageNum = parseInt(pageNumber);
 
@@ -253,19 +275,19 @@ export async function loadQuranPage(pageNumber, targetSurah = null, targetAyah =
     let userBookmarks = [];
     const loggedIn = isUserLoggedIn();
     if (loggedIn) {
-      userBookmarks = await localforage.getItem('offline_bookmarks') || [];
-      console.log(`⚡ [BOOKMARKS] تم تحميل ${userBookmarks.length} علامة من الكاش المحلي`);
+  userBookmarks = await localforage.getItem('offline_bookmarks') || [];
 
-      if (navigator.onLine) {
-        axios.get('/api/v1/bookmarks').then(async (res) => {
-          const freshBookmarks = res.data.data.bookmarks;
-          await localforage.setItem('offline_bookmarks', freshBookmarks);
-          console.log(`🔄 [BOOKMARKS] تم تحديث الكاش في الخلفية (${freshBookmarks.length} علامة)`);
-        }).catch((err) => {
-          console.warn('⚠️ [BOOKMARKS] فشل تحديث الكاش في الخلفية:', err.message);
-        });
-      }
-    }
+  // ✅ تحقق من وجود token قبل الـ background call
+  if (navigator.onLine && localStorage.getItem('auth_token')) {
+    axios.get('/api/v1/bookmarks').then(async (res) => {
+      const freshBookmarks = res.data.data.bookmarks;
+      await localforage.setItem('offline_bookmarks', freshBookmarks);
+      console.log(`🔄 [BOOKMARKS] تم تحديث الكاش (${freshBookmarks.length} علامة)`);
+    }).catch((err) => {
+      console.warn('⚠️ [BOOKMARKS] فشل تحديث الكاش:', err.message);
+    });
+  }
+}
 
     const container = document.getElementById('ayahs-container');
     if (!container) return;
@@ -446,10 +468,14 @@ export async function loadSurahs() {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════════════════
+
 // ─── toggleBookmark ────────────────────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════════════
+
 export async function toggleBookmark(surah, ayah, iconElement) {
+    if (!isUserLoggedIn()) {
+    requireLogin('حفظ العلامات المرجعية في المصحف الشريف');
+    return;
+  }
   const isCurrentlyBookmarked = iconElement.classList.contains('fas');
 
   if (!navigator.onLine) {
@@ -598,9 +624,9 @@ export async function toggleBookmark(surah, ayah, iconElement) {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════════════════
+
 // ─── updateKhatmahProgress ─────────────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════════════
+
 export async function updateKhatmahProgress(surah, ayah) {
   if (!isUserLoggedIn()) {
     requireLogin('تتبع الختمة وحفظ التقدم');
@@ -901,6 +927,11 @@ export const scheduleDailyWird = async (khatmahName) => {
 export async function manageKhatmah() {
   const activeDiv       = document.getElementById('active-khatmah');
   const createDiv       = document.getElementById('create-khatmah');
+    if (!isUserLoggedIn()) {
+    if (activeDiv) activeDiv.classList.add('d-none');
+    if (createDiv) createDiv.classList.remove('d-none');
+    return;
+  }
   const kNameEl         = document.getElementById('khatmah-name');
   const kTargetEl       = document.getElementById('daily-target');
   const statusText      = document.getElementById('khatmah-status-text');
@@ -978,7 +1009,13 @@ export async function createKhatmah(name, durationDays) {
   try {
     const res = await axios.post('/api/v1/khatmah', { name, durationDays });
     if (res.data.status === 'success') await manageKhatmah();
-  } catch (err) { showAlert('error', err.response.data.message); }
+  } catch (err) {
+    if (err.response?.status === 401) {
+      requireLogin('إنشاء ختمة');
+    } else {
+      showAlert('error', err.response?.data?.message || 'حدث خطأ، حاول مرة أخرى');
+    }
+  }
 }
 
 export async function deleteKhatmah() {
@@ -993,7 +1030,13 @@ export async function deleteKhatmah() {
       const statusText = document.getElementById('khatmah-status-text');
       if (statusText) statusText.innerText = '';
     }
-  } catch (err) { showAlert('error', 'فشل إلغاء الختمة'); }
+  } catch (err) {
+    if (err.response?.status === 401) {
+      requireLogin('حذف الختمة');
+    } else {
+      showAlert('error', err.response?.data?.message || 'فشل إلغاء الختمة');
+    }
+  }
 }
 
 let currentAudio = null;
@@ -1112,10 +1155,10 @@ function resetRecitationUI() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+
 // ─── loadReciters ─────────────────────────────────────────────────────────────
 // ✅ UPDATED: أوفلاين-فيرست مع badge وتجربة أفضل + إضافة الشيخ عبد الرحمن الزواوي
-// ═══════════════════════════════════════════════════════════════════════════════
+
 export async function loadReciters() {
   try {
     // ─── أوفلاين: نشوف لو في بيانات قراء محفوظة ──────────────────────────────
@@ -1575,9 +1618,9 @@ export const initSearch = () => {
 };
 
 
-// ═══════════════════════════════════════════════════════════════════════════════
+
 // ─── ✅ بوصلة القبلة - Qibla Compass ─────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════════════
+
 
 /**
  * حساب اتجاه القبلة (Qibla bearing) من موقع المستخدم
@@ -1725,9 +1768,9 @@ window.initQibla = async () => {
 };
 
 
-// ═══════════════════════════════════════════════════════════════════════════════
+
 // ─── ✅ الأذكار - Azkar Data & Loader ─────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════════════
+
 
 const AZKAR_DATA = {
  morning: {
@@ -2002,7 +2045,7 @@ post_prayer: {
 };
 
 /**
- * تحميل وعرض قائمة أذكار
+ * تحميل وعرض قائمة أذكار بالتصميم الجديد
  * @param {string} category - morning | evening | post_prayer | sleep
  */
 window.loadAzkarList = async (category) => {
@@ -2013,111 +2056,249 @@ window.loadAzkarList = async (category) => {
   const containerEl = document.getElementById('azkar-detail-container');
   if (!titleEl || !containerEl) return;
 
+  // 🔴 التعديل السحري: إزالة الخلفية البيضاء للعنوان برمجياً ليتوافق مع الـ Dark Mode 🔴
+  const headerDiv = titleEl.closest('.sticky-top');
+  if (headerDiv) {
+    headerDiv.classList.remove('bg-white');
+    headerDiv.style.backgroundColor = 'var(--bg-color)';
+    headerDiv.style.transition = 'background-color 0.3s ease';
+  }
+
+  // تحديث العنوان
   titleEl.innerHTML = `<i class="${data.icon} me-2" style="color:${data.color}"></i>${data.title}`;
 
-  // تحميل حالة الإنجاز من localforage
+  // تحميل حالة الإنجاز (تدعم الأرقام أو 'done' أو true للبيانات القديمة)
   const savedProgress = await localforage.getItem(`azkar_progress_${category}`) || {};
+  const totalItems = data.items.length;
+  
+  // دالة لحساب المكتمل
+  const getDoneCount = () => Object.values(savedProgress).filter(v => v === 'done' || v === true).length;
 
-  let html = '';
+  // 1. بناء الهيكل الأساسي وشريط التقدم
+  let html = `
+    <div class="progress-wrap">
+      <div class="progress-row">
+        <span class="progress-label" style="color: var(--text-muted)">التقدم</span>
+        <span class="progress-count" id="prog-text">0 / ${totalItems}</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="prog-fill" style="width:0%">
+          <div class="progress-thumb"></div>
+        </div>
+      </div>
+    </div>
+    <div class="cards-list" id="cards-list">
+  `;
+
+  // 2. بناء كروت الأذكار (تمت إضافة inline styles لضمان قراءة ألوان الـ Dark Mode)
   data.items.forEach((item, idx) => {
-    const isDone    = savedProgress[idx] === true;
-    const cardClass = isDone ? 'border-success bg-success-subtle opacity-75' : 'border-light shadow-sm';
-    const doneStyle = isDone ? 'text-decoration: line-through; color: #888;' : 'color: #333;';
+    const s = savedProgress[idx];
+    const isDone = s === 'done' || s === true;
+    const cur = typeof s === 'number' ? s : (isDone ? item.count : 0);
+    const MAX_DOTS = 15;
+
+    let dotsHtml = '';
+    if (item.count > 1 && item.count <= MAX_DOTS) {
+      dotsHtml = Array.from({length: item.count}, (_, i) =>
+        `<div class="dot ${i < cur ? 'lit' : ''} azkar-dot" data-idx="${idx}" data-target="${i+1}"></div>`
+      ).join('');
+    } else if (item.count > MAX_DOTS) {
+      dotsHtml = `<span class="count-frac" id="frac-${idx}" style="color: var(--text-muted);">${cur}/${item.count}</span>`;
+    }
+
+    const btnClass = item.count === 1 ? 'tap-btn once' : 'tap-btn';
+    const btnLabel = item.count === 1
+      ? 'تم الذكر &nbsp;<i class="fas fa-check"></i>'
+      : `<i class="fas fa-plus" style="font-size:0.75rem;margin-left:4px;"></i> تسبيح`;
 
     html += `
-      <div class="card mb-4 ${cardClass}" id="azkar-card-${idx}" style="border-radius:20px; transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); border-width: 2px;">
-        <div class="card-body p-4">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-             ${item.label ? `<span class="badge bg-light text-success border border-success-subtle px-3 py-2" style="border-radius:15px; font-size:0.85rem; font-weight: 600;">${item.label}</span>` : '<span></span>'}
-             <span class="badge ${isDone ? 'bg-success' : 'bg-secondary bg-opacity-25 text-dark'}" style="font-family:sans-serif; font-size:0.9rem; border-radius:15px; padding: 6px 14px;">
-              ${isDone ? '<i class="fas fa-check me-1"></i> تم' : `${item.count} مرات`}
-            </span>
-          </div>
-          
-          <p class="mb-4" style="font-family:'Amiri', serif; font-size:1.4rem; line-height:2.4; direction:rtl; text-align:justify; ${doneStyle}">
-            ${item.text}
-          </p>
-          
-          <div class="text-end">
-            <button
-              class="btn ${isDone ? 'btn-success' : 'btn-outline-success'} azkar-done-btn px-4 py-2"
-              style="border-radius:25px; font-weight: 600; transition: all 0.3s ease;"
-              data-category="${category}"
-              data-index="${idx}"
-              ${isDone ? 'disabled' : ''}>
-              ${isDone ? '<i class="fas fa-check-double me-2"></i> أُنجز' : 'تم الذكر <i class="fas fa-check ms-2"></i>'}
-            </button>
-          </div>
+      <div class="zikr-card ${isDone ? 'done' : ''} ${cur > 0 && !isDone ? 'in-progress' : ''}" id="card-${idx}" style="animation-delay: ${Math.min(idx * 0.04, 0.5)}s; background-color: var(--card-bg); border-color: var(--border-color);">
+        <div class="card-top" style="border-bottom: 1px solid var(--border-color);">
+          <span class="card-chip ${item.label ? '' : 'hidden'}">${item.label || '-'}</span>
+          <span class="card-num" id="num-${idx}" style="color: ${isDone ? 'var(--green)' : 'var(--text-muted)'};">${isDone ? '<i class="fas fa-check" style="color:var(--green)"></i>' : (item.count === 1 ? '١ مرة' : `${cur}/${item.count}`)}</span>
         </div>
-      </div>`;
+        <p class="zikr-text" style="color: ${isDone ? '#888' : 'var(--text-color)'};">${item.text}</p>
+        <div class="card-bottom">
+          <div class="dots-wrap" id="dots-${idx}">${dotsHtml}</div>
+          ${item.count > 1 && item.count <= MAX_DOTS ? `<span class="count-frac" id="frac-${idx}" style="color: var(--text-muted);">${cur}/${item.count}</span>` : ''}
+          <button class="${btnClass} azkar-tap-btn" id="btn-${idx}" data-idx="${idx}">${btnLabel}</button>
+        </div>
+        <div class="done-row">
+          <i class="fas fa-check-circle" style="font-size:1rem;"></i>
+          <span>أُنجز</span>
+        </div>
+      </div>
+    `;
   });
 
-  // زر إعادة التعيين
-  const allDone = Object.keys(savedProgress).length === data.items.length;
+  html += `</div>`; // إغلاق قائمة الكروت
+
+  // 3. رسالة الإنجاز وزر إعادة التعيين
+  const isAllDone = getDoneCount() === totalItems;
   html += `
-    <div class="text-center mt-5 mb-4">
-      <button class="btn btn-outline-danger rounded-pill px-5 py-2 shadow-sm" id="reset-azkar-btn" data-category="${category}" style="font-weight: bold;">
-        <i class="fas fa-redo-alt me-2"></i> إعادة تعيين الأذكار
+    <div class="completion ${isAllDone ? 'show' : ''}" id="completion">
+      <div class="completion-inner">
+        <span class="completion-stars">✦ ✦ ✦</span>
+        <div class="completion-title">أتممت جميع الأذكار</div>
+        <div class="completion-sub" style="color: var(--text-muted);">تقبّل الله منك وبارك في يومك</div>
+      </div>
+    </div>
+    <div class="reset-wrap mb-5">
+      <button class="reset-btn" id="reset-azkar-btn" data-category="${category}" style="color: var(--text-color);">
+        <i class="fas fa-redo-alt" style="margin-left:6px;font-size:0.8rem;"></i>إعادة تعيين الأذكار
       </button>
-      ${allDone ? '<div class="mt-4 p-3 bg-success-subtle text-success rounded-4 fw-bold shadow-sm"><i class="fas fa-crown fa-2x mb-2 d-block text-warning"></i> ما شاء الله! أكملت جميع الأذكار. تقبل الله منك.</div>' : ''}
-    </div>`;
+    </div>
+  `;
 
   containerEl.innerHTML = html;
 
-  // Event: زر "تم"
-  containerEl.querySelectorAll('.azkar-done-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const cat = btn.dataset.category;
-      const idx = parseInt(btn.dataset.index);
-      const prog = await localforage.getItem(`azkar_progress_${cat}`) || {};
-      prog[idx] = true;
-      await localforage.setItem(`azkar_progress_${cat}`, prog);
+  // --- دوال مساعدة للتفاعل والتحديث ---
 
-      // تحديث الكارت بشكل حيوي بتأثير حركي
-      const card = document.getElementById(`azkar-card-${idx}`);
-      if (card) {
-        card.classList.add('border-success', 'bg-success-subtle', 'opacity-75');
-        card.classList.remove('border-light', 'shadow-sm');
-        
-        const p = card.querySelector('p');
-        if (p) {
-            p.style.textDecoration = 'line-through';
-            p.style.color = '#888';
-        }
-        
-        const countBadge = card.querySelector('.d-flex .badge:last-child');
-        if(countBadge){
-             countBadge.className = 'badge bg-success';
-             countBadge.innerHTML = '<i class="fas fa-check me-1"></i> تم';
-        }
+  const updateProgressUI = () => {
+    const d = getDoneCount();
+    const pct = totalItems ? (d / totalItems) * 100 : 0;
+    document.getElementById('prog-fill').style.width = pct + '%';
+    document.getElementById('prog-text').textContent = `${d} / ${totalItems}`;
+    document.getElementById('completion').classList.toggle('show', d === totalItems && totalItems > 0);
+  };
+  updateProgressUI();
 
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-check-double me-2"></i> أُنجز';
-        btn.className = 'btn btn-success azkar-done-btn px-4 py-2';
-        
-        // تأثير اهتزاز خفيف للزر عند الإنجاز
-        btn.style.transform = 'scale(0.95)';
-        setTimeout(() => btn.style.transform = 'scale(1)', 150);
-      }
+  const shootConfetti = () => {
+    const colors = ['#2ea85a','#c9a84c','#4ade80','#fcd34d','#a3e635'];
+    for (let i = 0; i < 22; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      const size = 5 + Math.random() * 7;
+      p.style.cssText = `
+        width:${size}px;height:${size}px;
+        left:${10+Math.random()*80}vw;
+        top:${10+Math.random()*30}vh;
+        background:${colors[i%colors.length]};
+        animation: fall ${0.8+Math.random()*0.7}s ${Math.random()*0.3}s linear forwards;
+        transform: rotate(${Math.random()*360}deg);
+      `;
+      document.body.appendChild(p);
+      setTimeout(() => p.remove(), 1500);
+    }
+  };
 
-      // هل أتممنا الكل؟
-      const totalItems = AZKAR_DATA[cat].items.length;
-      if (Object.keys(prog).length === totalItems) {
+  const markDoneUI = (idx) => {
+    const card = document.getElementById(`card-${idx}`);
+    if (!card) return;
+    card.classList.remove('in-progress');
+    void card.offsetWidth; // Reflow
+    card.classList.add('done');
+    
+    // تغيير لون الخط عند الإنجاز
+    const p = card.querySelector('p.zikr-text');
+    if (p) p.style.color = '#888';
+
+    const num = document.getElementById(`num-${idx}`);
+    if (num) num.innerHTML = '<i class="fas fa-check" style="color:var(--green)"></i>';
+  };
+
+  const updateCardUI = (idx, cur, maxCount) => {
+    const card = document.getElementById(`card-${idx}`);
+    if (!card) return;
+    card.classList.add('in-progress');
+    card.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('lit', i < cur));
+    
+    const frac = document.getElementById(`frac-${idx}`);
+    if (frac) frac.textContent = `${cur}/${maxCount}`;
+    
+    const num = document.getElementById(`num-${idx}`);
+    if (num) num.textContent = `${cur}/${maxCount}`;
+    
+    const btn = document.getElementById(`btn-${idx}`);
+    if (btn) {
+      btn.style.transform = 'scale(0.85)';
+      setTimeout(() => btn.style.transform = '', 130);
+    }
+  };
+
+  const handleFinishAzkar = () => {
+    if (getDoneCount() === totalItems) {
+      setTimeout(() => {
         Swal.fire({
           icon: 'success',
           title: '🌟 تقبل الله!',
-          text: `لقد أتممت ${AZKAR_DATA[cat].title} بالكامل.`,
+          text: `لقد أتممت ${data.title} بالكامل.`,
           confirmButtonColor: '#198754',
           timer: 3000,
           timerProgressBar: true
         });
-        window.loadAzkarList(cat); // إعادة تحميل القائمة لإظهار رسالة التهنئة السفلية
+      }, 500);
+    }
+  };
+
+  // --- الأحداث (Events) ---
+
+  // Event: زر التسبيح/التم
+  containerEl.querySelectorAll('.azkar-tap-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const idx = parseInt(btn.dataset.idx);
+      if (savedProgress[idx] === 'done' || savedProgress[idx] === true) return;
+      
+      const item = data.items[idx];
+      const cur = typeof savedProgress[idx] === 'number' ? savedProgress[idx] : 0;
+      const next = cur + 1;
+
+      // تأثير الـ Ripple
+      if (e) {
+        const r = document.createElement('div');
+        r.className = 'ripple-effect';
+        const rect = btn.getBoundingClientRect();
+        const offsetX = e.clientX ? e.clientX - rect.left : rect.width / 2;
+        const offsetY = e.clientY ? e.clientY - rect.top : rect.height / 2;
+        r.style.cssText = `width:30px;height:30px;left:${offsetX-15}px;top:${offsetY-15}px;`;
+        btn.style.position = 'relative';
+        btn.style.overflow = 'hidden';
+        btn.appendChild(r);
+        setTimeout(() => r.remove(), 500);
       }
+
+      if (next >= item.count) {
+        savedProgress[idx] = 'done';
+        markDoneUI(idx);
+        shootConfetti();
+        if (navigator.vibrate) navigator.vibrate([25, 15, 50]);
+        handleFinishAzkar();
+      } else {
+        savedProgress[idx] = next;
+        updateCardUI(idx, next, item.count);
+        if (navigator.vibrate) navigator.vibrate(18);
+      }
+
+      await localforage.setItem(`azkar_progress_${category}`, savedProgress);
+      updateProgressUI();
+    });
+  });
+
+  // Event: الضغط على النقاط (Dots)
+  containerEl.querySelectorAll('.azkar-dot').forEach(dot => {
+    dot.addEventListener('click', async () => {
+      const idx = parseInt(dot.dataset.idx);
+      const target = parseInt(dot.dataset.target);
+      if (savedProgress[idx] === 'done' || savedProgress[idx] === true) return;
+      
+      const item = data.items[idx];
+      if (target >= item.count) {
+        savedProgress[idx] = 'done';
+        markDoneUI(idx);
+        shootConfetti();
+        handleFinishAzkar();
+      } else {
+        savedProgress[idx] = target;
+        updateCardUI(idx, target, item.count);
+      }
+      
+      await localforage.setItem(`azkar_progress_${category}`, savedProgress);
+      updateProgressUI();
     });
   });
 
   // Event: زر إعادة التعيين
-  document.getElementById('reset-azkar-btn')?.addEventListener('click', async () => {
+  document.getElementById('reset-azkar-btn')?.addEventListener('click', () => {
     Swal.fire({
       title: 'هل أنت متأكد؟',
       text: 'سيتم مسح تقدمك الحالي في هذه الأذكار.',
@@ -2129,18 +2310,26 @@ window.loadAzkarList = async (category) => {
       cancelButtonText: 'إلغاء'
     }).then(async (result) => {
       if (result.isConfirmed) {
-        const cat = document.getElementById('reset-azkar-btn').dataset.category;
-        await localforage.removeItem(`azkar_progress_${cat}`);
-        window.loadAzkarList(cat); // إعادة التحميل
+        await localforage.removeItem(`azkar_progress_${category}`);
+        window.loadAzkarList(category); // إعادة التحميل لتهيئة الواجهة
       }
     });
   });
+
+  // Intersection Observer لظهور الكروت بتأثير الانزلاق
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  containerEl.querySelectorAll('.zikr-card').forEach(c => io.observe(c));
 };
 
-
-// ═══════════════════════════════════════════════════════════════════════════════
 // ─── ✅ المسبحة الإلكترونية - Tasbeeh with localforage ────────────────────────
-// ═══════════════════════════════════════════════════════════════════════════════
+
 
 const TASBEEH_STORAGE_KEY = 'tasbeeh_state';
 
@@ -2220,9 +2409,9 @@ window.changeTasbeehType = async (type) => {
 };
 
 
-// ═══════════════════════════════════════════════════════════════════════════════
+
 // ─── ✅ تنبيه سورة الكهف - Friday Kahf Notification ──────────────────────────
-// ═══════════════════════════════════════════════════════════════════════════════
+
 
 /**
  * جدولة تنبيه سورة الكهف كل يوم جمعة الساعة 8 صباحاً

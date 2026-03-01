@@ -10,7 +10,7 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 
 import axios from 'axios';
 import '@babel/polyfill';
-import { login, logout, signup, verifyOTP, updateSettings, forgotPassword, resetPassword, deleteUser, showAlert, changePassword } from './auth';
+import { login, logout, signup, verifyOTP, updateSettings, forgotPassword, resetPassword, deleteUser, showAlert, changePassword,deleteUserForuser } from './auth';
 import { 
   loadSurahs, startSurahReading, manageKhatmah, createKhatmah, updateKhatmahProgress,
   checkRecitation, loadReciters, loadPrayers, loadBookmarks, loadQuranPage,
@@ -100,7 +100,18 @@ const processOfflineQueue = async () => {
           await axios.patch('/api/v1/khatmah', action.payload);
           successCount++;
         }
-      } catch (err) {
+     } catch (err) {
+        if (err.response?.status === 401) {
+          // جلسة منتهية - مسح الـ queue كلها ومنع data loss
+          console.warn('⚠️ [OFFLINE QUEUE] جلسة منتهية - مسح الـ queue');
+          await localforage.setItem('offline_actions_queue', []);
+          Swal.fire({
+            toast: true, position: 'top-end', icon: 'warning',
+            title: 'انتهت جلستك - يرجى تسجيل الدخول مجدداً',
+            showConfirmButton: false, timer: 4000
+          });
+          break; // وقف معالجة باقي الـ queue
+        }
         if (!err.response || err.response.status >= 500) {
           failed.push(action);
         }
@@ -155,7 +166,7 @@ let searchStartIndex = 0;
 let accumulatedBuffer = '';
 
 
-
+window.deleteUserForuser = deleteUserForuser;
 
 
 
@@ -346,21 +357,23 @@ window.downloadEntireQuranOffline = async () => {
     //console.log('🔄 جاري تحميل المصحف في الخلفية للعمل بدون إنترنت...');
     let successCount = 0;
     for (let page = 1; page <= 604; page++) {
-        const pageExists = await window.cacheGet(page);
-        if (!pageExists) {
-            try {
-                const response = await fetch(`https://api.alquran.cloud/v1/page/${page}/quran-uthmani`);
-                if (!response.ok) throw new Error('Network Error');
-                const data = await response.json();
-                await window.cacheSet(page, data.data);
-                successCount++;
-                await new Promise(resolve => setTimeout(resolve, 200));
-            } catch (err) {
-                console.warn(`⚠️ توقف التحميل عند صفحة ${page}`);
-                break; 
-            }
-        }
+    if (!navigator.onLine) break; // ✅ تحقق في كل iteration
+
+    const pageExists = await window.cacheGet(page);
+    if (!pageExists) {
+      try {
+        const response = await fetch(`https://api.alquran.cloud/v1/page/${page}/quran-uthmani`);
+        if (!response.ok) throw new Error('Network Error');
+        const data = await response.json();
+        await window.cacheSet(page, data.data);
+        successCount++;
+        await new Promise(resolve => setTimeout(resolve, 200));
+      } catch (err) {
+        console.warn(`⚠️ توقف التحميل عند صفحة ${page}`);
+        break;
+      }
     }
+  }
     if (successCount > 0) {
         let allSaved = true;
         for(let i=1; i<=604; i++){
@@ -437,6 +450,7 @@ window.requireLogin = requireLogin;
 // ─── 6. isUserLoggedIn ────────────────────────────────────────────────────────
 const isUserLoggedIn = () => {
   if (axios.defaults.headers.common['Authorization']) return true;
+  if (localStorage.getItem('auth_token')) return true; // ← أضف هذا السطر
   const userLinks = document.querySelectorAll('.user-link:not(.d-none)');
   return userLinks.length > 0;
 };
@@ -689,11 +703,15 @@ window.showSection = (sectionName) => {
   if (window.location.pathname !== newPath) {
     window.history.pushState({ section: sectionName }, '', newPath);
   }
-  if (sectionName === 'home') {
+ if (sectionName === 'home') {
+  const lastCheck = window._lastAuthCheck || 0;
+  if (Date.now() - lastCheck > 60000) {
+    window._lastAuthCheck = Date.now();
     window.checkAuth();
-    loadPrayers();
-    if (document.getElementById('active-khatmah')) manageKhatmah().catch(() => {});
   }
+  loadPrayers();
+  if (document.getElementById('active-khatmah')) manageKhatmah().catch(() => {});
+}
   if (sectionName === 'surah-index') window.loadSurahIndex();
   if (sectionName === 'reciters') loadReciters();
   if (sectionName === 'bookmarks') loadBookmarks();

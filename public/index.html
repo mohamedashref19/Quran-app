@@ -1068,6 +1068,9 @@ nav#main-navbar {
                     <button id="logoutBtnProfile" class="btn btn-outline-danger w-100 py-2">
                         <i class="fas fa-sign-out-alt me-2"></i> تسجيل خروج
                     </button>
+                    <button class="btn btn-outline-danger" onclick="window.deleteUserForuser()">
+  <i class="fas fa-user-times me-2"></i> حذف الحساب
+</button>
                 </div>
             </div>
         </div>
@@ -1135,7 +1138,7 @@ nav#main-navbar {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script> -->
     <script  type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";

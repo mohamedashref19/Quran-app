@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
+import localforage from 'localforage';
 
 export const showAlert = (type, msg) => {
   const markup = `<div class="alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3 shadow" role="alert" style="z-index: 9999;">${msg}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
@@ -78,10 +79,22 @@ export const verifyOTP = async (email, otp) => {
   }
 };
 
-export const logout = async () => {
+export const logout = async () => { 
   try {
     const res = await axios({ method: 'GET', url: '/api/v1/users/logout' });
     if (res.data.status === 'success') {
+      
+      // 🟢 التعديل هنا: مسح بيانات الكاش المرتبطة بالحساب فقط 🟢
+      try {
+        await localforage.removeItem('offline_bookmarks');
+        await localforage.removeItem('latest_khatmah');
+        await localforage.removeItem('khatmah_meta');
+        await localforage.removeItem('offline_actions_queue');
+        // console.log('✅ تم مسح بيانات الحساب من الجهاز بنجاح (السبحة والأذكار ما زالت محفوظة)');
+      } catch (cacheErr) {
+        console.warn('⚠️ خطأ في مسح الكاش أثناء الخروج:', cacheErr);
+      }
+
       if (Capacitor.isNativePlatform()) {
         await Preferences.remove({ key: 'auth_token' });
       } else {
@@ -209,5 +222,74 @@ export const deleteUser = async (id) => {
     }
   } catch (err) {
     showAlert('error', 'فشل الحذف! تأكد أنك تمتلك صلاحية الأدمن.');
+  }
+};
+
+
+
+
+export const deleteUserForuser = async () => {
+  const result = await Swal.fire({
+    title: 'هل أنت متأكد؟',
+    text: "سيتم تعطيل حسابك ومسح بياناتك الشخصية المرتبطة به من هذا الجهاز.",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#6c757d',
+    confirmButtonText: 'نعم، احذف حسابي',
+    cancelButtonText: 'إلغاء'
+  });
+
+  if (result.isConfirmed) {
+    try {
+      Swal.fire({
+        title: 'جاري حذف الحساب...',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+
+      const res = await axios.delete('/api/v1/users/deleteMe');
+
+      if (res.status === 204 || (res.data && res.data.status === 'success')) {
+        
+        try {
+          await localforage.removeItem('offline_bookmarks');
+          await localforage.removeItem('latest_khatmah');
+          await localforage.removeItem('khatmah_meta');
+          await localforage.removeItem('offline_actions_queue');
+        } catch (cacheErr) {
+          console.warn('⚠️ خطأ في مسح الكاش أثناء حذف الحساب:', cacheErr);
+        }
+
+        if (Capacitor.isNativePlatform()) {
+          await Preferences.remove({ key: 'auth_token' });
+        } else {
+          localStorage.removeItem('auth_token');
+        }
+        delete axios.defaults.headers.common['Authorization'];
+
+        Swal.fire(
+          'تم الحذف!',
+          'تم تعطيل حسابك بنجاح، نتمنى رؤيتك مجدداً.',
+          'success'
+        ).then(() => {
+          if (Capacitor.isNativePlatform()) {
+            window.checkAuth(); // تحديث حالة الواجهة
+            window.showSection('login');
+          } else {
+            location.assign('/login');
+          }
+        });
+      }
+    } catch (err) {
+      Swal.fire(
+        'خطأ!',
+        err.response?.data?.message || 'حدث خطأ أثناء محاولة حذف الحساب، حاول مرة أخرى.',
+        'error'
+      );
+    }
   }
 };
