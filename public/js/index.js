@@ -19,6 +19,14 @@ import {
 
 import { surahNames, surahPageMap, juzData, getSurahNameByPage } from './constants';
 
+// ─── إخفاء رسائل الكونسول في وضع الـ Production ───
+if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    console.log = function () {};
+    console.info = function () {};
+    console.warn = function () {}; 
+    console.error = function () {};
+}
+
 // ─── 1. Config ────────────────────────────────────────────────────────────────
 // axios.defaults.baseURL = 'https://aqra-app.serveftp.com';
 axios.defaults.baseURL = 'https://aqraapp.com';
@@ -518,7 +526,13 @@ const resetUIButtons = () => {
 // ─── 8. checkAuth ─────────────────────────────────────────────────────────────
 window.checkAuth = async () => {
   // ✅ FIX: استرجاع التوكن دايماً قبل الطلب
+
   const savedToken = localStorage.getItem('auth_token');
+  if (!savedToken) {
+    document.querySelectorAll('.auth-link').forEach(el => el.classList.remove('d-none'));
+    document.querySelectorAll('.user-link, .admin-link').forEach(el => el.classList.add('d-none'));
+    return false;
+  }
   if (savedToken && !axios.defaults.headers.common['Authorization']) {
     axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
   }
@@ -691,6 +705,15 @@ window.showSection = (sectionName) => {
   if (!target) return;
   target.classList.remove('d-none');
   window.scrollTo(0, 0);
+  if (sectionName === 'quran') {
+    if (typeof _nightModeActive !== 'undefined' && _nightModeActive) {
+      document.body.setAttribute('data-reading', 'night');
+      document.documentElement.style.setProperty('background-color', '#0d1b0f', 'important');
+    }
+  } else {
+    document.body.removeAttribute('data-reading');
+    document.documentElement.style.removeProperty('background-color');
+  }
 
   const newPath = sectionName === 'home' ? '/' : `/${sectionName}`;
   const titles = {

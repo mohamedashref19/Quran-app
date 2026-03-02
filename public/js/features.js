@@ -315,8 +315,6 @@ let fullTextHTML = '<div class="quran-page-content" style="text-align: justify; 
     }
 
     if (khatmah) {
-      const scrollSurah = targetSurah || khatmah.currentSurah;
-      const scrollAyah  = targetAyah  || khatmah.currentAyah;
       setTimeout(() => {
         const khatmahIcon = document.querySelector(
           `.khatmah-icon-btn[data-surah="${khatmah.currentSurah}"][data-ayah="${khatmah.currentAyah}"]`
@@ -332,6 +330,15 @@ let fullTextHTML = '<div class="quran-page-content" style="text-align: justify; 
             khatmahIcon.style.filter = 'drop-shadow(0 0 3px #198754)';
           }, 4000);
         }
+      }, 500);
+    }
+
+    // 2. الانتقال للآية وتظليلها (سواء من البحث، العلامات، أو الختمة)
+    const scrollSurah = targetSurah || (khatmah ? khatmah.currentSurah : null);
+    const scrollAyah  = targetAyah  || (khatmah ? khatmah.currentAyah : null);
+
+    if (scrollSurah && scrollAyah) {
+      setTimeout(() => {
         const scrollTarget = document.getElementById(`ayah-${scrollSurah}-${scrollAyah}`);
         if (scrollTarget) {
           scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -339,7 +346,7 @@ let fullTextHTML = '<div class="quran-page-content" style="text-align: justify; 
           scrollTarget.style.backgroundColor = '#d1e7dd';
           setTimeout(() => { scrollTarget.style.backgroundColor = ''; }, 3000);
         }
-      }, 500);
+      }, 600);
     }
 
     ayahs.forEach(ayah => {

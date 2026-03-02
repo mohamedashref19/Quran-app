@@ -175,50 +175,78 @@
         #autoscroll-fab:active { transform: scale(0.92); }
 
         /* ══════════════════════════════════════════════
-           ─── وضع القراءة الليلية 🌙 ─────────────────
-        ══════════════════════════════════════════════ */
-        [data-reading="night"] body,
-        [data-reading="night"] {
-            background-color: #0d1b0f !important;
-        }
-        [data-reading="night"] #quran-book {
-            background-color: #111d13 !important;
-            border-color: #1e3a22 !important;
-            box-shadow: 0 0 30px rgba(0,0,0,0.8) !important;
-        }
-        [data-reading="night"] #ayahs-container,
-        [data-reading="night"] .quran-page-content {
-            color: #c8e6c0 !important;
-            text-shadow: 0 0 8px rgba(100,200,100,0.12);
-        }
-        [data-reading="night"] .ayah-end-symbol {
-            color: #7bc67e !important;
-            border-color: #7bc67e !important;
-        }
-        [data-reading="night"] #surah-title-display {
-            color: #81c784 !important;
-        }
-        [data-reading="night"] .bottom-nav {
-            background: #0d1b0f !important;
-            border-top-color: #1e3a22 !important;
-            box-shadow: 0 -4px 24px rgba(0,0,0,0.6) !important;
-            --nav-bg: #0d1b0f;
-        }
-        [data-reading="night"] .bottom-nav-item { color: #4a7a4d !important; }
-        [data-reading="night"] .bottom-nav-item.active {
-            color: #81c784 !important;
-            background: rgba(129,199,132,0.1) !important;
-        }
-        [data-reading="night"] nav#main-navbar {
-            background-color: #0a2e0f !important;
-            border-bottom-color: #0d1b0f !important;
-        }
-        #btn-night-mode.active {
-            background: #1a3a1e !important;
-            color: #81c784 !important;
-            border-color: #2d5a32 !important;
-        }
-        #btn-night-mode.active i { color: #ffd54f !important; }
+   ─── وضع القراءة الليلية 🌙 ─────────────────
+══════════════════════════════════════════════ */
+[data-reading="night"] body,
+[data-reading="night"] {
+    background-color: #0d1b0f !important;
+}
+
+/* 1. إخفاء صورة الورقة الفاتحة وتطبيق لون داكن للمصحف */
+[data-reading="night"] #quran-book {
+    background-color: #111d13 !important;
+    background-image: none !important; /* مهم جداً لإخفاء الصورة */
+    border-color: #1e3a22 !important;
+    box-shadow: 0 0 30px rgba(0,0,0,0.8) !important;
+}
+
+/* 2. إخفاء النقشة الداخلية وتوحيد اللون */
+[data-reading="night"] #ayahs-container {
+    background-color: transparent !important;
+    background-image: none !important; /* مهم جداً */
+    border-color: #1e3a22 !important;
+}
+
+/* 3. تلوين الآيات والنصوص بلون أخضر فاتح مريح للعين */
+[data-reading="night"] .quran-page-content,
+[data-reading="night"] .ayah-text,
+[data-reading="night"] .quran-page-content span:not(.ayah-end-symbol) {
+    color: #a5d6a7 !important;
+    text-shadow: none !important;
+}
+
+/* 4. تظبيط ألوان فواصل السور والبسملة */
+[data-reading="night"] .surah-separator {
+    background: #1a2f1d !important;
+    border-color: #2d5a32 !important;
+}
+
+[data-reading="night"] .surah-separator h3,
+[data-reading="night"] .bismillah {
+    color: #81c784 !important;
+}
+
+[data-reading="night"] .ayah-end-symbol {
+    color: #7bc67e !important;
+    border-color: #7bc67e !important;
+}
+
+[data-reading="night"] #surah-title-display {
+    color: #81c784 !important;
+}
+
+/* 5. تظبيط النافبار والشريط السفلي */
+[data-reading="night"] .bottom-nav {
+    background: #0d1b0f !important;
+    border-top-color: #1e3a22 !important;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.6) !important;
+    --nav-bg: #0d1b0f;
+}
+[data-reading="night"] .bottom-nav-item { color: #4a7a4d !important; }
+[data-reading="night"] .bottom-nav-item.active {
+    color: #81c784 !important;
+    background: rgba(129,199,132,0.1) !important;
+}
+[data-reading="night"] nav#main-navbar {
+    background-color: #0a2e0f !important;
+    border-bottom-color: #0d1b0f !important;
+}
+#btn-night-mode.active {
+    background: #1a3a1e !important;
+    color: #81c784 !important;
+    border-color: #2d5a32 !important;
+}
+#btn-night-mode.active i { color: #ffd54f !important; }
 
         .bottom-nav {
     position: fixed;
@@ -956,11 +984,11 @@ nav#main-navbar {
                 <form id="loginFormPage">
                     <div class="mb-3">
                         <label class="form-label">البريد الإلكتروني</label>
-                        <input type="email" id="login-email" class="form-control" required>
+                       <input type="email" id="login-email" class="form-control" autocomplete="username" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">كلمة المرور</label>
-                        <input type="password" id="login-password" class="form-control" required>
+                        <input type="password" id="login-password" class="form-control" autocomplete="current-password" required>
                     </div>
                     <button type="submit" class="btn btn-success w-100">دخول</button>
                 </form>
@@ -1014,15 +1042,15 @@ nav#main-navbar {
                     </div>
                     <div class="mb-3">
                         <label class="form-label">البريد الإلكتروني</label>
-                        <input type="email" id="signup-email" class="form-control" required>
+                        <input type="email" id="signup-email" class="form-control" autocomplete="username" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">كلمة المرور</label>
-                        <input type="password" id="signup-password" class="form-control" required>
+                        <input type="password" id="signup-password" class="form-control" autocomplete="new-password" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">تأكيد كلمة المرور</label>
-                        <input type="password" id="signup-passwordConfirm" class="form-control" required>
+                        <input type="password" id="signup-passwordConfirm" class="form-control" autocomplete="new-password" required>
                     </div>
                     <button type="submit" class="btn btn-success w-100">تسجيل</button>
                 </form>
@@ -1296,38 +1324,41 @@ nav#main-navbar {
                 </div>
 
                 <div class="col-md-6 mb-4">
-                    <div class="card shadow-sm border-0">
-                        <div class="card-body">
-                            <h5 class="card-title text-warning mb-3">
-                                <i class="fas fa-lock me-2"></i> تغيير كلمة المرور
-                            </h5>
-                            <div class="mb-3">
-                                <label class="form-label">كلمة المرور الحالية</label>
-                                <div class="password-field-wrapper">
-                                    <input type="password" id="current-password" class="form-control" placeholder="أدخل كلمة المرور الحالية">
-                                    <i class="fas fa-eye password-toggle" onclick="togglePasswordVisibility('current-password', this)"></i>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">كلمة المرور الجديدة</label>
-                                <div class="password-field-wrapper">
-                                    <input type="password" id="new-password" class="form-control" placeholder="8 أحرف على الأقل">
-                                    <i class="fas fa-eye password-toggle" onclick="togglePasswordVisibility('new-password', this)"></i>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">تأكيد كلمة المرور الجديدة</label>
-                                <div class="password-field-wrapper">
-                                    <input type="password" id="confirm-new-password" class="form-control" placeholder="أعد كتابة كلمة المرور الجديدة">
-                                    <i class="fas fa-eye password-toggle" onclick="togglePasswordVisibility('confirm-new-password', this)"></i>
-                                </div>
-                            </div>
-                            <button class="btn btn-warning w-100 text-white fw-bold" onclick="handleChangePassword()">
-                                <i class="fas fa-key me-2"></i> تغيير كلمة المرور
-                            </button>
-                        </div>
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <h5 class="card-title text-warning mb-3">
+                <i class="fas fa-lock me-2"></i> تغيير كلمة المرور
+            </h5>
+            <form onsubmit="event.preventDefault(); handleChangePassword();">
+                <input type="text" id="hidden-username" autocomplete="username" class="d-none" value="">
+                <div class="mb-3">
+                    <label class="form-label">كلمة المرور الحالية</label>
+                    <div class="password-field-wrapper">
+                        <input type="password" id="current-password" class="form-control" placeholder="أدخل كلمة المرور الحالية" autocomplete="current-password">
+                        <i class="fas fa-eye password-toggle" onclick="togglePasswordVisibility('current-password', this)"></i>
                     </div>
                 </div>
+                <div class="mb-3">
+                    <label class="form-label">كلمة المرور الجديدة</label>
+                    <div class="password-field-wrapper">
+                        <input type="password" id="new-password" class="form-control" placeholder="8 أحرف على الأقل" autocomplete="new-password">
+                        <i class="fas fa-eye password-toggle" onclick="togglePasswordVisibility('new-password', this)"></i>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">تأكيد كلمة المرور الجديدة</label>
+                    <div class="password-field-wrapper">
+                        <input type="password" id="confirm-new-password" class="form-control" placeholder="أعد كتابة كلمة المرور الجديدة" autocomplete="new-password">
+                        <i class="fas fa-eye password-toggle" onclick="togglePasswordVisibility('confirm-new-password', this)"></i>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-warning w-100 text-white fw-bold">
+                    <i class="fas fa-key me-2"></i> تغيير كلمة المرور
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
 
                <div class="col-12 mt-4 mb-2">
     <div class="d-grid gap-3 mx-auto" style="max-width: 350px;">
