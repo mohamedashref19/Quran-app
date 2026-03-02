@@ -21,9 +21,10 @@
 }
 
 body {
-    background-color: var(--light-bg);
+    background-color: #f8f9fa;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    overflow-x: hidden; /* لمنع التمرير الأفقي غير المرغوب فيه */
+    overflow-x: hidden;
+ padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 /* =========================================
@@ -340,9 +341,10 @@ footer {
 }
 
 /* ضبط المسافات في الموبايل */
+/* footer padding-bottom removed - causes white space below bottom-nav */
 @media (max-width: 768px) {
     footer {
-        padding-bottom: 80px !important; /* مساحة لزر الختمة العائم عشان ميتغطاش */
+        padding-bottom: 0 !important;
     }
 }
 
@@ -724,10 +726,10 @@ footer {
 
 :root {
     /* الألوان الافتراضية (الوضع النهاري) */
-    --bg-color: #f8f9fa;       
+    --bg-color: #ffffff;       
     --card-bg: #ffffff;        
-    --text-color: #2c3e50;     /* نص غامق للخلفية الفاتحة */
-    --heading-color: #1e5f31;  /* الأخضر المميز للعناوين */
+    --text-color: #2c3e50;
+    --heading-color: #1e5f31;
     --quran-text-color: #000;  
     --border-color: #e0e0e0;   
     --shadow-color: rgba(0,0,0,0.05);
@@ -737,10 +739,10 @@ footer {
 
 /* الألوان عند تفعيل الوضع الليلي */
 [data-theme="dark"] {
-    --bg-color: #121212;        /* خلفية سوداء هادئة */
-    --card-bg: #1e1e1e;         /* كروت رمادية غامقة */
-    --text-color: #e0e0e0;      /* نص أبيض مائل للرمادي (مريح للعين) */
-    --heading-color: #2ecc71;   /* أخضر فاتح للعناوين عشان تبان */
+    --bg-color: #121212;
+    --card-bg: #1e1e1e;
+    --text-color: #e0e0e0;
+    --heading-color: #2ecc71;
     --quran-text-color: #ffffff;
     --border-color: #333333;    
     --shadow-color: rgba(0,0,0,0.5);
@@ -760,6 +762,7 @@ body {
     background-color: var(--bg-color) !important;
     color: var(--text-color) !important;
     transition: background-color 0.3s ease, color 0.3s ease;
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 /* العناوين والنصوص المهمة */

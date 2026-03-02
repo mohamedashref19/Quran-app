@@ -20,7 +20,8 @@ import {
 import { surahNames, surahPageMap, juzData, getSurahNameByPage } from './constants';
 
 // ─── 1. Config ────────────────────────────────────────────────────────────────
-axios.defaults.baseURL = 'https://aqra-app.serveftp.com';
+// axios.defaults.baseURL = 'https://aqra-app.serveftp.com';
+axios.defaults.baseURL = 'https://aqraapp.com';
 axios.defaults.withCredentials =  Capacitor.isNativePlatform();
 const OFFLINE_HANDLED_URLS = [
   '/api/v1/bookmarks',
@@ -684,6 +685,7 @@ const showTafseerModal = (ayahId, tafseer) => {
 // ─── showSection ──────────────────────────────────────────────────────────────
 window.showSection = (sectionName) => {
   stopAllMedia();
+  if (sectionName !== 'quran' && typeof _stopAutoScroll === 'function') _stopAutoScroll();
   document.querySelectorAll('[id$="-section"]').forEach(el => el.classList.add('d-none'));
   const target = document.getElementById(`${sectionName}-section`);
   if (!target) return;
@@ -1031,6 +1033,15 @@ window.loadLiveAyahs = async () => {
         el.style.padding = '';
     });
     
+    // حفظ الآيات للوضع مع الشيخ
+    window._liveAyahsList = filteredAyahs.map(ayah => ({
+      surah: String(surah).padStart(3, '0'),
+      ayah: String(ayah.numberInSurah).padStart(3, '0'),
+      num: ayah.numberInSurah,
+      text: ayah.text
+    }));
+    window._liveCurrentSurah = surah;
+
     filteredAyahs.forEach(ayah => {
       const s = String(surah).padStart(3, '0');
       const a = String(ayah.numberInSurah).padStart(3, '0');
@@ -1048,7 +1059,7 @@ window.loadLiveAyahs = async () => {
       }
 
       container.insertAdjacentHTML('beforeend', `
-        <div class="live-ayah-item" data-clean="${cleanText}">
+        <div class="live-ayah-item" data-clean="${cleanText}" data-ayah-id="${s}${a}">
           <button id="${btnId}" class="btn live-play-btn btn-outline-success rounded-circle ms-3"
             style="width:45px;height:45px;padding:0;flex-shrink:0"
             onclick="playLiveAudio('${audioUrl}','${btnId}')">
@@ -1072,6 +1083,106 @@ window.loadLiveAyahs = async () => {
     container.innerHTML = '<p class="text-danger">حدث خطأ في تحميل الآيات.</p>';
   }
 };
+
+// ─── اقرأ مع الشيخ: تشغيل متتالي للآيات مع تظليل ─────────────────────────────
+let _sheikPlaybackActive = false;
+let _sheikCurrentAudio   = null;
+let _sheikCurrentIndex   = 0;
+
+window.startSheikhFollowAlong = function() {
+  const ayahs = window._liveAyahsList;
+  if (!ayahs || !ayahs.length) {
+    showAlert('error', 'حمّل الآيات أولاً');
+    return;
+  }
+  _sheikPlaybackActive = true;
+  _sheikCurrentIndex = 0;
+
+  const btnStart = document.getElementById('btn-sheikh-start');
+  const btnStop  = document.getElementById('btn-sheikh-stop');
+  if (btnStart) btnStart.classList.add('d-none');
+  if (btnStop)  btnStop.classList.remove('d-none');
+
+  _playSheikhAyah(_sheikCurrentIndex);
+};
+
+window.stopSheikhFollowAlong = function() {
+  _sheikPlaybackActive = false;
+  if (_sheikCurrentAudio) {
+    _sheikCurrentAudio.pause();
+    _sheikCurrentAudio = null;
+  }
+  // إزالة تظليل كل الآيات
+  document.querySelectorAll('.live-ayah-item').forEach(el => {
+    el.classList.remove('ayah-active');
+    const td = el.querySelector('.live-ayah-text');
+    if (td) { td.style.backgroundColor = ''; td.style.color = ''; }
+  });
+
+  const btnStart = document.getElementById('btn-sheikh-start');
+  const btnStop  = document.getElementById('btn-sheikh-stop');
+  if (btnStart) btnStart.classList.remove('d-none');
+  if (btnStop)  btnStop.classList.add('d-none');
+
+  const statusEl = document.getElementById('sheikh-status');
+  if (statusEl) statusEl.textContent = '';
+};
+
+function _playSheikhAyah(index) {
+  if (!_sheikPlaybackActive) return;
+  const ayahs = window._liveAyahsList;
+  if (!ayahs || index >= ayahs.length) {
+    // انتهى
+    window.stopSheikhFollowAlong();
+    const statusEl = document.getElementById('sheikh-status');
+    if (statusEl) statusEl.innerHTML = '<span class="text-success fw-bold">✅ انتهت التلاوة</span>';
+    return;
+  }
+
+  const ayah = ayahs[index];
+  const audioUrl = `https://everyayah.com/data/Husary_128kbps/${ayah.surah}${ayah.ayah}.mp3`;
+
+  // تظليل الآية الحالية وإزالة السابقة
+  document.querySelectorAll('.live-ayah-item').forEach((el, i) => {
+    const td = el.querySelector('.live-ayah-text');
+    if (i === index) {
+      el.classList.add('ayah-active');
+      if (td) { td.classList.remove('blurred-text'); }
+      // scroll للآية الحالية
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      el.classList.remove('ayah-active');
+      if (td && document.getElementById('memorize-mode')?.checked && i > index) {
+        td.classList.add('blurred-text');
+      }
+    }
+  });
+
+  const statusEl = document.getElementById('sheikh-status');
+  if (statusEl) statusEl.innerHTML = `
+    <span class="text-success small">
+      <i class="fas fa-volume-up fa-pulse me-1"></i> الآية ${ayah.num} من ${ayahs.length}
+    </span>`;
+
+  _sheikCurrentAudio = new Audio(audioUrl);
+  _sheikCurrentAudio.play().catch(() => {});
+
+  // لما تخلص الآية روح للتالية
+  _sheikCurrentAudio.onended = () => {
+    if (!_sheikPlaybackActive) return;
+    _sheikCurrentIndex = index + 1;
+    // وقت الراحة بين الآيات من الـ slider
+    const pauseSlider = document.getElementById('sheikh-pause-slider');
+    const pauseMs = pauseSlider ? parseFloat(pauseSlider.value) * 1000 : 2000;
+    setTimeout(() => _playSheikhAyah(_sheikCurrentIndex), pauseMs);
+};
+
+  _sheikCurrentAudio.onerror = () => {
+    if (!_sheikPlaybackActive) return;
+    _sheikCurrentIndex = index + 1;
+    setTimeout(() => _playSheikhAyah(_sheikCurrentIndex), 300);
+  };
+}
 
 // ─── 12. Memorize Mode Toggle ─────────────────────────────────────────────────
 document.addEventListener('change', (e) => {
@@ -1140,8 +1251,315 @@ document.addEventListener('touchend', e => {
   }
 }, { passive: true });
 
+// ══════════════════════════════════════════════════════════════════════════════
+// ─── وضع القراءة الليلية 🌙 ──────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+let _nightModeActive = localStorage.getItem('aqra_night_mode') === '1';
+
+function _applyNightMode(active) {
+  if (active) {
+    document.body.setAttribute('data-reading', 'night');
+    // تطبيق الخلفية الداكنة على كل الصفحة
+    document.documentElement.style.setProperty('background-color', '#0d1b0f', 'important');
+  } else {
+    document.body.removeAttribute('data-reading');
+    document.documentElement.style.removeProperty('background-color');
+  }
+  const btn = document.getElementById('btn-night-mode');
+  if (btn) {
+    if (active) {
+      btn.classList.add('active');
+      btn.innerHTML = '<i class="fas fa-sun me-1"></i> نهاري';
+    } else {
+      btn.classList.remove('active');
+      btn.innerHTML = '<i class="fas fa-moon me-1"></i> ليلي';
+    }
+  }
+}
+
+window.toggleNightMode = function() {
+  _nightModeActive = !_nightModeActive;
+  localStorage.setItem('aqra_night_mode', _nightModeActive ? '1' : '0');
+  _applyNightMode(_nightModeActive);
+};
+
+// تطبيق عند التحميل
+if (_nightModeActive) _applyNightMode(true);
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ─── إحصائيات القراءة 📊 ─────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+const STATS_KEY = 'aqra_reading_stats'; // { "2025-01-15": 5, "2025-01-16": 3, ... }
+
+function _getTodayKey() {
+  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
+function _getStats() {
+  try { return JSON.parse(localStorage.getItem(STATS_KEY)) || {}; }
+  catch { return {}; }
+}
+
+function _saveStats(stats) {
+  localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+}
+
+// تسجيل صفحة مقروءة
+function _recordPageRead() {
+  const stats = _getStats();
+  const today = _getTodayKey();
+  stats[today] = (stats[today] || 0) + 1;
+  _saveStats(stats);
+  // تحديث الكارت في الهوم
+  const el = document.getElementById('home-stats-today');
+  if (el) el.textContent = stats[today] + ' صفحة اليوم';
+}
+
+// حساب الإحصائيات
+function _calcStats() {
+  const stats  = _getStats();
+  const today  = new Date();
+  const todayK = _getTodayKey();
+
+  // اليوم
+  const todayCount = stats[todayK] || 0;
+
+  // الأسبوع (آخر 7 أيام)
+  let weekCount = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today); d.setDate(d.getDate() - i);
+    weekCount += stats[d.toISOString().slice(0, 10)] || 0;
+  }
+
+  // الشهر (آخر 30 يوم)
+  let monthCount = 0;
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(today); d.setDate(d.getDate() - i);
+    monthCount += stats[d.toISOString().slice(0, 10)] || 0;
+  }
+
+  // الإجمالي
+  const total = Object.values(stats).reduce((a, b) => a + b, 0);
+
+  // أفضل يوم
+  const best = Object.values(stats).length ? Math.max(...Object.values(stats)) : 0;
+
+  // أيام متتالية (streak)
+  let streak = 0;
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today); d.setDate(d.getDate() - i);
+    if ((stats[d.toISOString().slice(0, 10)] || 0) > 0) streak++;
+    else break;
+  }
+
+  // آخر 7 أيام للرسم البياني
+  const last7 = [];
+  const last7Labels = [];
+  const days = ['أحد','اثن','ثلا','أرب','خمي','جمع','سبت'];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today); d.setDate(d.getDate() - i);
+    last7.push(stats[d.toISOString().slice(0, 10)] || 0);
+    last7Labels.push(days[d.getDay()]);
+  }
+
+  return { todayCount, weekCount, monthCount, total, best, streak, last7, last7Labels };
+}
+
+// رسم الإحصائيات في الصفحة
+function _renderStats() {
+  const s = _calcStats();
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  set('stat-today',  s.todayCount);
+  set('stat-week',   s.weekCount);
+  set('stat-month',  s.monthCount);
+  set('stat-total',  s.total);
+  set('stat-streak', s.streak);
+  set('stat-best',   s.best);
+
+  const pct = Math.round((s.total / 604) * 100);
+  const totalPct = document.getElementById('stat-total-pct');
+  if (totalPct) totalPct.textContent = `${pct}% من المصحف الكريم`;
+
+  // كارت الهوم
+  const homeEl = document.getElementById('home-stats-today');
+  if (homeEl) homeEl.textContent = s.todayCount + ' صفحة اليوم';
+
+  // الرسم البياني
+  const chart  = document.getElementById('stats-chart');
+  const labels = document.getElementById('stats-chart-labels');
+  if (!chart || !labels) return;
+
+  const maxVal = Math.max(...s.last7, 1);
+  chart.innerHTML  = '';
+  labels.innerHTML = '';
+
+  s.last7.forEach((val, i) => {
+    const isToday = i === 6;
+    const heightPct = Math.round((val / maxVal) * 100);
+    const barH = Math.max(heightPct, val > 0 ? 8 : 3);
+
+    const bar = document.createElement('div');
+    bar.style.cssText = `
+      flex:1; border-radius:6px 6px 0 0;
+      height:${barH}%; min-height:${val > 0 ? 6 : 2}px;
+      background:${isToday ? 'linear-gradient(to top,#1e5f31,#4caf50)' : (val > 0 ? '#a5d6a7' : '#e8f5e9')};
+      transition: height 0.4s ease;
+      position:relative; cursor:default;
+    `;
+    if (val > 0) {
+      bar.title = `${s.last7Labels[i]}: ${val} صفحة`;
+      // رقم فوق البار
+      const num = document.createElement('span');
+      num.style.cssText = 'position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:0.65rem;color:#555;white-space:nowrap;';
+      num.textContent = val;
+      bar.appendChild(num);
+    }
+    chart.appendChild(bar);
+
+    const lbl = document.createElement('div');
+    lbl.style.cssText = `flex:1;text-align:center;font-size:0.65rem;color:${isToday ? '#198754' : '#999'};font-weight:${isToday ? 'bold' : 'normal'};`;
+    lbl.textContent = s.last7Labels[i];
+    labels.appendChild(lbl);
+  });
+}
+
+// hook على loadQuranPage لتسجيل الصفحات
+const _origLoadForStats = window.loadQuranPage;
+if (_origLoadForStats) {
+  window.loadQuranPage = async function(...args) {
+    const res = await _origLoadForStats.apply(this, args);
+    _recordPageRead();
+    return res;
+  };
+}
+
+window._renderStats = _renderStats;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ─── Quran Zoom ───────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+const ZOOM_STEPS  = [0.65, 0.75, 0.85, 1.0, 1.1, 1.2, 1.35, 1.5, 1.7, 2.0];
+const ZOOM_LABELS = ['65%','75%','85%','100%','110%','120%','135%','150%','170%','200%'];
+let   _zoomIndex  = 3;
+
+function _applyZoom() {
+  const scale = ZOOM_STEPS[_zoomIndex];
+  const book  = document.getElementById('quran-book');
+  if (book) {
+    book.style.zoom         = scale;
+    book.style.transform    = '';
+    book.style.marginBottom = '';
+    const parent = book.parentElement;
+    if (parent) parent.style.paddingBottom = '';
+  }
+  const lbl = document.getElementById('zoom-label');
+  if (lbl) lbl.textContent = ZOOM_LABELS[_zoomIndex];
+}
+
+window.quranZoom = function(direction) {
+  _zoomIndex = Math.max(0, Math.min(ZOOM_STEPS.length - 1, _zoomIndex + direction));
+  _applyZoom();
+  localStorage.setItem('aqra_quran_zoom', _zoomIndex);
+};
+
+window.quranZoomReset = function() {
+  _zoomIndex = 3;
+  _applyZoom();
+  localStorage.removeItem('aqra_quran_zoom');
+};
+
+// hook على loadQuranPage لإعادة تطبيق الـ zoom
+const _origLoadForZoom = window.loadQuranPage;
+if (_origLoadForZoom) {
+  window.loadQuranPage = async function(...args) {
+    const res = await _origLoadForZoom.apply(this, args);
+    setTimeout(_applyZoom, 80);
+    return res;
+  };
+}
+
+// استعادة الـ zoom المحفوظ
+(function() {
+  const saved = localStorage.getItem('aqra_quran_zoom');
+  if (saved !== null) {
+    _zoomIndex = Math.min(Math.max(parseInt(saved), 0), ZOOM_STEPS.length - 1);
+    const lbl  = document.getElementById('zoom-label');
+    if (lbl) lbl.textContent = ZOOM_LABELS[_zoomIndex];
+  }
+})();
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ─── Auto Scroll ──────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+let _autoScrollTimer  = null;
+let _scrollSpeedLevel = 2;
+const SCROLL_SPEEDS   = [0, 40, 25, 15, 8, 4];
+
+function _isOnQuranPage() {
+  const qs = document.getElementById('quran-section');
+  return qs && !qs.classList.contains('d-none');
+}
+
+window.toggleAutoScroll = function() {
+  _autoScrollTimer ? _stopAutoScroll() : _startAutoScroll();
+};
+
+function _startAutoScroll() {
+  if (!_isOnQuranPage()) return;
+  const btn = document.getElementById('btn-autoscroll');
+  const ctl = document.getElementById('autoscroll-controls');
+  const fab = document.getElementById('autoscroll-fab');
+  if (btn) { btn.classList.add('active'); btn.innerHTML = '<i class="fas fa-pause me-1"></i> إيقاف'; }
+  if (ctl) ctl.classList.replace('d-none', 'd-flex');
+  if (fab) fab.classList.add('visible');
+  _runScrollLoop();
+}
+
+function _stopAutoScroll() {
+  if (_autoScrollTimer) { clearTimeout(_autoScrollTimer); _autoScrollTimer = null; }
+  const btn = document.getElementById('btn-autoscroll');
+  const ctl = document.getElementById('autoscroll-controls');
+  const fab = document.getElementById('autoscroll-fab');
+  if (btn) { btn.classList.remove('active'); btn.innerHTML = '<i class="fas fa-scroll me-1"></i> تمرير تلقائي'; }
+  if (ctl) ctl.classList.replace('d-flex', 'd-none');
+  if (fab) fab.classList.remove('visible');
+}
+
+function _runScrollLoop() {
+  if (!_isOnQuranPage()) { _stopAutoScroll(); return; }
+  const delay = SCROLL_SPEEDS[_scrollSpeedLevel] || 25;
+  _autoScrollTimer = setTimeout(() => {
+    if (!_isOnQuranPage()) { _stopAutoScroll(); return; }
+    const maxY = document.body.scrollHeight - window.innerHeight;
+    if (window.scrollY >= maxY - 5) {
+      _stopAutoScroll();
+      if (window.currentPage < 604) {
+        document.getElementById('btn-prev-page')?.click();
+        setTimeout(() => {
+          if (_isOnQuranPage()) {
+            window.scrollTo({ top: 0, behavior: 'instant' });
+            _startAutoScroll();
+          }
+        }, 700);
+      }
+    } else {
+      window.scrollBy(0, 1);
+      _runScrollLoop();
+    }
+  }, delay);
+}
+
+window.changeScrollSpeed = function(dir) {
+  _scrollSpeedLevel = Math.max(1, Math.min(5, _scrollSpeedLevel + dir));
+  const lbl = document.getElementById('scroll-speed-label');
+  if (lbl) lbl.textContent = _scrollSpeedLevel;
+};
+
+function _pauseAutoScrollOnManualNav() { if (_autoScrollTimer) _stopAutoScroll(); }
+
 // ─── 15. Nav Buttons ──────────────────────────────────────────────────────────
 document.getElementById('btn-prev-page')?.addEventListener('click', () => {
+  _pauseAutoScrollOnManualNav();
   if (window.currentPage < 604) {
     window.currentPage++;
     window.loadQuranPage(window.currentPage);
@@ -1151,6 +1569,7 @@ document.getElementById('btn-prev-page')?.addEventListener('click', () => {
   }
 });
 document.getElementById('btn-next-page')?.addEventListener('click', () => {
+  _pauseAutoScrollOnManualNav();
   if (window.currentPage > 1) {
     window.currentPage--;
     window.loadQuranPage(window.currentPage);
@@ -1644,5 +2063,17 @@ if (resultContainer) {
   });
 
   console.log(Capacitor.isNativePlatform() ? '📱 Mobile Mode Active' : '🌐 Web Mode Active');
-    scheduleWebFridayReminder();
+  scheduleWebFridayReminder();
+
+  // ─── Fix aria-hidden: استنى الـ modal يخلص قبل showSection ────────────────
+  document.addEventListener('click', function(e) {
+    const btn = e.target.closest('[data-goto][data-bs-dismiss="modal"]');
+    if (!btn) return;
+    const target  = btn.getAttribute('data-goto');
+    const modalEl = btn.closest('.modal');
+    if (!modalEl || !target) return;
+    modalEl.addEventListener('hidden.bs.modal', function() {
+      if (window.showSection) window.showSection(target);
+    }, { once: true });
+  });
 });
