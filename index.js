@@ -22,7 +22,6 @@ const globalErrorHandler = require("./controllers/errorControllers");
 
 const app = express();
 app.set("trust proxy", 1);
-
 // 4. CORS
 app.use(cors({
   origin: [
@@ -30,10 +29,10 @@ app.use(cors({
     'http://localhost:3000', 
     'capacitor://localhost', 
     'http://localhost',
-    'https://aqra-app.serveftp.com',,
-    'https://aqraapp.com'
+    'https://aqraapp.com',
+    'https://www.aqraapp.com'
   ],
-  credentials: true ,
+  credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
@@ -56,6 +55,7 @@ app.use(
           "https://browser.sentry-cdn.com",
           "https://www.gstatic.com",
           "https://www.googletagmanager.com",
+          "https://static.cloudflareinsights.com", // سكريبت كلاود فلير
           "capacitor://localhost",
           "http://localhost"
         ],
@@ -101,6 +101,8 @@ app.use(
         
         connectSrc: [
           "'self'",
+          "https://aqraapp.com", // الدومين الجديد
+          "https://www.aqraapp.com",
           "https://www.transparenttextures.com",
           "https://*.googleusercontent.com",
           "https://api.alquran.cloud",
@@ -110,7 +112,6 @@ app.use(
           "https://server11.mp3quran.net",
           "https://js-de.sentry-cdn.com",
           "https://www.googletagmanager.com",
-          "https://aqra-app.serveftp.com",
           "https://cdn.jsdelivr.net",
           "https://*.sentry.io",
           "https://firebase.googleapis.com",
