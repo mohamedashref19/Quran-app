@@ -141,28 +141,119 @@
         .password-field-wrapper { position: relative; }
 
         /* ══════════════════════════════════════════════
-            ─── Bottom Navigation Bar ──────────────────
+        /* ─── Zoom & AutoScroll toolbar ──────────────── */
+        #quran-book { transition: transform 0.2s ease; }
+        #btn-autoscroll.active {
+            background: #198754 !important;
+            color: white !important;
+        }
+        #btn-autoscroll.active i { color: white !important; }
+
+        /* ── زرار إيقاف التمرير العائم ── */
+        #autoscroll-fab {
+            position: fixed;
+            right: 16px;
+            bottom: calc(80px + env(safe-area-inset-bottom));
+            z-index: 1049;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #1e5f31, #198754);
+            color: white;
+            box-shadow: 0 4px 16px rgba(25,135,84,0.5);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: transform 0.15s ease;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        #autoscroll-fab.visible {
+            display: flex !important;
+        }
+        #autoscroll-fab:active { transform: scale(0.92); }
+
+        /* ══════════════════════════════════════════════
+           ─── وضع القراءة الليلية 🌙 ─────────────────
         ══════════════════════════════════════════════ */
+        [data-reading="night"] body,
+        [data-reading="night"] {
+            background-color: #0d1b0f !important;
+        }
+        [data-reading="night"] #quran-book {
+            background-color: #111d13 !important;
+            border-color: #1e3a22 !important;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8) !important;
+        }
+        [data-reading="night"] #ayahs-container,
+        [data-reading="night"] .quran-page-content {
+            color: #c8e6c0 !important;
+            text-shadow: 0 0 8px rgba(100,200,100,0.12);
+        }
+        [data-reading="night"] .ayah-end-symbol {
+            color: #7bc67e !important;
+            border-color: #7bc67e !important;
+        }
+        [data-reading="night"] #surah-title-display {
+            color: #81c784 !important;
+        }
+        [data-reading="night"] .bottom-nav {
+            background: #0d1b0f !important;
+            border-top-color: #1e3a22 !important;
+            box-shadow: 0 -4px 24px rgba(0,0,0,0.6) !important;
+            --nav-bg: #0d1b0f;
+        }
+        [data-reading="night"] .bottom-nav-item { color: #4a7a4d !important; }
+        [data-reading="night"] .bottom-nav-item.active {
+            color: #81c784 !important;
+            background: rgba(129,199,132,0.1) !important;
+        }
+        [data-reading="night"] nav#main-navbar {
+            background-color: #0a2e0f !important;
+            border-bottom-color: #0d1b0f !important;
+        }
+        #btn-night-mode.active {
+            background: #1a3a1e !important;
+            color: #81c784 !important;
+            border-color: #2d5a32 !important;
+        }
+        #btn-night-mode.active i { color: #ffd54f !important; }
+
         .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 0; /* لضمان عدم وجود أي مساحة أسفله */
+    z-index: 1050;
+    background: var(--nav-bg, #ffffff);
+    border-top: 1px solid rgba(25, 135, 84, 0.15);
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.08);
+    display: flex;
+    align-items: center;
+    /* تمت إضافة 0px كقيمة بديلة */
+    height: calc(64px + env(safe-area-inset-bottom, 0px));
+    padding: 0 4px env(safe-area-inset-bottom, 0px);
+}
+
+        /* pseudo-element يغطي المساحة تحت الـ nav */
+        /* .bottom-nav::after {
+            content: '';
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            z-index: 1050;
-            background: #ffffff;
-            border-top: 1px solid rgba(25, 135, 84, 0.15);
-            box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.08);
-            display: flex;
-            align-items: stretch;
-            height: 64px;
-            padding: 0 4px;
-            padding-bottom: env(safe-area-inset-bottom);
-        }
+            height: env(safe-area-inset-bottom, 0px);
+            background: var(--nav-bg, #ffffff);
+            z-index: -1;
+        } */
 
         [data-theme="dark"] .bottom-nav {
-            background: #1a1a1a;
+            background: #121212;
             border-top-color: rgba(25, 135, 84, 0.25);
-            box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 -4px 24px rgba(0,0,0,0.4);
+            --nav-bg: #121212;
         }
 
         .bottom-nav-item {
@@ -180,7 +271,8 @@
             font-weight: 600;
             padding: 6px 2px;
             border-radius: 12px;
-            margin: 6px 2px;
+            margin: 4px 2px;
+            height: 52px;
             transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
             position: relative;
             text-decoration: none;
@@ -285,8 +377,13 @@
         }
 
         body {
-            padding-bottom: calc(72px + env(safe-area-inset-bottom));
+          
+            background-color: #ffffff;
+            padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
         }
+        [data-theme="dark"] body { background-color: #121212; }
+        [data-reading="night"] body,
+        [data-reading="night"]   { background-color: #0d1b0f !important; }
 
         /* ستايل دعاء الختمة */
         .dua-container {
@@ -398,7 +495,7 @@ nav#main-navbar {
 ></script>
 </head>
 
-<body class="d-flex flex-column min-vh-100">
+<body>
 
 <nav id="main-navbar" class="navbar navbar-expand-lg navbar-dark shadow-sm py-2 sticky-top">
         <div class="container d-flex align-items-center">
@@ -491,17 +588,109 @@ nav#main-navbar {
                     </div>
                 </div>
                 <div class="col-6 col-md-4">
-                    <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow" onclick="showSection('ai-correction')" style="cursor: pointer;">
+                    <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow position-relative" onclick="showSection('ai-correction')" style="cursor:pointer;">
+                        <span class="position-absolute top-0 start-0 m-1" onclick="event.stopPropagation(); showFeatureHelp('ai-correction')" style="cursor:pointer;z-index:10;">
+                            <i class="fas fa-question-circle text-warning" style="font-size:1rem;opacity:0.85;"></i>
+                        </span>
                         <div class="mb-2"><i class="fas fa-microphone-alt fa-2x text-warning"></i></div>
                         <h6 class="fw-bold">المصحح الذكي</h6>
                     </div>
                 </div>
                 <div class="col-6 col-md-4">
-                    <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow" onclick="showSection('live-recitation')" style="cursor: pointer;">
+                    <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow position-relative" onclick="showSection('live-recitation')" style="cursor:pointer;">
+                        <span class="position-absolute top-0 start-0 m-1" onclick="event.stopPropagation(); showFeatureHelp('live-recitation')" style="cursor:pointer;z-index:10;">
+                            <i class="fas fa-question-circle text-warning" style="font-size:1rem;opacity:0.85;"></i>
+                        </span>
                         <div class="mb-2"><i class="fa-solid fa-wand-magic-sparkles fa-2x text-warning"></i></div>
                         <h6 class="fw-bold">تتبع التلاوة</h6>
                     </div>
                 </div>
+                <!-- إحصائيات القراءة -->
+                <div class="col-6 col-md-4">
+                    <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow" onclick="showSection('reading-stats')" style="cursor:pointer;">
+                        <div class="mb-2"><i class="fas fa-chart-bar fa-2x text-info"></i></div>
+                        <h6 class="fw-bold">إحصائياتي</h6>
+                        <p id="home-stats-today" class="text-muted small mb-0">— صفحة اليوم</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ صفحة إحصائيات القراءة ══ -->
+        <div id="reading-stats-section" class="d-none">
+            <div class="d-flex align-items-center mb-4">
+                <button class="btn btn-sm btn-secondary me-3" onclick="showSection('home')"><i class="fas fa-arrow-right"></i></button>
+                <h3 class="flex-grow-1 text-center m-0 text-success fw-bold">
+                    <i class="fas fa-chart-bar me-2"></i> إحصائيات القراءة
+                </h3>
+            </div>
+
+            <!-- بطاقات الملخص -->
+            <div class="row g-3 mb-4">
+                <div class="col-4">
+                    <div class="card border-0 shadow-sm text-center p-3" style="border-radius:16px; background:linear-gradient(135deg,#e8f5e9,#f1f8e9);">
+                        <div class="fw-bold text-success" style="font-size:1.8rem;" id="stat-today">0</div>
+                        <div class="small text-muted mt-1">اليوم</div>
+                        <div class="small text-muted" style="font-size:0.7rem;">صفحة</div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="card border-0 shadow-sm text-center p-3" style="border-radius:16px; background:linear-gradient(135deg,#e3f2fd,#e8f5e9);">
+                        <div class="fw-bold text-primary" style="font-size:1.8rem;" id="stat-week">0</div>
+                        <div class="small text-muted mt-1">الأسبوع</div>
+                        <div class="small text-muted" style="font-size:0.7rem;">صفحة</div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="card border-0 shadow-sm text-center p-3" style="border-radius:16px; background:linear-gradient(135deg,#fff3e0,#fce4ec);">
+                        <div class="fw-bold text-warning" style="font-size:1.8rem;" id="stat-month">0</div>
+                        <div class="small text-muted mt-1">الشهر</div>
+                        <div class="small text-muted" style="font-size:0.7rem;">صفحة</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- أيام متتالية + أفضل يوم -->
+            <div class="row g-3 mb-4">
+                <div class="col-6">
+                    <div class="card border-0 shadow-sm p-3 text-center" style="border-radius:16px;">
+                        <i class="fas fa-fire text-danger mb-1" style="font-size:1.4rem;"></i>
+                        <div class="fw-bold" style="font-size:1.5rem;" id="stat-streak">0</div>
+                        <div class="small text-muted">يوم متتالي 🔥</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="card border-0 shadow-sm p-3 text-center" style="border-radius:16px;">
+                        <i class="fas fa-trophy text-warning mb-1" style="font-size:1.4rem;"></i>
+                        <div class="fw-bold" style="font-size:1.5rem;" id="stat-best">0</div>
+                        <div class="small text-muted">أفضل يوم 🏆</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- رسم بياني — آخر 7 أيام -->
+            <div class="card border-0 shadow-sm p-3 mb-4" style="border-radius:16px;">
+                <div class="fw-bold text-success mb-3" style="font-size:0.95rem;">
+                    <i class="fas fa-chart-line me-1"></i> آخر 7 أيام
+                </div>
+                <div id="stats-chart" style="display:flex; align-items:flex-end; gap:6px; height:100px; padding:0 4px;">
+                    <!-- bars generated by JS -->
+                </div>
+                <div id="stats-chart-labels" style="display:flex; gap:6px; margin-top:4px; padding:0 4px;">
+                    <!-- labels generated by JS -->
+                </div>
+            </div>
+
+            <!-- إجمالي كل الأوقات -->
+            <div class="card border-0 shadow-sm p-3" style="border-radius:16px; background:linear-gradient(135deg,#1e5f31,#198754); color:white;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="small opacity-75">إجمالي الصفحات المقروءة</div>
+                        <div class="fw-bold mt-1" style="font-size:2rem;" id="stat-total">0</div>
+                    </div>
+                    <i class="fas fa-book-open opacity-50" style="font-size:3rem;"></i>
+                </div>
+                <div class="mt-2 small opacity-75" id="stat-total-pct">من 604 صفحة</div>
             </div>
         </div>
 
@@ -870,11 +1059,45 @@ nav#main-navbar {
                     </h1>
                     <div id="quran-juz-info" class="mt-1"></div>
                 </div>
-                <div class="mb-3">
+                <div class="mb-3 d-flex justify-content-center align-items-center gap-2">
                     <button class="btn btn-outline-success rounded-pill px-4 btn-sm" onclick="showSection('surah-index'); loadSurahIndex();">
                         📖 الفهرس
                     </button>
+                    <button class="btn btn-outline-warning rounded-pill btn-sm px-3" onclick="showQuranIconsHelp()" title="شرح العلامات">
+                        <i class="fas fa-question-circle me-1"></i> العلامات
+                    </button>
                 </div>
+
+                <!-- ══ شريط أدوات القراءة ══ -->
+                <div class="d-flex align-items-center justify-content-center gap-2 mb-3 flex-wrap">
+
+                    <!-- تكبير / تصغير -->
+                    <div class="d-flex align-items-center gap-1 bg-white border rounded-pill px-2 py-1 shadow-sm">
+                        <button class="btn btn-sm p-0 text-success fw-bold" style="width:28px;height:28px;font-size:1.2rem;line-height:1;" onclick="quranZoom(-1)" title="تصغير">−</button>
+                        <span id="zoom-label" class="small text-muted" style="min-width:36px;text-align:center;">100%</span>
+                        <button class="btn btn-sm p-0 text-success fw-bold" style="width:28px;height:28px;font-size:1.2rem;line-height:1;" onclick="quranZoom(+1)" title="تكبير">+</button>
+                        <button class="btn btn-sm p-0 text-muted" style="width:22px;height:22px;font-size:0.75rem;border-right:1px solid #dee2e6;padding-right:5px!important;margin-right:2px;" onclick="quranZoomReset()" title="إعادة تعيين">↺</button>
+                    </div>
+
+                    <!-- وضع القراءة الليلية -->
+                    <button id="btn-night-mode" class="btn btn-sm btn-outline-secondary rounded-pill px-3" style="font-size:0.78rem;" onclick="toggleNightMode()" title="وضع القراءة الليلية">
+                        <i class="fas fa-moon me-1"></i> ليلي
+                    </button>
+
+                    <!-- تمرير تلقائي -->
+                    <div class="d-flex align-items-center gap-1 bg-white border rounded-pill px-2 py-1 shadow-sm">
+                        <button id="btn-autoscroll" class="btn btn-sm px-2 py-0 text-muted" style="font-size:0.78rem;border:none;background:transparent;" onclick="toggleAutoScroll()">
+                            <i class="fas fa-scroll me-1"></i> تمرير تلقائي
+                        </button>
+                        <div id="autoscroll-controls" class="d-none align-items-center gap-1">
+                            <button class="btn btn-sm p-0 px-1" style="font-size:0.85rem;border:none;background:transparent;" onclick="changeScrollSpeed(-1)">🐢</button>
+                            <span id="scroll-speed-label" class="small text-muted fw-bold" style="min-width:16px;text-align:center;">2</span>
+                            <button class="btn btn-sm p-0 px-1" style="font-size:0.85rem;border:none;background:transparent;" onclick="changeScrollSpeed(+1)">🐇</button>
+                        </div>
+                    </div>
+
+                </div>
+                <!-- ══ نهاية شريط الأدوات ══ -->
                 <div id="quran-book" class="position-relative mx-auto bg-white rounded shadow-sm p-3 mb-3" style="min-height: 500px;">
                     <div id="ayahs-container"></div>
                 </div>
@@ -900,6 +1123,11 @@ nav#main-navbar {
                 </a>
             </div>
         </div>
+
+        <!-- ── زرار إيقاف التمرير العائم (خارج quran-section عشان يفضل ثابت) ── -->
+        <button id="autoscroll-fab" onclick="toggleAutoScroll()" title="إيقاف التمرير التلقائي">
+            <i class="fas fa-pause"></i>
+        </button>
 
         <div id="reciters-section" class="d-none">
             <div class="d-flex align-items-center mb-3">
@@ -972,6 +1200,7 @@ nav#main-navbar {
                 </div>
 
                 <div id="live-controls" class="text-center d-none">
+                    <!-- وضع التسميع بالميكروفون -->
                     <button id="btn-start-live" class="btn btn-success btn-lg px-4 mb-2">
                         <i class="fas fa-microphone me-2"></i> ابدأ التسميع
                     </button>
@@ -979,6 +1208,46 @@ nav#main-navbar {
                         <i class="fas fa-stop me-2"></i> توقف
                     </button>
                     <p id="live-status" class="text-muted small mt-1">جاهز...</p>
+
+                    <!-- فاصل -->
+                    <div class="d-flex align-items-center gap-2 my-3">
+                        <div style="flex:1; height:1px; background:#e9ecef;"></div>
+                        <span class="text-muted small">أو</span>
+                        <div style="flex:1; height:1px; background:#e9ecef;"></div>
+                    </div>
+
+                    <!-- وضع اقرأ مع الشيخ -->
+                    <div class="card border-0 rounded-3 p-3 mb-2" style="background: linear-gradient(135deg,#e8f5e9,#f1f8e9); border: 1px solid #a5d6a7 !important;">
+                        <div class="d-flex align-items-center gap-2 mb-2 justify-content-center">
+                            <i class="fas fa-headphones text-success fs-5"></i>
+                            <span class="fw-bold text-success" style="font-size:0.95rem;">اقرأ مع الشيخ</span>
+                        </div>
+                        <p class="text-muted small mb-3 text-center">الشيخ يقرأ والآيات تتضيء معاه — اقرأ وراه آية آية</p>
+                        <button id="btn-sheikh-start" class="btn btn-success w-100 py-2 fw-bold" onclick="startSheikhFollowAlong()">
+                            <i class="fas fa-play me-2"></i> ابدأ مع الشيخ
+                        </button>
+                        <button id="btn-sheikh-stop" class="btn btn-outline-danger w-100 py-2 fw-bold d-none" onclick="stopSheikhFollowAlong()">
+                            <i class="fas fa-stop me-2"></i> إيقاف
+                        </button>
+                        <!-- وقت الراحة بين الآيات -->
+<div class="mt-3 px-1">
+    <div class="d-flex justify-content-between align-items-center mb-1">
+        <label class="small text-muted fw-bold">
+            <i class="fas fa-clock me-1"></i> وقت الراحة بين الآيات
+        </label>
+        <span id="sheikh-pause-label" class="badge bg-success" style="font-size:0.8rem;">2 ثانية</span>
+    </div>
+    <input type="range" id="sheikh-pause-slider"
+           min="0.5" max="6" step="0.5" value="2"
+           style="width:100%; accent-color:#198754;"
+           oninput="document.getElementById('sheikh-pause-label').textContent = this.value + ' ثانية'">
+    <div class="d-flex justify-content-between" style="font-size:0.7rem; color:#aaa;">
+        <span>نص ثانية</span>
+        <span>6 ثواني</span>
+    </div>
+</div>
+                        <p id="sheikh-status" class="text-muted small mt-2 text-center mb-0"></p>
+                    </div>
                 </div>
                 
                 <div class="text-center mt-2">
@@ -1158,6 +1427,156 @@ const analytics = getAnalytics(app);
     </script>
     <script src="/js/bundle.js"></script>
 
+    <!-- ══════════════════════════════════════════════
+         ─── Modal: شرح علامات صفحة المصحف ────────────
+    ══════════════════════════════════════════════ -->
+    <div class="modal fade" id="modal-quran-icons" tabindex="-1" aria-hidden="true" dir="rtl">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:20px; overflow:hidden;">
+          <div style="background:linear-gradient(135deg,#1e5f31,#198754);padding:28px 24px 20px;text-align:center;color:white;">
+            <div style="width:64px;height:64px;background:rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+              <i class="fas fa-book-open" style="font-size:1.8rem;"></i>
+            </div>
+            <h5 class="fw-bold mb-1" style="font-size:1.3rem;">العلامات في صفحة المصحف</h5>
+            <p class="mb-0" style="opacity:0.85;font-size:0.9rem;">اضغط على أي علامة بجانب الآية</p>
+          </div>
+          <div class="modal-body p-4">
+            <div class="d-flex flex-column gap-4">
+              <!-- علامة الحفظ -->
+              <div class="d-flex align-items-start gap-3">
+                <div style="min-width:52px;height:52px;background:#e8f5e9;border-radius:14px;display:flex;align-items:center;justify-content:center;">
+                  <i class="far fa-bookmark" style="color:#198754;font-size:1.5rem;"></i>
+                </div>
+                <div>
+                  <div class="fw-bold mb-1" style="font-size:1rem;">علامة مرجعية 🔖</div>
+                  <div class="text-muted" style="font-size:0.88rem;line-height:1.7;">
+                    لما تضغط عليها بتحفظ الآية — للمراجعة، أو آية أثّرت فيك، أو محتاج ترجعلها.
+                    <br>تلاقي كل علاماتك في <strong>"علاماتي"</strong> من الشريط السفلي.
+                  </div>
+                </div>
+              </div>
+              <div style="height:1px;background:#f0f0f0;"></div>
+              <!-- علامة الختمة -->
+              <div class="d-flex align-items-start gap-3">
+                <div style="min-width:52px;height:52px;background:#e8f5e9;border-radius:14px;display:flex;align-items:center;justify-content:center;">
+                  <i class="fas fa-flag" style="color:#198754;font-size:1.5rem;"></i>
+                </div>
+                <div>
+                  <div class="fw-bold mb-1" style="font-size:1rem;">علامة الختمة 🚩</div>
+                  <div class="text-muted" style="font-size:0.88rem;line-height:1.7;">
+                    بتحدد فيين وصلت في ختمتك — اضغط عليها وهتتسجل وتقدر تكمل منها في أي وقت.
+                    <br>زر <strong>"ختمتي"</strong> دايمًا في الصفحة يرجعك لنفس الآية.
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- ملاحظة واضحة -->
+            <div class="mt-4 p-3" style="border-radius:12px;background:#f1f8e9;border:1px solid #c8e6c9;">
+              <div class="fw-bold text-success mb-2" style="font-size:0.9rem;"><i class="fas fa-info-circle me-1"></i> كيف أعرف إيه المحفوظ؟</div>
+              <div class="d-flex gap-4 justify-content-center">
+                <div class="text-center">
+                  <i class="fas fa-bookmark text-success" style="font-size:1.4rem;"></i>
+                  <div class="small text-muted mt-1">محفوظة</div>
+                </div>
+                <div class="d-flex align-items-center text-muted">VS</div>
+                <div class="text-center">
+                  <i class="far fa-bookmark" style="color:#aaa;font-size:1.4rem;"></i>
+                  <div class="small text-muted mt-1">غير محفوظة</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-0 pb-4 pt-0 px-4">
+            <button class="btn btn-success w-100 py-2 fw-bold" style="border-radius:12px;" data-bs-dismiss="modal">
+              <i class="fas fa-check me-2"></i> فهمت، يلا نقرأ!
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+         ─── Modal: شرح المصحح الذكي ────────────────
+    ══════════════════════════════════════════════ -->
+    <div class="modal fade" id="modal-ai-correction" tabindex="-1" aria-hidden="true" dir="rtl">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:20px;overflow:hidden;">
+          <div style="background:linear-gradient(135deg,#1e5f31,#198754);padding:28px 24px 20px;text-align:center;color:white;">
+            <div style="width:64px;height:64px;background:rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+              <i class="fas fa-microphone-alt" style="font-size:1.8rem;"></i>
+            </div>
+            <h5 class="fw-bold mb-1" style="font-size:1.3rem;">المصحح الذكي 🎙️</h5>
+            <p class="mb-0" style="opacity:0.85;font-size:0.9rem;">اقرأ بصوتك.. والذكاء الاصطناعي يصحح لك</p>
+          </div>
+          <div class="modal-body p-4">
+            <div class="d-flex flex-column gap-3">
+              <div class="d-flex align-items-start gap-3">
+                <div style="min-width:40px;height:40px;background:#e8f5e9;border-radius:50%;display:flex;align-items:center;justify-content:center;"><i class="fas fa-search text-success"></i></div>
+                <div><div class="fw-bold mb-1">اختار السورة والآيات</div><div class="text-muted small">اختار السورة اللي تريد تتدرب عليها وحدد الآيات.</div></div>
+              </div>
+              <div class="d-flex align-items-start gap-3">
+                <div style="min-width:40px;height:40px;background:#e8f5e9;border-radius:50%;display:flex;align-items:center;justify-content:center;"><i class="fas fa-microphone text-success"></i></div>
+                <div><div class="fw-bold mb-1">اضغط وابدأ التسجيل</div><div class="text-muted small">اضغط على زر الميكروفون واقرأ الآيات بصوتك.</div></div>
+              </div>
+              <div class="d-flex align-items-start gap-3">
+                <div style="min-width:40px;height:40px;background:#e8f5e9;border-radius:50%;display:flex;align-items:center;justify-content:center;"><i class="fas fa-check-circle text-success"></i></div>
+                <div><div class="fw-bold mb-1">شوف النتيجة</div><div class="text-muted small">هيوضحلك الكلمات الصح 🟢 والكلمات اللي فيها غلط 🔴 على طول.</div></div>
+              </div>
+            </div>
+            <div class="alert alert-warning border-0 mt-3 mb-0 text-center small" style="border-radius:12px;background:#fff8e1;"><i class="fas fa-lightbulb me-1"></i> مفيدة للمراجعة والحفظ وتحسين التجويد!</div>
+          </div>
+          <div class="modal-footer border-0 pb-4 pt-0 d-flex flex-column gap-2 px-4">
+            <button class="btn btn-success w-100 py-2 fw-bold" style="border-radius:12px;"
+              data-bs-dismiss="modal" data-goto="ai-correction">
+              <i class="fas fa-microphone me-2"></i> جربها دلوقتي
+            </button>
+            <button class="btn btn-light w-100 py-2 text-muted" style="border-radius:12px;" data-bs-dismiss="modal">لسه مش جاهز</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+         ─── Modal: شرح تتبع التلاوة ─────────────────
+    ══════════════════════════════════════════════ -->
+    <div class="modal fade" id="modal-live-recitation" tabindex="-1" aria-hidden="true" dir="rtl">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:20px;overflow:hidden;">
+          <div style="background:linear-gradient(135deg,#1a237e,#3949ab);padding:28px 24px 20px;text-align:center;color:white;">
+            <div style="width:64px;height:64px;background:rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+              <i class="fa-solid fa-wand-magic-sparkles" style="font-size:1.8rem;"></i>
+            </div>
+            <h5 class="fw-bold mb-1" style="font-size:1.3rem;">تتبع التلاوة 🎧</h5>
+            <p class="mb-0" style="opacity:0.85;font-size:0.9rem;">اسمع وتابع.. كل كلمة بتتلاوة تتضيء أمامك</p>
+          </div>
+          <div class="modal-body p-4">
+            <div class="d-flex flex-column gap-3">
+              <div class="d-flex align-items-start gap-3">
+                <div style="min-width:40px;height:40px;background:#e8eaf6;border-radius:50%;display:flex;align-items:center;justify-content:center;"><i class="fas fa-microphone" style="color:#3949ab;"></i></div>
+                <div><div class="fw-bold mb-1">اتسمع وراه</div><div class="text-muted small">ابدأ التسميع واقرأ بصوتك — الآيات بتتتبع معاك تلقائياً.</div></div>
+              </div>
+              <div class="d-flex align-items-start gap-3">
+                <div style="min-width:40px;height:40px;background:#e8eaf6;border-radius:50%;display:flex;align-items:center;justify-content:center;"><i class="fas fa-headphones" style="color:#3949ab;"></i></div>
+                <div><div class="fw-bold mb-1">اقرأ مع الشيخ ✨</div><div class="text-muted small">الشيخ يقرأ والآيات تتضيء معاه — اقرأ وراه آية آية بدون ميكروفون.</div></div>
+              </div>
+              <div class="d-flex align-items-start gap-3">
+                <div style="min-width:40px;height:40px;background:#e8eaf6;border-radius:50%;display:flex;align-items:center;justify-content:center;"><i class="fas fa-eye-slash" style="color:#3949ab;"></i></div>
+                <div><div class="fw-bold mb-1">وضع الحفظ</div><div class="text-muted small">فعّل "وضع الحفظ" عشان النص يتخفى ويظهر بس الآية اللي بتتلاوة.</div></div>
+              </div>
+            </div>
+            <div class="alert border-0 mt-3 mb-0 text-center small" style="border-radius:12px;background:#e8eaf6;color:#3949ab;"><i class="fas fa-lightbulb me-1"></i> مثالية للحفظ والمراجعة مع القارئ!</div>
+          </div>
+          <div class="modal-footer border-0 pb-4 pt-0 d-flex flex-column gap-2 px-4">
+            <button class="btn w-100 py-2 fw-bold text-white" style="border-radius:12px;background:#3949ab;"
+              data-bs-dismiss="modal" data-goto="live-recitation">
+              <i class="fa-solid fa-wand-magic-sparkles me-2"></i> جربها دلوقتي
+            </button>
+            <button class="btn btn-light w-100 py-2 text-muted" style="border-radius:12px;" data-bs-dismiss="modal">لسه مش جاهز</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
 
     <script>
         // ─── Bottom Nav Active State ──────────────────
@@ -1177,12 +1596,36 @@ const analytics = getAnalytics(app);
                 'quran':           'bnav-quran',
                 'bookmarks':       'bnav-bookmarks',
                 'profile':         'bnav-profile',
-                'khatmah-dua':     'bnav-quran', // يبقي الـ active على المصحف لما تفتح الدعاء
-                'qibla':           'bnav-home',  // نرجع للرئيسية كمسار
+                'khatmah-dua':     'bnav-quran',
+                'qibla':           'bnav-home',
                 'azkar':           'bnav-azkar',
-                'azkar-detail':    'bnav-azkar'
-
+                'azkar-detail':    'bnav-azkar',
+                'reading-stats':   'bnav-home'
             };
+
+            // ══════════════════════════════════════════
+            // ─── Onboarding: شرح الميزات أول مرة ──────
+            // ══════════════════════════════════════════
+            const ONBOARDING_KEYS = {
+                'ai-correction':   'aqra_seen_ai_correction',
+                'live-recitation': 'aqra_seen_live_recitation',
+                'quran':           'aqra_seen_quran_icons'
+            };
+            const MODAL_IDS = {
+                'ai-correction':   'modal-ai-correction',
+                'live-recitation': 'modal-live-recitation',
+                'quran':           'modal-quran-icons'
+            };
+
+            window.showFeatureHelp = function(feature) {
+                const modalEl = document.getElementById(MODAL_IDS[feature]);
+                if (!modalEl) return;
+                new bootstrap.Modal(modalEl).show();
+            };
+            window.showQuranIconsHelp = function() {
+                window.showFeatureHelp('quran');
+            };
+            // ══════════════════════════════════════════
 
             const _origShowSection = window.showSection;
             if (_origShowSection) {
@@ -1196,8 +1639,34 @@ const analytics = getAnalytics(app);
                     if (bottomNav) {
                         bottomNav.style.display = hiddenSections.includes(sectionName) ? 'none' : 'flex';
                     }
+
+                    // ─── أول مرة يفتح الميزة ─────────────
+                    if (ONBOARDING_KEYS[sectionName] && !localStorage.getItem(ONBOARDING_KEYS[sectionName])) {
+                        localStorage.setItem(ONBOARDING_KEYS[sectionName], '1');
+                        setTimeout(() => window.showFeatureHelp(sectionName), 450);
+                    }
+
+                    // ─── تحديث الإحصائيات عند فتح الصفحة ──
+                    if (sectionName === 'reading-stats' && window._renderStats) {
+                        setTimeout(window._renderStats, 50);
+                    }
                 };
             }
+
+            // ─── Fix aria-hidden: نشيل الـ focus قبل ما Bootstrap يضيف aria-hidden ──
+            document.addEventListener('click', function(e) {
+                const btn = e.target.closest('[data-bs-dismiss="modal"]');
+                if (!btn) return;
+                btn.blur();
+                const target  = btn.getAttribute('data-goto');
+                const modalEl = btn.closest('.modal');
+                if (!modalEl) return;
+                if (target) {
+                    modalEl.addEventListener('hidden.bs.modal', function() {
+                        if (window.showSection) window.showSection(target);
+                    }, { once: true });
+                }
+            });
         });
 
         function togglePasswordVisibility(inputId, icon) {

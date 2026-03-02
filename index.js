@@ -28,9 +28,10 @@ app.use(cors({
   origin: [
     'http://127.0.0.1:3000', 
     'http://localhost:3000', 
-    'https://aqra-app.serveftp.com',
     'capacitor://localhost', 
-    'http://localhost'
+    'http://localhost',
+    'https://aqra-app.serveftp.com',,
+    'https://aqraapp.com'
   ],
   credentials: true ,
   allowedHeaders: ['Content-Type', 'Authorization']

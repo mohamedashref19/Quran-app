@@ -392,7 +392,7 @@ let fullTextHTML = '<div class="quran-page-content" style="text-align: justify; 
         parseInt(khatmah.currentSurah) == surahNum &&
         parseInt(khatmah.currentAyah)  == ayahNum;
       const khatmahClass = isKhatmahActive ? 'fas' : 'far';
-      const khatmahColor = isKhatmahActive ? '#198754' : '#28a745';
+      const khatmahColor = isKhatmahActive ? '#198754' : '#198754';
 
       fullTextHTML += `
         <span id="ayah-${surahNum}-${ayahNum}" class="ayah-text ayah-clickable" data-surah="${surahNum}" data-ayah="${ayahNum}" title="تفسير الآية ${ayahNum}" style="cursor: pointer;">${ayahText}</span>
@@ -2428,7 +2428,7 @@ export const scheduleFridayKahfNotification = async () => {
     const daysUntilFriday = (5 - now.getDay() + 7) % 7; // 5 = الجمعة
     const nextFriday = new Date(now);
     nextFriday.setDate(now.getDate() + (daysUntilFriday === 0 ? 7 : daysUntilFriday));
-    nextFriday.setHours(8, 0, 0, 0); // الساعة 8 صباحاً
+    nextFriday.setHours(10, 0, 0, 0); // الساعة 10 صباحاً
 
     await LocalNotifications.schedule({
       notifications: [
