@@ -1,4 +1,6 @@
 const { Coordinates, CalculationMethod, PrayerTimes, Prayer, Madhab } = require('adhan');
+const { find } = require('geo-tz'); // 🌟 استدعاء مكتبة تحديد المنطقة الزمنية
+const axios = require('axios');
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
 
@@ -11,6 +13,17 @@ exports.getPrayerTimes = catchAsync(async (req, res, next) => {
 
   const coordinates = new Coordinates(parseFloat(lat), parseFloat(lng));
   const dateObj = date ? new Date(date) : new Date();
+
+  // 🌟 جلب المنطقة الزمنية (Timezone) بناءً على الإحداثيات
+  let userTimeZone = "Africa/Cairo"; // منطقة افتراضية في حال حدوث خطأ
+  try {
+    const tzArray = find(parseFloat(lat), parseFloat(lng));
+    if (tzArray && tzArray.length > 0) {
+        userTimeZone = tzArray[0]; // مثال: "Asia/Riyadh" للسعودية
+    }
+  } catch (err) {
+    console.error("خطأ في تحديد المنطقة الزمنية:", err);
+  }
 
   let params = CalculationMethod.Egyptian();
   let methodName = "Egyptian General Authority of Survey"; 
@@ -47,7 +60,6 @@ exports.getPrayerTimes = catchAsync(async (req, res, next) => {
       methodName = "Singapore";
   }
 
-
   if (madhab === "HANAFI") {
       params.madhab = Madhab.Hanafi;
   } else {
@@ -56,13 +68,14 @@ exports.getPrayerTimes = catchAsync(async (req, res, next) => {
 
   const prayerTimes = new PrayerTimes(coordinates, dateObj, params);
 
+  // 🌟 استخدام المنطقة الزمنية الديناميكية التي جلبناها للمستخدم
   const formatTime = (time) => {
     if (!time) return "N/A";
     return time.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
       hour12: true,
-      timeZone: "Africa/Cairo"
+      timeZone: userTimeZone // التعديل السحري هنا
     });
   };
 
@@ -85,12 +98,12 @@ exports.getPrayerTimes = catchAsync(async (req, res, next) => {
     status: "success",
     data: {
       date: dateObj.toDateString(),
-hijri: new Intl.DateTimeFormat('ar-SA-u-ca-islamic', {
+      hijri: new Intl.DateTimeFormat('ar-SA-u-ca-islamic', {
         day: 'numeric', 
         month: 'long',
         year : 'numeric'
-    }).format(dateObj),
-          timings: {
+      }).format(dateObj),
+      timings: {
         Fajr: formatTime(prayerTimes.fajr),
         Sunrise: formatTime(prayerTimes.sunrise),
         Dhuhr: formatTime(prayerTimes.dhuhr),
@@ -104,13 +117,12 @@ hijri: new Intl.DateTimeFormat('ar-SA-u-ca-islamic', {
         method: methodName, 
         madhab: params.madhab === Madhab.Hanafi ? "Hanafi" : "Shafi/Maliki/Hanbali",
         nextPrayer: nextPrayerName,
-        nextPrayerTime: formatTime(nextPrayerTimeRaw) 
+        nextPrayerTime: formatTime(nextPrayerTimeRaw),
+        timezone: userTimeZone // إرجاع اسم المنطقة الزمنية للتأكيد (مثلاً: Asia/Riyadh)
       }
     },
   });
 });
-
-const axios = require('axios');
 
 exports.getLocation = async (req, res) => {
   try {
