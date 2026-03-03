@@ -242,3 +242,30 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
 });
 
 
+exports.optionalAuth = async (req, res, next) => {
+  try {
+    let token;
+
+    // 1. Bearer token (موبايل / axios)
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+      token = req.headers.authorization.split(' ')[1];
+    }
+    // 2. Cookie (ويب)
+    else if (req.cookies.jwt && req.cookies.jwt !== 'loggedout') {
+      token = req.cookies.jwt;
+    }
+
+    if (!token) return next();
+
+    const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+    const currentUser = await User.findById(decoded.id);
+
+    if (!currentUser || currentUser.changepassword(decoded.iat)) return next();
+
+    req.user = currentUser;
+    res.locals.user = currentUser;
+    return next();
+  } catch (err) {
+    return next();
+  }
+};

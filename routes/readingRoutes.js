@@ -10,6 +10,6 @@ router.get('/continue', authControllers.isLoggedIn, readingControllers.continueK
 router.get("/tafseer/:surah", readingControllers.getTafseerBySurah);
 router.get("/surah/:number", readingControllers.getSurah);
 router.get("/tafseer/:surah/:ayah", readingControllers.getTafser);
-router.get("/page/:page", authControllers.isLoggedIn,readingControllers.getPage);
+router.get("/page/:page", authControllers.optionalAuth,readingControllers.getPage);
 
 module.exports= router

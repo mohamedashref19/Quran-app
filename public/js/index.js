@@ -14,7 +14,8 @@ import { login, logout, signup, verifyOTP, updateSettings, forgotPassword, reset
 import { 
   loadSurahs, startSurahReading, manageKhatmah, createKhatmah, updateKhatmahProgress,
   checkRecitation, loadReciters, loadPrayers, loadBookmarks, loadQuranPage,
-  toggleBookmark, deleteBookmark, deleteKhatmah, initSearch, initBookmarksSearch,scheduleFridayKahfNotification
+  toggleBookmark, deleteBookmark, deleteKhatmah, initSearch, initBookmarksSearch,scheduleFridayKahfNotification,
+  shareAyah,
 } from './features';
 
 import { surahNames, surahPageMap, juzData, getSurahNameByPage } from './constants';
@@ -457,9 +458,14 @@ const requireLogin = (featureName = 'هذه الميزة') => {
 window.requireLogin = requireLogin;
 
 // ─── 6. isUserLoggedIn ────────────────────────────────────────────────────────
-const isUserLoggedIn = () => {
+const isUserLoggedIn = async () => {
   if (axios.defaults.headers.common['Authorization']) return true;
-  if (localStorage.getItem('auth_token')) return true; // ← أضف هذا السطر
+  if (Capacitor.isNativePlatform()) {
+    const { value } = await Preferences.get({ key: 'auth_token' });
+    if (value) return true;
+  } else {
+    if (localStorage.getItem('auth_token')) return true;
+  }
   const userLinks = document.querySelectorAll('.user-link:not(.d-none)');
   return userLinks.length > 0;
 };
@@ -525,17 +531,27 @@ const resetUIButtons = () => {
 
 // ─── 8. checkAuth ─────────────────────────────────────────────────────────────
 window.checkAuth = async () => {
-  // ✅ FIX: استرجاع التوكن دايماً قبل الطلب
+  // ✅ 1. استرجاع التوكن دايماً حسب نوع الجهاز (موبايل أو ويب)
+  let savedToken = null;
+  if (Capacitor.isNativePlatform()) {
+    const pref = await Preferences.get({ key: 'auth_token' });
+    savedToken = pref.value;
+  } else {
+    savedToken = localStorage.getItem('auth_token');
+  }
 
-  const savedToken = localStorage.getItem('auth_token');
+  // ✅ 2. لو مفيش توكن، اعرض أزرار تسجيل الدخول
   if (!savedToken) {
     document.querySelectorAll('.auth-link').forEach(el => el.classList.remove('d-none'));
     document.querySelectorAll('.user-link, .admin-link').forEach(el => el.classList.add('d-none'));
     return false;
   }
-  if (savedToken && !axios.defaults.headers.common['Authorization']) {
+
+  // ✅ 3. إضافة التوكن للـ axios لو مش موجود
+  if (!axios.defaults.headers.common['Authorization']) {
     axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
   }
+  
   try {
     const res = await axios.get('/api/v1/users/me');
     if (res.data.status === 'success') {
@@ -565,11 +581,15 @@ window.checkAuth = async () => {
         return true;
       }
     }
-    // ✅ FIX: لو 401 مع وجود توكن محفوظ، لا تعمل redirect - فقط أخفي روابط المستخدم
-    // السبب: المستخدم reload الصفحة والتوكن مش انتهى - قد يكون مشكلة مؤقتة في السيرفر
+    
+    // ✅ 4. مسح التوكن من المكان الصحيح لو الجلسة انتهت
     if (err.response?.status === 401 && savedToken) {
       console.warn('⚠️ [AUTH] 401 رغم وجود توكن - إزالة التوكن وعرض شاشة الدخول');
-      localStorage.removeItem('auth_token');
+      if (Capacitor.isNativePlatform()) {
+        await Preferences.remove({ key: 'auth_token' });
+      } else {
+        localStorage.removeItem('auth_token');
+      }
       delete axios.defaults.headers.common['Authorization'];
       await localforage.removeItem('is_logged_in');
       await localforage.removeItem('user_role');
@@ -697,7 +717,7 @@ const showTafseerModal = (ayahId, tafseer) => {
 };
 
 // ─── showSection ──────────────────────────────────────────────────────────────
-window.showSection = (sectionName) => {
+window.showSection = async (sectionName) => {
   stopAllMedia();
   if (sectionName !== 'quran' && typeof _stopAutoScroll === 'function') _stopAutoScroll();
   document.querySelectorAll('[id$="-section"]').forEach(el => el.classList.add('d-none'));
@@ -746,7 +766,13 @@ window.showSection = (sectionName) => {
     if (sel && sel.options.length <= 1) surahNames.forEach((n, i) => { const o = document.createElement('option'); o.value = i + 1; o.textContent = `${i + 1}. ${n}`; sel.appendChild(o); });
   }
   if (sectionName === 'profile') {
-    const savedToken = localStorage.getItem('auth_token');
+    let savedToken = null;
+    if (Capacitor.isNativePlatform()) {
+      const { value } = await Preferences.get({ key: 'auth_token' });
+      savedToken = value;
+    } else {
+      savedToken = localStorage.getItem('auth_token');
+    }
     if (savedToken) axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
     axios.get('/api/v1/users/me').then(async res => {
       const u = res.data.data.doc;
@@ -804,7 +830,7 @@ window.showSection = (sectionName) => {
 
 window.openQuranAtCurrentKhatmah = async () => {
   try {
-    if (!isUserLoggedIn()) { requireLogin('متابعة الختمة'); return; }
+    if (!await isUserLoggedIn()) { requireLogin('متابعة الختمة'); return; }
     Swal.fire({
       title: '📖 جاري فتح ختمتك...',
       html: `<div class="text-center py-2"><div class="spinner-border text-success mb-3" style="width: 3rem; height: 3rem;"></div><p class="text-muted mb-0">جاري البحث عن موضع الختمة</p></div>`,
@@ -1225,17 +1251,100 @@ document.addEventListener('change', (e) => {
   });
 });
 
-// ─── 13. Global Click Listener ────────────────────────────────────────────────
+// ─── 13. Global Click Listener (Bottom Sheet Logic) ──────────────────────────
+let selectedVerseData = null; 
+
 document.addEventListener('click', async (e) => {
-  const bookmarkBtn = e.target.closest('.bookmark-icon-btn');
-  if (bookmarkBtn) { e.preventDefault(); e.stopPropagation(); await toggleBookmark(bookmarkBtn.dataset.surah, bookmarkBtn.dataset.ayah, bookmarkBtn); return; }
-  const khatmahBtn = e.target.closest('.khatmah-icon-btn');
-  if (khatmahBtn) {
+  // 🌟 1. فتح القائمة السفلية عند الضغط على أي مكان في الآية
+  const verseWrapper = e.target.closest('.verse-wrapper');
+  if (verseWrapper) {
     e.preventDefault(); e.stopPropagation();
-    if (!isUserLoggedIn()) { requireLogin('تتبع الختمة وحفظ التقدم'); return; }
-    await updateKhatmahProgress(khatmahBtn.dataset.surah, khatmahBtn.dataset.ayah);
+    
+    // سحب بيانات الآية من الـ HTML
+    const surah = verseWrapper.dataset.surah;
+    const ayah = verseWrapper.dataset.ayah;
+    const rawSurahName = verseWrapper.dataset.surahname || '';
+    const isBookmarked = verseWrapper.dataset.bookmarked === 'true';
+    
+    // ✅ التعديل: تنظيف اسم السورة عشان كلمة "سورة" متتكررش
+    const cleanSurahName = rawSurahName.replace(/سورة /g, '').replace(/سُورَةُ /g, '').trim();
+    
+    // تنظيف النص لتجهيزه للنسخ أو المشاركة
+    const ayahEl = document.getElementById(`ayah-${surah}-${ayah}`);
+    const text = ayahEl ? ayahEl.innerText.replace(/[۩]/g, '').replace(/[٠-٩0-9]/g, '').trim() : '';
+
+    // حفظ البيانات بالاسم النظيف
+    selectedVerseData = { surah, ayah, surahName: cleanSurahName, text, isBookmarked };
+
+    // تحديث النصوص داخل القائمة السفلية (Bottom Sheet)
+    const sheetLabel = document.getElementById('verseActionSheetLabel');
+    if(sheetLabel) sheetLabel.innerText = `سورة ${cleanSurahName} - آية ${ayah}`;
+    
+    const bookmarkBtnText = document.getElementById('sheet-bookmark-text');
+    const bookmarkIcon = document.getElementById('sheet-bookmark-icon');
+    if (bookmarkBtnText && bookmarkIcon) {
+        if (isBookmarked) {
+            bookmarkBtnText.innerText = 'إزالة العلامة المرجعية';
+            bookmarkIcon.className = 'fas fa-bookmark text-danger fa-fw';
+        } else {
+            bookmarkBtnText.innerText = 'حفظ كعلامة مرجعية';
+            bookmarkIcon.className = 'far fa-bookmark text-warning fa-fw';
+        }
+    }
+
+    // إظهار القائمة المنزلقة من الأسفل
+    const sheetEl = document.getElementById('verseActionSheet');
+    if (sheetEl) {
+        const bsSheet = new bootstrap.Offcanvas(sheetEl);
+        bsSheet.show();
+    }
     return;
   }
+
+  // 🌟 2. تنفيذ الأوامر عند الضغط على الأزرار داخل القائمة السفلية
+  if (e.target.closest('.action-btn-tafseer')) {
+    if (selectedVerseData) window.showTafseer(selectedVerseData.surah, selectedVerseData.ayah);
+    return;
+  }
+  
+  if (e.target.closest('.action-btn-bookmark')) {
+    if (!await isUserLoggedIn()) { requireLogin('استخدام العلامات المرجعية'); return; }
+    if (selectedVerseData) {
+        const dummyIcon = document.createElement('i');
+        dummyIcon.className = selectedVerseData.isBookmarked ? 'fas' : 'far';
+        await toggleBookmark(selectedVerseData.surah, selectedVerseData.ayah, dummyIcon);
+        // تحديث الواجهة فوراً لتظهر/تختفي علامة الـ Bookmark الصغيرة
+        setTimeout(() => window.loadQuranPage(window.currentPage), 400); 
+    }
+    return;
+  }
+  
+  if (e.target.closest('.action-btn-khatmah')) {
+    if (!await isUserLoggedIn()) { requireLogin('تتبع الختمة'); return; }
+    if (selectedVerseData) {
+        await updateKhatmahProgress(selectedVerseData.surah, selectedVerseData.ayah);
+        setTimeout(() => window.loadQuranPage(window.currentPage), 400);
+    }
+    return;
+  }
+  
+  if (e.target.closest('.action-btn-share')) {
+    if (selectedVerseData) {
+        shareAyah(selectedVerseData.text, selectedVerseData.surahName, selectedVerseData.ayah);
+    }
+    return;
+  }
+
+  if (e.target.closest('.action-btn-copy')) {
+    if (selectedVerseData) {
+        navigator.clipboard.writeText(`"${selectedVerseData.text}"\n[سورة ${selectedVerseData.surahName} - الآية ${selectedVerseData.ayah}]`).then(() => {
+            Swal.fire({ toast: true, position: 'top', icon: 'success', title: 'تم نسخ الآية بنجاح 📋', showConfirmButton: false, timer: 2000 });
+        });
+    }
+    return;
+  }
+
+  // 🌟 3. زر حذف العلامة من صفحة (العلامات المرجعية)
   const deleteBookmarkBtn = e.target.closest('.delete-bookmark-btn');
   if (deleteBookmarkBtn) {
     e.preventDefault(); e.stopPropagation();
@@ -1243,11 +1352,7 @@ document.addEventListener('click', async (e) => {
     if (id) await deleteBookmark(id);
     return;
   }
-  if (e.target.closest('button') || e.target.closest('a')) return;
-  const verse = e.target.closest('[data-surah][data-ayah]');
-  if (verse) { e.preventDefault(); window.showTafseer(verse.dataset.surah, verse.dataset.ayah); }
 });
-
 // ─── 14. Swipe ────────────────────────────────────────────────────────────────
 let touchstartX = 0, touchstartY = 0, startTime = 0;
 document.addEventListener('touchstart', e => {
@@ -1927,7 +2032,7 @@ document.getElementById('tasbeeh-tab')?.addEventListener('shown.bs.tab', () => {
   const aiRecordStatus = document.getElementById('recordStatus');
   if (aiRecordBtn) {
     aiRecordBtn.addEventListener('click', async () => {
-      if (!isUserLoggedIn()) { requireLogin('المصحح الذكي للتلاوة'); return; }
+      if (!await isUserLoggedIn()) { requireLogin('المصحح الذكي للتلاوة'); return; }
       if (!aiMediaRecorder || aiMediaRecorder.state === 'inactive') {
         const surahVal = document.getElementById('ai-surah-select').value;
         if (!surahVal) return showAlert('error', 'يرجى اختيار السورة أولاً');
@@ -1968,7 +2073,7 @@ document.getElementById('tasbeeh-tab')?.addEventListener('shown.bs.tab', () => {
 
   if (btnStartLive && btnStopLive) {
     btnStartLive.addEventListener('click', async () => {
-      if (!isUserLoggedIn()) { requireLogin('تتبع التلاوة المباشر'); return; }
+      if (!await isUserLoggedIn()) { requireLogin('تتبع التلاوة المباشر'); return; }
       try {
         liveStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         isLiveTracking = true;

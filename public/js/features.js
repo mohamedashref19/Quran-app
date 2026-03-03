@@ -2,6 +2,8 @@
 import localforage from 'localforage';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
+import { Share } from '@capacitor/share';
+import { Filesystem, Directory } from '@capacitor/filesystem';
 import axios from 'axios';
 import { showAlert } from './auth';
 import { surahNames, surahStartPages, juzData, getJuzByPage, getHizbByPage, getSurahNameByPage ,SAJDAH_WORDS_COUNT, SAJDAH_WORDS, SAJDAH_AYAH_END, UTHMANI_FIXES} from './constants';
@@ -219,6 +221,284 @@ function updateNavButtons() {
 
 // ─── loadQuranPage ─────────────────────────────────────────────────────────────
 
+// ─── مشاركة آية ────────────────────────────────────────────────────────────────
+
+// ── رسم القالب على الـ Canvas ──
+const drawTemplate = (ctx, templateId, ayahText, surahName, ayahNum) => {
+  const W = 1080, H = 1080;
+  ctx.clearRect(0, 0, W, H);
+
+  if (templateId === 1) {
+    // قالب 1: خلفية خضراء داكنة + إطار ذهبي
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#1a4a2e'); g.addColorStop(1, '#0d2b1a');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 8;
+    ctx.strokeRect(40, 40, 1000, 1000);
+    ctx.strokeStyle = 'rgba(212,175,55,0.3)'; ctx.lineWidth = 2;
+    ctx.strokeRect(58, 58, 964, 964);
+    [[68,68],[1012,68],[68,1012],[1012,1012]].forEach(([x,y]) => {
+      ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(x, y+(y<540?50:-50)); ctx.lineTo(x,y); ctx.lineTo(x+(x<540?50:-50),y);
+      ctx.stroke();
+    });
+    ctx.fillStyle = '#d4af37';
+    ctx.font = 'bold 40px serif'; ctx.textAlign = 'center'; ctx.direction = 'rtl';
+    ctx.fillText(surahName + ' - آية ' + ayahNum, W/2, 165);
+    ctx.strokeStyle = 'rgba(212,175,55,0.5)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(180,205); ctx.lineTo(900,205); ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '50px serif'; ctx.direction = 'rtl';
+    wrapText(ctx, ayahText, W/2, 320, 880, 78);
+    ctx.beginPath(); ctx.moveTo(180,880); ctx.lineTo(900,880); ctx.stroke();
+    ctx.fillStyle = 'rgba(212,175,55,0.75)';
+    ctx.font = '34px serif'; ctx.fillText('📖 تطبيق اقرأ', W/2, 940);
+
+  } else if (templateId === 2) {
+    // قالب 2: أبيض نظيف + خط أخضر
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#1e5f31'; ctx.fillRect(0, 0, W, 18);
+    ctx.fillRect(0, H-18, W, 18);
+    ctx.fillRect(0, 0, 18, H);
+    ctx.fillRect(W-18, 0, 18, H);
+    ctx.fillStyle = '#1e5f31';
+    ctx.font = 'bold 40px serif'; ctx.textAlign = 'center'; ctx.direction = 'rtl';
+    ctx.fillText(surahName + ' - آية ' + ayahNum, W/2, 165);
+    ctx.strokeStyle = '#1e5f31'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(160,205); ctx.lineTo(920,205); ctx.stroke();
+    ctx.fillStyle = '#222222';
+    ctx.font = '50px serif'; ctx.direction = 'rtl';
+    wrapText(ctx, ayahText, W/2, 320, 880, 78);
+    ctx.beginPath(); ctx.moveTo(160,880); ctx.lineTo(920,880); ctx.stroke();
+    ctx.fillStyle = '#1e5f31';
+    ctx.font = '34px serif'; ctx.fillText('📖 تطبيق اقرأ', W/2, 940);
+
+  } else if (templateId === 3) {
+    // قالب 3: بني ذهبي كلاسيكي
+    const g = ctx.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, '#2c1810'); g.addColorStop(0.5, '#3d2314'); g.addColorStop(1, '#1a0e08');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    // زخرفة هندسية
+    ctx.strokeStyle = 'rgba(212,175,55,0.15)'; ctx.lineWidth = 1;
+    for (let i = 0; i < W; i += 60) {
+      ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, H); ctx.stroke();
+    }
+    ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 6;
+    ctx.strokeRect(35, 35, W-70, H-70);
+    ctx.strokeStyle = 'rgba(212,175,55,0.4)'; ctx.lineWidth = 1;
+    ctx.strokeRect(50, 50, W-100, H-100);
+    // نجمة مركزية صغيرة في الأعلى
+    drawStar(ctx, W/2, 120, 5, 30, 14, '#d4af37');
+    ctx.fillStyle = '#d4af37';
+    ctx.font = 'bold 38px serif'; ctx.textAlign = 'center'; ctx.direction = 'rtl';
+    ctx.fillText(surahName + ' - آية ' + ayahNum, W/2, 185);
+    ctx.strokeStyle = 'rgba(212,175,55,0.6)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(180,220); ctx.lineTo(900,220); ctx.stroke();
+    ctx.fillStyle = '#f5e6c8';
+    ctx.font = '50px serif'; ctx.direction = 'rtl';
+    wrapText(ctx, ayahText, W/2, 335, 860, 78);
+    ctx.beginPath(); ctx.moveTo(180,875); ctx.lineTo(900,875); ctx.stroke();
+    drawStar(ctx, W/2, 930, 5, 18, 8, '#d4af37');
+    ctx.fillStyle = 'rgba(212,175,55,0.7)';
+    ctx.font = '32px serif'; ctx.fillText('تطبيق اقرأ', W/2, 975);
+
+  } else if (templateId === 4) {
+    // قالب 4: أزرق ليلي
+    const g = ctx.createRadialGradient(W/2, H/2, 100, W/2, H/2, 760);
+    g.addColorStop(0, '#0a2744'); g.addColorStop(1, '#020c1b');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    // نجوم عشوائية
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    [[120,80],[300,50],[500,90],[700,40],[900,75],[80,200],[980,180],
+     [150,900],[400,950],[650,980],[850,920],[1000,850]].forEach(([x,y]) => {
+      ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI*2); ctx.fill();
+    });
+    ctx.strokeStyle = 'rgba(100,160,255,0.5)'; ctx.lineWidth = 5;
+    ctx.strokeRect(38, 38, W-76, H-76);
+    ctx.strokeStyle = 'rgba(100,160,255,0.2)'; ctx.lineWidth = 1;
+    ctx.strokeRect(52, 52, W-104, H-104);
+    ctx.fillStyle = '#7eb8ff';
+    ctx.font = 'bold 40px serif'; ctx.textAlign = 'center'; ctx.direction = 'rtl';
+    ctx.fillText(surahName + ' - آية ' + ayahNum, W/2, 165);
+    ctx.strokeStyle = 'rgba(100,160,255,0.4)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(180,205); ctx.lineTo(900,205); ctx.stroke();
+    ctx.fillStyle = '#e8f4ff';
+    ctx.font = '50px serif'; ctx.direction = 'rtl';
+    wrapText(ctx, ayahText, W/2, 320, 880, 78);
+    ctx.beginPath(); ctx.moveTo(180,880); ctx.lineTo(900,880); ctx.stroke();
+    ctx.fillStyle = 'rgba(126,184,255,0.75)';
+    ctx.font = '34px serif'; ctx.fillText('📖 تطبيق اقرأ', W/2, 940);
+  }
+};
+
+// wrap text helper
+const wrapText = (ctx, text, x, startY, maxW, lineH) => {
+  const words = text.split(' ');
+  let line = '';
+  let y = startY;
+  for (const word of words) {
+    const test = line ? line + ' ' + word : word;
+    if (ctx.measureText(test).width > maxW && line) {
+      ctx.fillText(line, x, y); y += lineH; line = word;
+    } else { line = test; }
+  }
+  if (line) ctx.fillText(line, x, y);
+};
+
+// رسم نجمة
+const drawStar = (ctx, cx, cy, spikes, outerR, innerR, color) => {
+  let rot = (Math.PI / 2) * 3, step = Math.PI / spikes;
+  ctx.beginPath(); ctx.moveTo(cx, cy - outerR);
+  for (let i = 0; i < spikes; i++) {
+    ctx.lineTo(cx + Math.cos(rot) * outerR, cy + Math.sin(rot) * outerR); rot += step;
+    ctx.lineTo(cx + Math.cos(rot) * innerR, cy + Math.sin(rot) * innerR); rot += step;
+  }
+  ctx.lineTo(cx, cy - outerR); ctx.closePath();
+  ctx.fillStyle = color; ctx.fill();
+};
+
+// ── عرض نافذة اختيار القالب ──
+const showTemplateChooser = (ayahText, surahName, ayahNum) => {
+  return new Promise((resolve) => {
+    const templates = [
+      { id: 1, label: 'أخضر ذهبي',  bg: 'linear-gradient(135deg,#1a4a2e,#0d2b1a)', color: '#d4af37' },
+      { id: 2, label: 'أبيض أنيق',   bg: '#ffffff',                                  color: '#1e5f31' },
+      { id: 3, label: 'بني كلاسيكي', bg: 'linear-gradient(135deg,#2c1810,#1a0e08)', color: '#d4af37' },
+      { id: 4, label: 'أزرق ليلي',   bg: 'linear-gradient(135deg,#0a2744,#020c1b)', color: '#7eb8ff' },
+    ];
+
+    // ارسم المعاينات الصغيرة
+    const previewsHTML = templates.map(t => `
+      <div onclick="this.parentNode.querySelectorAll('.tpl-card').forEach(c=>c.classList.remove('selected')); this.classList.add('selected'); this.parentNode.dataset.chosen='${t.id}';"
+           class="tpl-card" data-id="${t.id}"
+           style="cursor:pointer; border-radius:12px; overflow:hidden; border:3px solid transparent; transition:border .2s; width:130px; text-align:center;">
+        <div style="height:130px; background:${t.bg}; display:flex; align-items:center; justify-content:center; border-radius:9px;">
+          <span style="color:${t.color}; font-size:13px; padding:6px; direction:rtl; font-family:serif;">${surahName}<br><small style="font-size:11px; opacity:.8;">آية ${ayahNum}</small></span>
+        </div>
+        <div style="font-size:12px; margin-top:5px; color:#555;">${t.label}</div>
+      </div>
+    `).join('');
+
+    Swal.fire({
+      title: 'اختر شكل البطاقة',
+      html: `
+        <div id="tpl-grid" data-chosen="1"
+             style="display:flex; flex-wrap:wrap; gap:14px; justify-content:center; padding:10px;">
+          ${previewsHTML}
+        </div>`,
+      showCancelButton: true,
+      confirmButtonText: 'مشاركة ✨',
+      cancelButtonText: 'إلغاء',
+      confirmButtonColor: '#1e5f31',
+      didOpen: () => {
+        // اختر الأول افتراضياً
+        const first = Swal.getPopup().querySelector('.tpl-card');
+        if (first) first.classList.add('selected');
+        // CSS للتحديد
+        const style = document.createElement('style');
+        style.textContent = '.tpl-card.selected { border-color: #1e5f31 !important; }';
+        Swal.getPopup().appendChild(style);
+      },
+      preConfirm: () => {
+        const grid = Swal.getPopup().querySelector('#tpl-grid');
+        return parseInt(grid?.dataset.chosen || '1');
+      }
+    }).then(result => {
+      resolve(result.isConfirmed ? result.value : null);
+    });
+  });
+};
+
+export const shareAyah = async (ayahText, surahName, ayahNum) => {
+  // 🌟 1. تنظيف اسم السورة من كلمة "سورة" أو "سُورَةُ" عشان متتكررش
+  const cleanSurahName = surahName.replace(/سورة /g, '').replace(/سُورَةُ /g, '').trim();
+
+  // 2. إنشاء الكارت (التصميم) بشكل مخفي في الشاشة
+  const card = document.createElement('div');
+  card.style.cssText = `
+    width: 1080px; 
+    padding: 80px; 
+    background: linear-gradient(135deg, #0d1b0f 0%, #1e5f31 100%); 
+    color: #fff; 
+    font-family: 'Amiri Quran', 'Amiri', serif; 
+    text-align: center; 
+    position: fixed; 
+    left: -9999px; 
+    top: 0; 
+    direction: rtl;
+  `;
+  
+  // 🌟 3. تم تعديل لون الآية (لون كريمي #fdf5e6) وتغميق الخلفية عشان الكلام يوضح وينور
+  card.innerHTML = `
+    <div style="border: 3px solid #d4af37; padding: 70px 50px; border-radius: 40px; background: rgba(0,0,0,0.45); box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
+      <div style="margin-bottom: 40px;">
+         <i class="fas fa-book-open" style="font-size: 55px; color: #d4af37;"></i>
+      </div>
+      <p style="font-size: 65px; line-height: 2.2; margin-bottom: 50px; color: #fdf5e6; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
+        "${ayahText}"
+      </p>
+      <div style="color: #d4af37; font-size: 40px; font-family: 'Tajawal', sans-serif; font-weight: bold;">
+        سورة ${cleanSurahName} - آية ${ayahNum}
+      </div>
+      <div style="margin-top: 50px; font-size: 26px; color: #a5d6a7; font-family: 'Tajawal', sans-serif; opacity: 0.8;">
+        تطبيق اقرأ 📖
+      </div>
+    </div>
+  `;
+  document.body.appendChild(card);
+
+  // إظهار اللودنج
+  Swal.fire({
+    title: 'جاري تجهيز الصورة...',
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading()
+  });
+
+  try {
+    // 4. تحويل الكارت لصورة
+    const canvas = await html2canvas(card, { scale: 2, backgroundColor: '#0d1b0f', useCORS: true });
+    const imgData = canvas.toDataURL('image/png');
+    document.body.removeChild(card); // تنظيف الشاشة
+
+    // 5. تحويل الـ base64 لملف File
+    const blob = await (await fetch(imgData)).blob();
+    const file = new File([blob], `ayah_${cleanSurahName}_${ayahNum}.png`, { type: 'image/png' });
+
+    Swal.close(); // قفل اللودنج
+
+    // 6. مشاركة الصورة بالنصوص المحدثة)
+    if (Capacitor.isNativePlatform()) {
+       const base64Data = imgData.split(',')[1];
+       const fileName = `ayah_share_${Date.now()}.png`;
+       await Filesystem.writeFile({ path: fileName, data: base64Data, directory: Directory.Cache });
+       const { uri } = await Filesystem.getUri({ path: fileName, directory: Directory.Cache });
+       
+       await Share.share({
+         title: `سورة ${cleanSurahName} - آية ${ayahNum}`,
+         text: `"${ayahText}"\n\n[سورة ${cleanSurahName} - آية ${ayahNum}]\n\nتمت المشاركة من تطبيق اقرأ 📖`,
+         url: uri,
+         dialogTitle: 'مشاركة الآية',
+       });
+    } else if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+       await navigator.share({
+         title: 'تطبيق اقرأ',
+         text: `سورة ${cleanSurahName} - آية ${ayahNum}\n\nتمت المشاركة من تطبيق اقرأ 📖`,
+         files: [file]
+       });
+    } else {
+       const link = document.createElement('a');
+       link.download = `ayah_${cleanSurahName}_${ayahNum}.png`;
+       link.href = imgData;
+       link.click();
+    }
+  } catch(e) {
+    console.error('خطأ في توليد الصورة:', e);
+    Swal.fire('خطأ', 'تعذر إنشاء الصورة، تأكد من اتصالك بالإنترنت', 'error');
+    if (document.body.contains(card)) document.body.removeChild(card);
+  }
+};
+
 export async function loadQuranPage(pageNumber, targetSurah = null, targetAyah = null) {
   const pageNum = parseInt(pageNumber);
 
@@ -408,14 +688,19 @@ let fullTextHTML = '<div class="quran-page-content" style="text-align: justify; 
       const khatmahClass = isKhatmahActive ? 'fas' : 'far';
       const khatmahColor = isKhatmahActive ? '#198754' : '#198754';
 
-      // 7. دمج الآية (النص + رمز السجدة إن وجد + رقم الآية + الأيقونات)
+    // 7. دمج الآية (النص + رقم الآية + أيقونات حالة صغيرة جداً لعدم الزحام)
+      const bookmarkIcon = isBookmarked ? `<i class="fas fa-bookmark mx-1" style="color: #d4af37; font-size: 0.7em;"></i>` : '';
+      const khatmahIcon = isKhatmahActive ? `<i class="fas fa-flag mx-1" style="color: #198754; font-size: 0.8em;"></i>` : '';
+
       fullTextHTML += `
-        <span id="ayah-${surahNum}-${ayahNum}" class="ayah-text ayah-clickable" data-surah="${surahNum}" data-ayah="${ayahNum}" title="تفسير الآية ${ayahNum}" style="cursor: pointer;">${ayahText}${sajdahSymbolHTML}</span>
-        <span class="ayah-end-wrapper" style="white-space: nowrap; display: inline-block;">
-          <span class="ayah-end-symbol" style="color: #d4af37; font-family: sans-serif; margin: 0 5px; border: 1px solid #d4af37; border-radius: 50%; padding: 0 5px; font-size: 0.8em;">${ayahNum}</span>
-          <i class="${iconClass} fa-bookmark bookmark-icon-btn" data-surah="${surahNum}" data-ayah="${ayahNum}" title="حفظ علامة مرجعية" style="cursor: pointer; color: ${iconColor}; font-size: 0.7em;"></i>
+        <span class="verse-wrapper" data-surah="${surahNum}" data-ayah="${ayahNum}" data-surahname="${surahName}" data-bookmarked="${isBookmarked}" style="cursor: pointer; display: inline; border-radius: 5px; padding: 2px; transition: background 0.2s;">
+          <span id="ayah-${surahNum}-${ayahNum}" class="ayah-text">${ayahText}${sajdahSymbolHTML}</span>
+          <span class="ayah-end-wrapper" style="white-space: nowrap; display: inline-block;">
+            <span class="ayah-end-symbol" style="color: #d4af37; font-family: sans-serif; margin: 0 5px; border: 1px solid #d4af37; border-radius: 50%; padding: 0 5px; font-size: 0.8em;">${ayahNum}</span>
+            ${bookmarkIcon}
+            ${khatmahIcon}
+          </span>
         </span>
-        <i class="${khatmahClass} fa-flag khatmah-icon-btn mx-1" data-surah="${surahNum}" data-ayah="${ayahNum}" title="${isKhatmahActive ? 'أنت تتوقف هنا' : 'تحديث الختمة هنا'}" style="cursor: pointer; color: ${khatmahColor}; font-size: 0.8em;"></i>
       `;
     });
 
@@ -1582,6 +1867,93 @@ export const initBookmarksSearch = () => {
   });
 };
 
+// ─── دوال مساعدة للبحث الأوفلاين وإزالة التشكيل ────────────────────────────
+const stripTashkeel = (text) => {
+  if (!text) return '';
+  return text
+    .replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED\u0640]/g, '')
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه')
+    .replace(/ؤ/g, 'و')
+    .replace(/ئ/g, 'ي')
+    .replace(/۩/g, '')
+    .trim();
+};
+
+const searchInCachedPages = async (query) => {
+  const _cacheGet = window['cacheGet'];
+  if (!_cacheGet) return [];
+
+  const results = [];
+  const q = stripTashkeel(query); // تجريد كلمة البحث من التشكيل
+
+  for (let page = 1; page <= 604; page++) {
+    const pageData = await _cacheGet(page);
+    if (!pageData || !pageData.ayahs) continue;
+
+    for (const ayah of pageData.ayahs) {
+      const text = ayah.text || ayah.ayahText || '';
+      const cleanText = stripTashkeel(text); // تجريد الآية المحفوظة لتطابق كلمة البحث
+
+      if (cleanText.includes(q)) {
+        results.push({
+          text, // نرجع النص الأصلي بالتشكيل عشان يظهر بشكل جميل
+          surahNameAr: ayah.surahNameAr || (ayah.surah?.name) || '',
+          surahNumber: ayah.surahNumber || ayah.surah?.number || 0,
+          ayahNumber:  ayah.numberInSurah || ayah.ayahNumber || 0,
+          page:        ayah.page || page,
+        });
+        if (results.length >= 30) return results; // زودناها لـ 30 عشان تدي نتائج كافية
+      }
+    }
+  }
+  return results;
+};
+
+const renderSearchResults = (ayahs, resultsContainer, searchInput) => {
+  resultsContainer.innerHTML = '';
+  if (ayahs.length === 0) {
+    resultsContainer.innerHTML = '<div class="list-group-item text-center text-muted">لا توجد نتائج</div>';
+    return;
+  }
+  
+  const query = searchInput.value.trim();
+  
+  ayahs.forEach(ayah => {
+    const item        = document.createElement('a');
+    item.className    = 'list-group-item list-group-item-action';
+    item.style.cursor = 'pointer';
+    const realAyahNum = ayah.ayahNumber || ayah.numberInSurah;
+
+    // تلوين كلمة البحث باللون الأخضر (اختياري)
+    const highlightText = ayah.text.replace(new RegExp(query, 'gi'), match => `<span class="text-success fw-bold">${match}</span>`);
+
+    item.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center">
+        <span class="fw-bold text-success small">${ayah.surahNameAr} - آية ${realAyahNum}</span>
+        <span class="badge bg-light text-dark border">ص ${ayah.page}</span>
+      </div>
+      <p class="mb-0 mt-1 small text-muted text-end" style="font-family: 'Amiri'; font-size: 1.1em;">${highlightText}...</p>
+    `;
+
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      resultsContainer.classList.add('d-none');
+      searchInput.value = '';
+      document.querySelectorAll('[id$="-section"]').forEach(el => el.classList.add('d-none'));
+      const quranSection = document.getElementById('quran-section');
+      if (quranSection) quranSection.classList.remove('d-none');
+      window.scrollTo(0, 0);
+      window.history.pushState({ section: 'quran' }, '', `/quran/${ayah.page}`);
+      if (window.loadQuranPage) window.loadQuranPage(ayah.page, ayah.surahNumber, realAyahNum);
+      else loadQuranPage(ayah.page, ayah.surahNumber, realAyahNum);
+    });
+
+    resultsContainer.appendChild(item);
+  });
+};
+
 export const initSearch = () => {
   const searchInput      = document.getElementById('search-input');
   const resultsContainer = document.getElementById('search-results');
@@ -1595,49 +1967,57 @@ export const initSearch = () => {
 
     clearTimeout(timeoutId);
     timeoutId = setTimeout(async () => {
-      try {
-        resultsContainer.innerHTML = '<div class="list-group-item text-center">جاري البحث...</div>';
-        resultsContainer.classList.remove('d-none');
+      resultsContainer.innerHTML = '<div class="list-group-item text-center">جاري البحث...</div>';
+      resultsContainer.classList.remove('d-none');
 
-        const res   = await axios.get(`/api/v1/quran/search?q=${query}`);
-        const ayahs = res.data.data.ayahs;
-        resultsContainer.innerHTML = '';
+      // ─── دالة مجمعة للبحث الأوفلاين للنداء عليها كبديل (Fallback) ───
+      const doOfflineSearch = async () => {
+        try {
+          resultsContainer.innerHTML = '<div class="list-group-item text-center text-muted small">🔌 وضع أوفلاين - البحث في المصحف المحفوظ...</div>';
+          const ayahs = await searchInCachedPages(query);
 
-        if (ayahs.length === 0) { resultsContainer.innerHTML = '<div class="list-group-item text-center text-muted">لا توجد نتائج</div>'; return; }
+          if (ayahs.length === 0) {
+            // جرب آخر نتائج محفوظة إذا كان نفس الاستعلام
+            const lastSearch = await localforage.getItem('last_search_results');
+            if (lastSearch && lastSearch.query === query && lastSearch.ayahs?.length > 0) {
+              resultsContainer.innerHTML = '<div class="list-group-item text-center text-warning small">📦 نتائج محفوظة مسبقاً</div>';
+              renderSearchResults(lastSearch.ayahs, resultsContainer, searchInput);
+            } else {
+              resultsContainer.innerHTML = '<div class="list-group-item text-center text-muted">لا توجد نتائج في المصحف المحفوظ</div>';
+            }
+          } else {
+            renderSearchResults(ayahs, resultsContainer, searchInput);
+          }
+        } catch (err) {
+          console.error('[SEARCH OFFLINE] خطأ:', err);
+          resultsContainer.innerHTML = '<div class="list-group-item text-danger text-center">حدث خطأ في البحث المحلي</div>';
+        }
+      };
 
-        ayahs.forEach(ayah => {
-          const item        = document.createElement('a');
-          item.className    = 'list-group-item list-group-item-action';
-          item.style.cursor = 'pointer';
-          const realAyahNum = ayah.ayahNumber || ayah.numberInSurah;
-
-          item.innerHTML = `
-            <div class="d-flex justify-content-between align-items-center">
-              <span class="fw-bold text-success small">${ayah.surahNameAr} - آية ${realAyahNum}</span>
-              <span class="badge bg-light text-dark border">ص ${ayah.page}</span>
-            </div>
-            <p class="mb-0 mt-1 small text-muted text-end" style="font-family: 'Amiri'; font-size: 1.1em;">${ayah.text.substring(0, 60)}...</p>
-          `;
-
-          item.addEventListener('click', (e) => {
-            e.preventDefault();
-            resultsContainer.classList.add('d-none');
-            searchInput.value = '';
-            document.querySelectorAll('[id$="-section"]').forEach(el => el.classList.add('d-none'));
-            const quranSection = document.getElementById('quran-section');
-            if (quranSection) quranSection.classList.remove('d-none');
-            window.scrollTo(0, 0);
-            window.history.pushState({ section: 'quran' }, '', `/quran/${ayah.page}`);
-            if (window.loadQuranPage) window.loadQuranPage(ayah.page, ayah.surahNumber, ayah.ayahNumber || ayah.numberInSurah);
-            else loadQuranPage(ayah.page, ayah.surahNumber, ayah.ayahNumber || ayah.numberInSurah);
-          });
-
-          resultsContainer.appendChild(item);
-        });
-
-      } catch (err) {
-        console.error(err);
-        resultsContainer.innerHTML = '<div class="list-group-item text-danger text-center">حدث خطأ في البحث</div>';
+      // ─── التوجيه الذكي ───
+    if (navigator.onLine) {
+        try {
+          // 1. حاول البحث عبر السيرفر
+           const res = await axios.get(`/api/v1/quran/search?q=${encodeURIComponent(query)}`, { timeout: 5000 });
+          const ayahs = res.data.data.ayahs;
+          
+          // ✅ التعديل السحري: لو السيرفر لم يجد الكلمة (بسبب اختلاف الـ ى والـ ي)، شغل بحثنا الذكي!
+          if (!ayahs || ayahs.length === 0) {
+             console.log('لم يجد السيرفر نتائج، جاري التشغيل البحث المحلي الذكي...');
+             await doOfflineSearch();
+          } else {
+             await localforage.setItem('last_search_results', { query, ayahs, cachedAt: Date.now() });
+             renderSearchResults(ayahs, resultsContainer, searchInput);
+          }
+        } catch (err) {
+          // 2. لو السيرفر واقع أو فيه خطأ
+          console.warn('⚠️ فشل البحث أونلاين، جاري التحويل للبحث الأوفلاين...');
+          await doOfflineSearch();
+        }
+      } else {
+        // 3. لو الجهاز عارف إنه أوفلاين من البداية
+        resultsContainer.innerHTML = '<div class="list-group-item text-center text-muted small">🔌 وضع أوفلاين - البحث في المصحف المحفوظ...</div>';
+        await doOfflineSearch();
       }
     }, 500);
   });
