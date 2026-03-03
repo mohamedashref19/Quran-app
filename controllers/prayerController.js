@@ -1,5 +1,5 @@
 const { Coordinates, CalculationMethod, PrayerTimes, Prayer, Madhab } = require('adhan');
-const { find } = require('geo-tz'); // 🌟 استدعاء مكتبة تحديد المنطقة الزمنية
+const { find } = require('geo-tz');
 const axios = require('axios');
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
@@ -14,50 +14,74 @@ exports.getPrayerTimes = catchAsync(async (req, res, next) => {
   const coordinates = new Coordinates(parseFloat(lat), parseFloat(lng));
   const dateObj = date ? new Date(date) : new Date();
 
-  // 🌟 جلب المنطقة الزمنية (Timezone) بناءً على الإحداثيات
-  let userTimeZone = "Africa/Cairo"; // منطقة افتراضية في حال حدوث خطأ
+  // 1. تحديد المنطقة الزمنية من الإحداثيات
+  let userTimeZone = "Africa/Cairo"; 
   try {
     const tzArray = find(parseFloat(lat), parseFloat(lng));
     if (tzArray && tzArray.length > 0) {
-        userTimeZone = tzArray[0]; // مثال: "Asia/Riyadh" للسعودية
+        userTimeZone = tzArray[0]; 
     }
   } catch (err) {
-    console.error("خطأ في تحديد المنطقة الزمنية:", err);
+    console.error("Timezone error:", err);
   }
 
-  let params = CalculationMethod.Egyptian();
-  let methodName = "Egyptian General Authority of Survey"; 
-  if (method === "MWL") {
-    params = CalculationMethod.MuslimWorldLeague();
-    methodName = "Muslim World League";
-  } 
-  else if (method === "ISNA") {
-    params = CalculationMethod.NorthAmerica();
-    methodName = "Islamic Society of North America (ISNA)";
-  } 
-  else if (method === "MAKKAH") {
-    params = CalculationMethod.UmmAlQura();
-    methodName = "Umm Al-Qura University, Makkah";
-  } 
-  else if (method === "KARACHI") {
-    params = CalculationMethod.Karachi();
-    methodName = "University of Islamic Sciences, Karachi";
+  // 2. الاختيار الذكي لطريقة الحساب بناءً على المنطقة إذا لم يحددها المستخدم
+  let params;
+  let methodName = "";
+
+  if (method === "MWL") { params = CalculationMethod.MuslimWorldLeague(); methodName = "Muslim World League"; } 
+  else if (method === "ISNA") { params = CalculationMethod.NorthAmerica(); methodName = "ISNA"; } 
+  else if (method === "MAKKAH") { params = CalculationMethod.UmmAlQura(); methodName = "Umm Al-Qura"; } 
+  else if (method === "KARACHI") { params = CalculationMethod.Karachi(); methodName = "Karachi"; }
+  else if (method === "DUBAI") { params = CalculationMethod.Dubai(); methodName = "Dubai"; }
+  else if (method === "QATAR") { params = CalculationMethod.Qatar(); methodName = "Qatar"; }
+  else if (method === "KUWAIT") { params = CalculationMethod.Kuwait(); methodName = "Kuwait"; }
+  else if (method === "SINGAPORE") { params = CalculationMethod.Singapore(); methodName = "Singapore"; }
+  else {
+      // 🌟 التوجيه الذكي التلقائي 🌟
+      if (userTimeZone.includes('Riyadh') || userTimeZone.includes('Saudi')) {
+          params = CalculationMethod.UmmAlQura();
+          methodName = "Umm Al-Qura (Auto-detected)";
+      } else if (userTimeZone.includes('Dubai') || userTimeZone.includes('Muscat')) {
+          params = CalculationMethod.Dubai();
+          methodName = "Dubai (Auto-detected)";
+      } else if (userTimeZone.includes('Qatar')) {
+          params = CalculationMethod.Qatar();
+          methodName = "Qatar (Auto-detected)";
+      } else if (userTimeZone.includes('Kuwait')) {
+          params = CalculationMethod.Kuwait();
+          methodName = "Kuwait (Auto-detected)";
+      } else if (userTimeZone.includes('Karachi') || userTimeZone.includes('Kabul')) {
+          params = CalculationMethod.Karachi();
+          methodName = "Karachi (Auto-detected)";
+      } else if (userTimeZone.includes('America/')) {
+          params = CalculationMethod.NorthAmerica();
+          methodName = "ISNA (Auto-detected)";
+      } else if (userTimeZone.includes('Europe/')) {
+          params = CalculationMethod.MuslimWorldLeague();
+          methodName = "MWL (Auto-detected)";
+      } else {
+          params = CalculationMethod.Egyptian();
+          methodName = "Egyptian General Authority (Default)";
+      }
   }
-  else if (method === "DUBAI") {
-      params = CalculationMethod.Dubai();
-      methodName = "Dubai";
-  }
-  else if (method === "QATAR") {
-      params = CalculationMethod.Qatar();
-      methodName = "Qatar";
-  }
-  else if (method === "KUWAIT") {
-      params = CalculationMethod.Kuwait();
-      methodName = "Kuwait";
-  }
-  else if (method === "SINGAPORE") {
-      params = CalculationMethod.Singapore();
-      methodName = "Singapore";
+
+  // 3. ضبط قاعدة العشاء الخاصة بالسعودية (أم القرى) في رمضان
+  if (methodName.includes("Umm Al-Qura")) {
+      try {
+          // استخراج رقم الشهر الهجري الحالي
+          const hijriMonthFormatter = new Intl.DateTimeFormat('en-US-u-ca-islamic', { month: 'numeric' });
+          const hijriMonth = parseInt(hijriMonthFormatter.format(dateObj));
+          
+          // في رمضان (الشهر رقم 9) العشاء بعد المغرب بـ 120 دقيقة، غير كده 90 دقيقة
+          if (hijriMonth === 9) {
+              params.ishaInterval = 120;
+          } else {
+              params.ishaInterval = 90;
+          }
+      } catch (e) {
+          params.ishaInterval = 90; // احتياطي
+      }
   }
 
   if (madhab === "HANAFI") {
@@ -68,14 +92,13 @@ exports.getPrayerTimes = catchAsync(async (req, res, next) => {
 
   const prayerTimes = new PrayerTimes(coordinates, dateObj, params);
 
-  // 🌟 استخدام المنطقة الزمنية الديناميكية التي جلبناها للمستخدم
   const formatTime = (time) => {
     if (!time) return "N/A";
     return time.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
       hour12: true,
-      timeZone: userTimeZone // التعديل السحري هنا
+      timeZone: userTimeZone // توقيت منطقة المستخدم
     });
   };
 
@@ -118,7 +141,7 @@ exports.getPrayerTimes = catchAsync(async (req, res, next) => {
         madhab: params.madhab === Madhab.Hanafi ? "Hanafi" : "Shafi/Maliki/Hanbali",
         nextPrayer: nextPrayerName,
         nextPrayerTime: formatTime(nextPrayerTimeRaw),
-        timezone: userTimeZone // إرجاع اسم المنطقة الزمنية للتأكيد (مثلاً: Asia/Riyadh)
+        timezone: userTimeZone
       }
     },
   });
