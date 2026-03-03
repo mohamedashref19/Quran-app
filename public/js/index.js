@@ -6,6 +6,7 @@ import { Geolocation } from '@capacitor/geolocation';
 import { Preferences } from '@capacitor/preferences';
 import localforage from 'localforage';
 import { StatusBar, Style } from '@capacitor/status-bar';
+import { Browser } from '@capacitor/browser';
 
 
 import axios from 'axios';
@@ -161,6 +162,10 @@ window.addEventListener('online', () => {
   });
   setTimeout(() => processOfflineQueue(), 2000);
 });
+
+
+
+
 
 // ─── 2. Global State ──────────────────────────────────────────────────────────
 window.currentAudio = null;
@@ -1711,13 +1716,14 @@ document.getElementById('btn-next-page')?.addEventListener('click', () => {
 window.addEventListener('popstate', (event) => {
   stopAllMedia();
   const path = window.location.pathname;
-  if (path === '/' || path === '/index.html') {
+  // إظهار القسم بناءً على الـ state المحفوظ أولاً
+  if (event.state?.section) {
+    document.querySelectorAll('[id$="-section"]').forEach(el => el.classList.add('d-none'));
+    document.getElementById(`${event.state.section}-section`)?.classList.remove('d-none');
+  } else if (path === '/' || path === '/index.html') {
     document.querySelectorAll('[id$="-section"]').forEach(el => el.classList.add('d-none'));
     const homeSection = document.getElementById('home-section');
     if (homeSection) homeSection.classList.remove('d-none');
-  } else if (event.state?.section) {
-    document.querySelectorAll('[id$="-section"]').forEach(el => el.classList.add('d-none'));
-    document.getElementById(`${event.state.section}-section`)?.classList.remove('d-none');
   }
 });
 
@@ -1781,12 +1787,12 @@ document.body.addEventListener('click', (e) => {
   }
 });
 
-// ─── 17. Native Init ──────────────────────────────────────────────────────────
+// ─── 1. Native Init & Cache Management ─────────────────────────────────────────
 const initNativeFeatures = async () => {
   if (!Capacitor.isNativePlatform()) return;
   try {
     const isDark = localStorage.getItem('theme') === 'dark';
-   await StatusBar.setOverlaysWebView({ overlay: true });
+    await StatusBar.setOverlaysWebView({ overlay: true });
     if (isDark) {
         await StatusBar.setBackgroundColor({ color: '#1e5f31' });
         await StatusBar.setStyle({ style: Style.Dark });
@@ -1795,26 +1801,44 @@ const initNativeFeatures = async () => {
         await StatusBar.setStyle({ style: Style.Dark }); 
     }
 
-    if ('serviceWorker' in navigator) {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      for (let r of regs) await r.unregister();
-      const keys = await caches.keys();
-      for (let k of keys) {
-  if (k !== 'quran-audio-cache-v1') {
-    await caches.delete(k);
-  }
-}
+    // 🧹 [مسح الكاش الذكي عند التحديث فقط]
+    const savedVersion = localStorage.getItem('app_version');
+    const appInfo = await App.getInfo();
+    const currentVersion = appInfo.version;
+
+    if (savedVersion && savedVersion !== currentVersion) {
+      console.log(`🔄 [UPDATE] تم تحديث التطبيق إلى ${currentVersion} — جاري مسح الكاش القديم`);
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (let r of regs) await r.unregister();
+      }
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        for (let k of keys) {
+          if (k !== 'quran-audio-cache-v1') { 
+            await caches.delete(k);
+          }
+        }
+      }
     }
+    localStorage.setItem('app_version', currentVersion);
+
+    // 🔔 إعدادات الإشعارات ويوم الجمعة
     await LocalNotifications.cancel({ notifications: [{ id: 101 }] });
     await App.removeAllListeners();
     await App.addListener('backButton', ({ canGoBack }) => {
       const home = document.getElementById('home-section');
-      if (home && !home.classList.contains('d-none')) { stopAllMedia(); canGoBack ? window.history.back() : App.exitApp(); }
-      else window.showSection('home');
+      if (home && !home.classList.contains('d-none')) {
+        stopAllMedia();
+        canGoBack ? window.history.back() : App.exitApp();
+      } else {
+        if (canGoBack) window.history.back();
+        else { stopAllMedia(); window.showSection('home'); }
+      }
     });
+
     LocalNotifications.addListener('localNotificationActionPerformed', (notif) => {
       if (notif.notification.actionTypeId === 'OPEN_KAHF') {
-        // سورة الكهف رقم 18 - صفحة 293
         window.showSection('quran');
         window.loadQuranPage(293);
       }
@@ -1824,11 +1848,69 @@ const initNativeFeatures = async () => {
     if (notifs.display === 'granted') {
       await LocalNotifications.createChannel({ id: 'azan-channel', name: 'تنبيهات الصلاة', importance: 5, sound: 'azan_short.mp3', visibility: 1, vibration: true });
       await LocalNotifications.createChannel({ id: 'khatmah-channel', name: 'تنبيهات الورد', importance: 4, visibility: 1, vibration: true });
+      
+      // ✅ الحفاظ على تنبيه سورة الكهف
       await scheduleFridayKahfNotification();
-    console.log('✅ [FRIDAY] تنبيه سورة الكهف مجدول');
+      console.log('✅ [FRIDAY] تنبيه سورة الكهف مجدول');
     }
     try { await Geolocation.requestPermissions(); } catch (e) { console.log('Geo permission:', e); }
   } catch (err) { console.error('Native Init Error:', err); }
+};
+
+// ─── 2. Update Checker 🔄 ────────────────────────────────────────────────────────
+const checkForUpdates = async () => {
+  if (!Capacitor.isNativePlatform() || !navigator.onLine) return;
+
+  try {
+    const appInfo = await App.getInfo();
+    const currentBuild = parseInt(appInfo.build); 
+
+    const res  = await fetch('https://aqraapp.com/version.json?t=' + Date.now());
+    const data = await res.json();
+    const serverBuild = parseInt(data.versionCode);
+
+    if (serverBuild <= currentBuild) return; // التطبيق محدث بالفعل
+
+    const isForce = data.forceUpdate;
+    const modalHtml = `
+      <div class="modal fade" id="modal-update" tabindex="-1" data-bs-backdrop="${isForce ? 'static' : 'true'}" dir="rtl">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content border-0 shadow-lg" style="border-radius:20px;overflow:hidden;background:#ffffff !important;font-family:'Amiri',sans-serif;">
+            <div style="background:linear-gradient(135deg,#1e5f31,#198754);padding:28px 24px 20px;text-align:center;color:white;">
+              <div style="width:64px;height:64px;background:rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+                <i class="fas fa-rocket" style="font-size:1.8rem;"></i>
+              </div>
+              <h5 class="fw-bold mb-1" style="font-size:1.3rem;color:#fff !important;">تحديث جديد متاح! 🎉</h5>
+              <p class="mb-0" style="font-size:0.9rem;color:#e8f5e9 !important;">الإصدار ${data.version} جاهز للتحميل</p>
+            </div>
+            <div class="modal-body p-4" style="background:#ffffff !important;">
+              <div style="border-radius:12px;background:#f1f8e9 !important;border:1px solid #c8e6c9;padding:14px 16px;margin-bottom:16px;">
+                <div class="fw-bold mb-1" style="font-size:0.9rem;color:#1e5f31 !important;"><i class="fas fa-list-check me-1"></i> ما الجديد؟</div>
+                <div style="font-size:0.9rem;color:#333 !important;line-height:1.8;">${data.releaseNotes}</div>
+              </div>
+              ${isForce ? `<div style="border-radius:12px;background:#fff3e0 !important;border:1px solid #ffcc80;padding:12px 16px;text-align:center;"><span style="font-size:0.85rem;color:#e65100 !important;font-weight:600;">⚠️ هذا التحديث إجباري ويجب التحديث للمتابعة</span></div>` : ''}
+            </div>
+            <div class="modal-footer border-0 pb-4 pt-0 d-flex flex-column gap-2 px-4" style="background:#ffffff !important;">
+              <button id="btn-do-update" class="btn w-100 py-3 fw-bold text-white" style="border-radius:12px;background:#198754 !important;font-size:1rem;border:none;">
+                <i class="fas fa-download me-2"></i> حدّث الآن
+              </button>
+              ${!isForce ? `<button class="btn w-100 py-2 fw-semibold" data-bs-dismiss="modal" style="border-radius:12px;background:#eeeeee !important;color:#555 !important;border:none;">لاحقاً</button>` : ''}
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+    document.getElementById('modal-update')?.remove();
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = new bootstrap.Modal(document.getElementById('modal-update'));
+    modal.show();
+
+    document.getElementById('btn-do-update').addEventListener('click', async () => {
+      try { await Browser.open({ url: data.downloadUrl, presentationStyle: 'popover' }); } 
+      catch { window.open(data.downloadUrl, '_system'); }
+    });
+
+  } catch (err) { console.warn('Update check failed:', err); }
 };
 
 const scheduleWebFridayReminder = () => {
@@ -1878,21 +1960,23 @@ const scheduleWebFridayReminder = () => {
 
 // ─── 18. DOMContentLoaded ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-  if ('serviceWorker' in navigator) {
-    try {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      for (let r of regs) await r.unregister();
-      const keys = await caches.keys();
-      for (let k of keys) {
-        if (k !== 'quran-audio-cache-v1') {
-          await caches.delete(k);
-        }
-      }
-      console.log('🧹 تم تنظيف الكاش القديم بنجاح');
-    } catch (e) {
-      console.error('خطأ في مسح الكاش:', e);
-    }
-  }
+  // if ('serviceWorker' in navigator) {
+  //   try {
+  //     const regs = await navigator.serviceWorker.getRegistrations();
+  //     for (let r of regs) await r.unregister();
+  //     const keys = await caches.keys();
+  //     for (let k of keys) {
+  //       if (k !== 'quran-audio-cache-v1') {
+  //         await caches.delete(k);
+  //       }
+  //     }
+  //     console.log('🧹 تم تنظيف الكاش القديم بنجاح');
+  //   } catch (e) {
+  //     console.error('خطأ في مسح الكاش:', e);
+  //   }
+  // }
+  initNativeFeatures();
+  setTimeout(checkForUpdates, 3000);
 
   // 1. استرجاع التوكن أول حاجة
   try {
@@ -1908,7 +1992,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   } catch { console.log('No saved token'); }
 
-  initNativeFeatures();
+  // initNativeFeatures();
   if (typeof initSearch === 'function') initSearch();
 if (typeof initBookmarksSearch === 'function') initBookmarksSearch();
 
