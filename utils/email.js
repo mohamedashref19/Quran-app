@@ -12,12 +12,14 @@ module.exports = class Email {
   newTransport() {
     console.log("Current Env:", process.env.NODE_ENV);
     if (process.env.NODE_ENV === "production") {
-      // SendGrid
+      // استخدام AWS SES
       return nodemailer.createTransport({
-        service: "Gmail",
+        host: process.env.AWS_SMTP_HOST,
+        port: 465,
+        secure: true, 
         auth: {
-          user: process.env.GMAIL_USERNAME,
-          pass: process.env.GMAIL_APP_PASSWORD,
+          user: process.env.AWS_SMTP_USERNAME,
+          pass: process.env.AWS_SMTP_PASSWORD,
         },
       });
     }
@@ -47,6 +49,7 @@ async send(subject, htmlContent) {
       console.log(`✅ Email sent successfully to: ${this.to}`);
     } catch (err) {
       console.error("❌ Error sending email:", err);
+      throw err;
     }
   }
 
