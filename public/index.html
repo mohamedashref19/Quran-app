@@ -1462,71 +1462,74 @@ const analytics = getAnalytics(app);
     <!-- ══════════════════════════════════════════════
          ─── Modal: شرح علامات صفحة المصحف ────────────
     ══════════════════════════════════════════════ -->
- <div class="modal fade" id="modal-quran-icons" tabindex="-1" aria-hidden="true" dir="rtl">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius:20px; overflow:hidden;">
-          <div style="background:linear-gradient(135deg,#1e5f31,#198754);padding:28px 24px 20px;text-align:center;color:white;">
-            <div style="width:64px;height:64px;background:rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
-              <i class="fas fa-hand-pointer" style="font-size:1.8rem;"></i>
-            </div>
-            <h5 class="fw-bold mb-1" style="font-size:1.3rem;">كيفية التفاعل مع الآيات</h5>
-            <p class="mb-0" style="opacity:0.85;font-size:0.9rem;">اضغط على أي آية لفتح قائمة الخيارات</p>
+<div class="modal fade" id="modal-quran-icons" tabindex="-1" aria-hidden="true" dir="rtl">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg" style="border-radius:20px;overflow:hidden;background:#ffffff !important;">
+      <div style="background:linear-gradient(135deg,#1e5f31,#198754);padding:28px 24px 20px;text-align:center;color:white;">
+        <div style="width:64px;height:64px;background:rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+          <i class="fas fa-hand-pointer" style="font-size:1.8rem;"></i>
+        </div>
+        <h5 class="fw-bold mb-1" style="font-size:1.3rem;color:#ffffff !important;">كيفية التفاعل مع الآيات</h5>
+        <p class="mb-0" style="font-size:0.9rem;font-weight:600;color:#e8f5e9 !important;">اضغط على أي آية لفتح قائمة الخيارات</p>
+      </div>
+
+      <div class="modal-body p-4" style="background:#ffffff !important;">
+        
+        <div class="mb-4">
+          <div class="fw-bold mb-3" style="font-size:0.95rem;color:#1e5f31 !important;">
+            <i class="fas fa-layer-group me-1"></i> عند الضغط على الآية يمكنك:
           </div>
-          <div class="modal-body p-4">
-            
-            <div class="mb-4">
-              <div class="fw-bold text-success mb-3" style="font-size:0.95rem;">
-                <i class="fas fa-layer-group me-1"></i> عند الضغط على الآية يمكنك:
-              </div>
-              <div class="d-flex flex-column gap-3 ps-2">
-                <div class="d-flex align-items-start gap-2 small text-muted">
-                  <div style="width:24px;text-align:center"><i class="fas fa-book-open text-success fs-5"></i></div> 
-                  <div><strong>عرض التفسير:</strong> قراءة التفسير الميسر للآية.</div>
-                </div>
-                <div class="d-flex align-items-start gap-2 small text-muted">
-                  <div style="width:24px;text-align:center"><i class="fas fa-flag text-primary fs-5"></i></div> 
-                  <div><strong>تحديث الختمة:</strong> حفظ مكان وقوفك لتعود إليه لاحقاً.</div>
-                </div>
-                <div class="d-flex align-items-start gap-2 small text-muted">
-                  <div style="width:24px;text-align:center"><i class="far fa-bookmark text-warning fs-5"></i></div> 
-                  <div><strong>علامة مرجعية:</strong> حفظ الآية في مفضلتك للرجوع لها.</div>
-                </div>
-                <div class="d-flex align-items-start gap-2 small text-muted">
-                  <div style="width:24px;text-align:center"><i class="fas fa-share-alt text-info fs-5"></i></div> 
-                  <div><strong>المشاركة والنسخ:</strong> إرسال الآية كصورة جميلة أو نسخ نصها.</div>
-                </div>
-              </div>
+          <div class="d-flex flex-column gap-3 ps-2">
+            <div class="d-flex align-items-start gap-2">
+              <div style="width:24px;text-align:center"><i class="fas fa-book-open text-success fs-5"></i></div>
+              <div style="font-size:0.9rem;color:#333333 !important;"><strong style="color:#222222 !important;">عرض التفسير:</strong> قراءة التفسير الميسر للآية.</div>
             </div>
-
-            <div style="height:1px;background:#f0f0f0;"></div>
-
-            <div class="mt-4 p-3" style="border-radius:12px;background:#f1f8e9;border:1px solid #c8e6c9;">
-              <div class="fw-bold text-success mb-2" style="font-size:0.9rem;">
-                <i class="fas fa-eye me-1"></i> دلالة الرموز بجوار رقم الآية:
-              </div>
-              <div class="d-flex flex-column gap-2 mt-3">
-                 <div class="d-flex align-items-center gap-2 text-muted small">
-                   <span style="color: #d4af37; border: 1px solid #d4af37; border-radius: 50%; padding: 0 5px; font-size: 0.8em; font-family: sans-serif;">١</span>
-                   <i class="fas fa-bookmark" style="color: #d4af37; font-size: 0.9em;"></i>
-                   <span>تعني أن هذه الآية <strong>محفوظة كعلامة</strong>.</span>
-                 </div>
-                 <div class="d-flex align-items-center gap-2 text-muted small mt-1">
-                   <span style="color: #d4af37; border: 1px solid #d4af37; border-radius: 50%; padding: 0 5px; font-size: 0.8em; font-family: sans-serif;">٢</span>
-                   <i class="fas fa-flag" style="color: #198754; font-size: 0.9em;"></i>
-                   <span>تعني أن هذا هو <strong>موضع ختمتك</strong> الحالي.</span>
-                 </div>
-              </div>
+            <div class="d-flex align-items-start gap-2">
+              <div style="width:24px;text-align:center"><i class="fas fa-flag text-primary fs-5"></i></div>
+              <div style="font-size:0.9rem;color:#333333 !important;"><strong style="color:#222222 !important;">تحديث الختمة:</strong> حفظ مكان وقوفك لتعود إليه لاحقاً.</div>
             </div>
-
-          </div>
-          <div class="modal-footer border-0 pb-4 pt-0 px-4">
-            <button class="btn btn-success w-100 py-2 fw-bold" style="border-radius:12px;" data-bs-dismiss="modal">
-              <i class="fas fa-check me-2"></i> فهمت، يلا نقرأ!
-            </button>
+            <div class="d-flex align-items-start gap-2">
+              <div style="width:24px;text-align:center"><i class="far fa-bookmark text-warning fs-5"></i></div>
+              <div style="font-size:0.9rem;color:#333333 !important;"><strong style="color:#222222 !important;">علامة مرجعية:</strong> حفظ الآية في مفضلتك للرجوع لها.</div>
+            </div>
+            <div class="d-flex align-items-start gap-2">
+              <div style="width:24px;text-align:center"><i class="fas fa-share-alt text-info fs-5"></i></div>
+              <div style="font-size:0.9rem;color:#333333 !important;"><strong style="color:#222222 !important;">المشاركة والنسخ:</strong> إرسال الآية كصورة جميلة أو نسخ نصها.</div>
+            </div>
           </div>
         </div>
+
+        <div style="height:1px;background:#e0e0e0 !important;"></div>
+
+        <!-- ✅ الجزء الأخضر الفاتح مع ألوان ثابتة -->
+        <div class="mt-4 p-3" style="border-radius:12px;background:#f1f8e9 !important;border:1px solid #c8e6c9 !important;">
+          <div class="fw-bold mb-2" style="font-size:0.9rem;color:#1e5f31 !important;">
+            <i class="fas fa-eye me-1"></i> دلالة الرموز بجوار رقم الآية:
+          </div>
+          <div class="d-flex flex-column gap-2 mt-3">
+            <div class="d-flex align-items-center gap-2">
+              <span style="color:#d4af37 !important;border:1px solid #d4af37;border-radius:50%;padding:0 5px;font-size:0.8em;font-family:sans-serif;">١</span>
+              <i class="fas fa-bookmark" style="color:#d4af37 !important;font-size:0.9em;"></i>
+              <span style="font-size:0.85rem;color:#333333 !important;">تعني أن هذه الآية <strong style="color:#222222 !important;">محفوظة كعلامة</strong>.</span>
+            </div>
+            <div class="d-flex align-items-center gap-2 mt-1">
+              <span style="color:#d4af37 !important;border:1px solid #d4af37;border-radius:50%;padding:0 5px;font-size:0.8em;font-family:sans-serif;">٢</span>
+              <i class="fas fa-flag" style="color:#198754 !important;font-size:0.9em;"></i>
+              <span style="font-size:0.85rem;color:#333333 !important;">تعني أن هذا هو <strong style="color:#222222 !important;">موضع ختمتك</strong> الحالي.</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer border-0 pb-4 pt-0 px-4" style="background:#ffffff !important;">
+        <button class="btn btn-success w-100 py-2 fw-bold" style="border-radius:12px;background:#198754 !important;color:#ffffff !important;border:none;" data-bs-dismiss="modal">
+          <i class="fas fa-check me-2"></i> فهمت، يلا نقرأ!
+        </button>
       </div>
     </div>
+  </div>
+</div>
     <!-- ══════════════════════════════════════════════
          ─── Modal: شرح المصحح الذكي ────────────────
     ══════════════════════════════════════════════ -->
@@ -1571,43 +1574,78 @@ const analytics = getAnalytics(app);
     <!-- ══════════════════════════════════════════════
          ─── Modal: شرح تتبع التلاوة ─────────────────
     ══════════════════════════════════════════════ -->
-    <div class="modal fade" id="modal-live-recitation" tabindex="-1" aria-hidden="true" dir="rtl">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius:20px;overflow:hidden;">
-          <div style="background:linear-gradient(135deg,#1a237e,#3949ab);padding:28px 24px 20px;text-align:center;color:white;">
-            <div style="width:64px;height:64px;background:rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
-              <i class="fa-solid fa-wand-magic-sparkles" style="font-size:1.8rem;"></i>
+ <div class="modal fade" id="modal-live-recitation" tabindex="-1" aria-hidden="true" dir="rtl">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg" style="border-radius:20px;overflow:hidden;font-family:'Cairo',sans-serif;background:#ffffff !important;">
+      
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,#1a237e,#3949ab);padding:32px 24px 24px;text-align:center;color:white;">
+        <div style="width:68px;height:68px;background:rgba(255,255,255,0.22);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 4px 16px rgba(0,0,0,0.2);">
+          <i class="fa-solid fa-wand-magic-sparkles" style="font-size:1.9rem;"></i>
+        </div>
+        <h5 class="fw-bold mb-2" style="font-size:1.4rem;color:#ffffff !important;">🎧 تتبع التلاوة</h5>
+        <p class="mb-0" style="font-size:1rem;font-weight:600;color:#e8edf8 !important;line-height:1.7;">
+          اسمع وتابع — كل كلمة بتتلاوها تتضيء أمامك
+        </p>
+      </div>
+
+      <div class="modal-body p-4" style="background:#ffffff !important;">
+        <div class="d-flex flex-column gap-3">
+
+          <div class="d-flex align-items-start gap-3">
+            <div style="min-width:44px;height:44px;background:#e8eaf6 !important;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="fas fa-microphone" style="color:#3949ab !important;"></i>
             </div>
-            <h5 class="fw-bold mb-1" style="font-size:1.3rem;">تتبع التلاوة 🎧</h5>
-            <p class="mb-0" style="opacity:0.85;font-size:0.9rem;">اسمع وتابع.. كل كلمة بتتلاوة تتضيء أمامك</p>
-          </div>
-          <div class="modal-body p-4">
-            <div class="d-flex flex-column gap-3">
-              <div class="d-flex align-items-start gap-3">
-                <div style="min-width:40px;height:40px;background:#e8eaf6;border-radius:50%;display:flex;align-items:center;justify-content:center;"><i class="fas fa-microphone" style="color:#3949ab;"></i></div>
-                <div><div class="fw-bold mb-1">اتسمع وراه</div><div class="text-muted small">ابدأ التسميع واقرأ بصوتك — الآيات بتتتبع معاك تلقائياً.</div></div>
-              </div>
-              <div class="d-flex align-items-start gap-3">
-                <div style="min-width:40px;height:40px;background:#e8eaf6;border-radius:50%;display:flex;align-items:center;justify-content:center;"><i class="fas fa-headphones" style="color:#3949ab;"></i></div>
-                <div><div class="fw-bold mb-1">اقرأ مع الشيخ ✨</div><div class="text-muted small">الشيخ يقرأ والآيات تتضيء معاه — اقرأ وراه آية آية بدون ميكروفون.</div></div>
-              </div>
-              <div class="d-flex align-items-start gap-3">
-                <div style="min-width:40px;height:40px;background:#e8eaf6;border-radius:50%;display:flex;align-items:center;justify-content:center;"><i class="fas fa-eye-slash" style="color:#3949ab;"></i></div>
-                <div><div class="fw-bold mb-1">وضع الحفظ</div><div class="text-muted small">فعّل "وضع الحفظ" عشان النص يتخفى ويظهر بس الآية اللي بتتلاوة.</div></div>
-              </div>
+            <div>
+              <div style="font-weight:800;font-size:1rem;color:#1a237e !important;margin-bottom:4px;">اقرأ واتتبّع 📖</div>
+              <div style="font-size:0.9rem;color:#333333 !important;line-height:1.8;font-weight:500;">اقرأ بصوتك والتطبيق بيتابع معاك كل آية تلقائياً.</div>
             </div>
-            <div class="alert border-0 mt-3 mb-0 text-center small" style="border-radius:12px;background:#e8eaf6;color:#3949ab;"><i class="fas fa-lightbulb me-1"></i> مثالية للحفظ والمراجعة مع القارئ!</div>
           </div>
-          <div class="modal-footer border-0 pb-4 pt-0 d-flex flex-column gap-2 px-4">
-            <button class="btn w-100 py-2 fw-bold text-white" style="border-radius:12px;background:#3949ab;"
-              data-bs-dismiss="modal" data-goto="live-recitation">
-              <i class="fa-solid fa-wand-magic-sparkles me-2"></i> جربها دلوقتي
-            </button>
-            <button class="btn btn-light w-100 py-2 text-muted" style="border-radius:12px;" data-bs-dismiss="modal">لسه مش جاهز</button>
+
+          <hr style="margin:2px 0;border-color:#dddddd !important;">
+
+          <div class="d-flex align-items-start gap-3">
+            <div style="min-width:44px;height:44px;background:#e8eaf6 !important;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="fas fa-headphones" style="color:#3949ab !important;"></i>
+            </div>
+            <div>
+              <div style="font-weight:800;font-size:1rem;color:#1a237e !important;margin-bottom:4px;">اقرأ مع الشيخ ✨</div>
+              <div style="font-size:0.9rem;color:#333333 !important;line-height:1.8;font-weight:500;">الشيخ يقرأ والآيات تتضيء معاه — اقرأ وراه آية آية بدون ميكروفون.</div>
+            </div>
           </div>
+
+          <hr style="margin:2px 0;border-color:#dddddd !important;">
+
+          <div class="d-flex align-items-start gap-3">
+            <div style="min-width:44px;height:44px;background:#e8eaf6 !important;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="fas fa-eye-slash" style="color:#3949ab !important;"></i>
+            </div>
+            <div>
+              <div style="font-weight:800;font-size:1rem;color:#1a237e !important;margin-bottom:4px;">وضع الحفظ</div>
+              <div style="font-size:0.9rem;color:#333333 !important;line-height:1.8;font-weight:500;">فعّل "وضع الحفظ" عشان النص يتخفى ويظهر بس الآية اللي بتتلاوها.</div>
+            </div>
+          </div>
+
+        </div>
+
+        <div style="border-radius:12px;background:#e8eaf6 !important;color:#1a237e !important;padding:12px 16px;margin-top:16px;text-align:center;">
+          <span style="font-size:0.9rem;font-weight:700;color:#1a237e !important;">💡 مثالية للحفظ والمراجعة مع القارئ!</span>
         </div>
       </div>
+
+      <div class="modal-footer border-0 pb-4 pt-0 d-flex flex-column gap-2 px-4" style="background:#ffffff !important;">
+        <button class="btn w-100 py-3 fw-bold" style="border-radius:12px;background:#3949ab !important;color:#ffffff !important;font-size:1rem;border:none;"
+          data-bs-dismiss="modal" data-goto="live-recitation">
+          <i class="fa-solid fa-wand-magic-sparkles me-2"></i> جربها دلوقتي
+        </button>
+        <button class="btn w-100 py-2 fw-semibold" style="border-radius:12px;background:#eeeeee !important;color:#555555 !important;border:none;" data-bs-dismiss="modal">
+          لسه مش جاهز
+        </button>
+      </div>
+
     </div>
+  </div>
+</div>
 <div class="offcanvas offcanvas-bottom" tabindex="-1" id="verseActionSheet" aria-labelledby="verseActionSheetLabel" style="border-top-left-radius: 24px; border-top-right-radius: 24px; height: auto; max-height: 70vh;">
       <div class="offcanvas-header border-bottom pb-2">
         <h5 class="offcanvas-title fw-bold text-success" id="verseActionSheetLabel" style="font-family: 'Amiri', serif;">خيارات الآية</h5>
