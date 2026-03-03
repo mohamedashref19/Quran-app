@@ -4,7 +4,7 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 import axios from 'axios';
 import { showAlert } from './auth';
-import { surahNames, surahStartPages, juzData, getJuzByPage, getHizbByPage, getSurahNameByPage ,SAJDAH_WORDS_COUNT,UTHMANI_FIXES} from './constants';
+import { surahNames, surahStartPages, juzData, getJuzByPage, getHizbByPage, getSurahNameByPage ,SAJDAH_WORDS_COUNT, SAJDAH_WORDS, SAJDAH_AYAH_END, UTHMANI_FIXES} from './constants';
 
 
 
@@ -350,28 +350,34 @@ let fullTextHTML = '<div class="quran-page-content" style="text-align: justify; 
     }
 
     ayahs.forEach(ayah => {
-      let ayahText  = ayah.text;
+      let ayahText = ayah.text;
+
+      // 1. إصلاحات الرسم العثماني
       Object.keys(UTHMANI_FIXES).forEach(wrongWord => {
-        // نستخدم split و join كطريقة سريعة ومضمونة لعمل Replace All
         ayahText = ayahText.split(wrongWord).join(UTHMANI_FIXES[wrongWord]);
       });
+
       const ayahNum  = ayah.ayahNumber || ayah.numberInSurah;
       const surahNum = ayah.surahNumber || (ayah.surah && ayah.surah.number);
       const sajdahKey = `${surahNum}_${ayahNum}`;
-      if (SAJDAH_WORDS_COUNT[sajdahKey]) {
-          let hasSajdahSymbol = ayahText.includes('۩');
-          let cleanAyahText = ayahText.replace(/۩/g, '').trim();
-          const words = cleanAyahText.split(' ');
-          const count = SAJDAH_WORDS_COUNT[sajdahKey];
-          
-          if (words.length >= count) {
-              const normalPart = words.slice(0, words.length - count).join(' ');
-              const sajdahPart = words.slice(words.length - count).join(' ');
-              
-              ayahText = `${normalPart} <span style="border-bottom: 2px solid #198754; padding-bottom: 4px;">${sajdahPart}</span> ${hasSajdahSymbol ? '<span class="text-success ms-1 fs-5">۩</span>' : ''}`;
-          }
+
+      // 2. إزالة أي رمز سجدة قادم من الـ API لمنع التكرار (لأننا سنضعه يدوياً بدقة)
+      ayahText = ayahText.replace(/۩/g, '').trim();
+
+      // 3. وضع الخط (فوق) كلمة السجدة حصراً
+      const sajdahWord = SAJDAH_WORDS[sajdahKey];
+      if (sajdahWord) {
+        // البحث عن الكلمة الدقيقة وإحاطتها بـ span يحتوي على خط علوي (كما في المصحف)
+        const regex = new RegExp(`(${sajdahWord})`, 'g');
+        ayahText = ayahText.replace(regex, `<span class="sajdah-word" style="border-top: 2px solid #198754; padding-top: 2px;">$1</span>`);
       }
-      let surahName  = ayah.surahNameAr || (ayah.surah && ayah.surah.name) || "";
+
+      // 4. تجهيز رمز السجدة ۩ (يوضع في نهاية الآية فقط للآيات المحددة)
+      const hasSajdahSymbol = SAJDAH_AYAH_END.includes(sajdahKey);
+      const sajdahSymbolHTML = hasSajdahSymbol ? ' <span class="sajdah-icon text-success ms-1 fs-5" title="موضع سجود">۩</span>' : '';
+
+      // 5. رؤوس السور والبسملة
+      let surahName = ayah.surahNameAr || (ayah.surah && ayah.surah.name) || "";
       if (surahName.startsWith("سُورَةُ ")) surahName = surahName.replace("سُورَةُ ", "سورة ");
 
       if (ayahNum === 1) {
@@ -391,6 +397,7 @@ let fullTextHTML = '<div class="quran-page-content" style="text-align: justify; 
         }
       }
 
+      // 6. العلامات المرجعية والختمة
       const isBookmarked = userBookmarks.some(b => parseInt(b.surah) === surahNum && parseInt(b.ayah) === ayahNum);
       const iconClass    = isBookmarked ? 'fas' : 'far';
       const iconColor    = isBookmarked ? '#d4af37' : '#ccc';
@@ -401,8 +408,9 @@ let fullTextHTML = '<div class="quran-page-content" style="text-align: justify; 
       const khatmahClass = isKhatmahActive ? 'fas' : 'far';
       const khatmahColor = isKhatmahActive ? '#198754' : '#198754';
 
+      // 7. دمج الآية (النص + رمز السجدة إن وجد + رقم الآية + الأيقونات)
       fullTextHTML += `
-        <span id="ayah-${surahNum}-${ayahNum}" class="ayah-text ayah-clickable" data-surah="${surahNum}" data-ayah="${ayahNum}" title="تفسير الآية ${ayahNum}" style="cursor: pointer;">${ayahText}</span>
+        <span id="ayah-${surahNum}-${ayahNum}" class="ayah-text ayah-clickable" data-surah="${surahNum}" data-ayah="${ayahNum}" title="تفسير الآية ${ayahNum}" style="cursor: pointer;">${ayahText}${sajdahSymbolHTML}</span>
         <span class="ayah-end-wrapper" style="white-space: nowrap; display: inline-block;">
           <span class="ayah-end-symbol" style="color: #d4af37; font-family: sans-serif; margin: 0 5px; border: 1px solid #d4af37; border-radius: 50%; padding: 0 5px; font-size: 0.8em;">${ayahNum}</span>
           <i class="${iconClass} fa-bookmark bookmark-icon-btn" data-surah="${surahNum}" data-ayah="${ayahNum}" title="حفظ علامة مرجعية" style="cursor: pointer; color: ${iconColor}; font-size: 0.7em;"></i>
@@ -1518,29 +1526,46 @@ export function loadPrayers() {
         }
         await localforage.setItem('offline_prayers', { timings, hijri, cityName, savedAt: Date.now() });
         if (Capacitor.isNativePlatform()) {
-    const lastScheduled = await localforage.getItem('prayers_last_scheduled');
-    const today = new Date().toDateString();
-    
-    if (lastScheduled !== today) {
-        await scheduleAllPrayers(timings);
-        await localforage.setItem('prayers_last_scheduled', today);
-    }
-}
+          const lastScheduled = await localforage.getItem('prayers_last_scheduled');
+          const today = new Date().toDateString();
+          if (lastScheduled !== today) {
+              await scheduleAllPrayers(timings);
+              await localforage.setItem('prayers_last_scheduled', today);
+          }
+        }
       } catch (err) {
         console.error('فشل جلب مواقيت الصلاة:', err);
-        await showOfflineMessage();
+        await showOfflineMessage(); // لو المشكلة سيرفر أو نت، بيجيب كاش أو رسالة نت
       }
     },
     async (geoErr) => {
       console.warn('Geolocation error:', geoErr.message);
-      if (geoErr.code === 1) {
+      const isPermissionDenied = geoErr.code === 1 || 
+      (geoErr.message && (geoErr.message.toLowerCase().includes('permission') || geoErr.message.toLowerCase().includes('denied')));
+
+      if (isPermissionDenied) {
+        // لو رفض الإذن، نعرض رسالة واضحة في الواجهة بدل رسالة النت المقطوع
+        if (locationEl) locationEl.innerText = 'مواقيت الصلاة';
+        if (hijriEl) hijriEl.innerText = '';
+        if (container) {
+          container.innerHTML = `
+            <div class="col-12">
+              <div class="alert alert-danger text-center py-3 mb-0" style="border-radius:12px;">
+                <i class="fas fa-map-marker-alt fa-2x mb-2 d-block text-danger"></i>
+                <p class="mb-1 fw-bold">إذن الموقع مطلوب</p>
+                <p class="mb-0 small text-muted">يرجى السماح بالوصول للموقع لحساب أوقات الصلاة</p>
+              </div>
+            </div>`;
+        }
         Swal.fire({
-          icon: 'info', title: '📍 نحتاج إذن الموقع',
-          html: `<p class="mb-2">لعرض مواقيت الصلاة في مدينتك، نحتاج إذنك للوصول للموقع</p><p class="text-muted small mb-0"><i class="fas fa-lock me-1"></i> لتفعيله: إعدادات المتصفح ← الموقع ← السماح</p>`,
+          icon: 'warning', title: '📍 نحتاج إذن الموقع',
+          html: `<p class="mb-2">لعرض مواقيت الصلاة في مدينتك، نحتاج إذنك للوصول للموقع.</p><p class="text-muted small mb-0"><i class="fas fa-lock me-1"></i> لتفعيله: إعدادات المتصفح ← الموقع ← السماح</p>`,
           confirmButtonText: 'حسناً', confirmButtonColor: '#198754',
         });
+      } else {
+        // لو مشكلة تانية (مثلاً الـ GPS مقفول في الموبايل أو تايم أوت)
+        await showOfflineMessage();
       }
-      await showOfflineMessage();
     },
     { timeout: 10000, maximumAge: 300000 }
   );
@@ -1725,7 +1750,7 @@ window.initQibla = async () => {
   const textEl   = document.getElementById('qibla-angle-text');
 
   // تنظيف أي جلسة سابقة
-  cleanupQibla();
+  if (typeof cleanupQibla === 'function') cleanupQibla();
 
   if (statusEl) statusEl.innerText = 'جاري تحديد الموقع...';
 
@@ -1755,7 +1780,6 @@ window.initQibla = async () => {
         }
       }
 
-      // deviceorientationabsolute أفضل (Android Chrome) ← نجرب أولاً
       if ('ondeviceorientationabsolute' in window) {
         window.addEventListener('deviceorientationabsolute', _handleOrientation, { passive: true });
         _orientationActive = true;
@@ -1765,9 +1789,22 @@ window.initQibla = async () => {
       }
     },
     (err) => {
+      const isPermissionDenied = err.code === 1 || 
+      (err.message && (err.message.toLowerCase().includes('permission') || err.message.toLowerCase().includes('denied')));
+
       if (statusEl) {
-        if (err.code === 1) statusEl.innerText = 'يرجى السماح بتحديد الموقع لعرض اتجاه القبلة';
-        else statusEl.innerText = 'تعذّر تحديد موقعك، حاول مرة أخرى';
+        if (isPermissionDenied) {
+          statusEl.innerText = '⚠️ يرجى السماح بتحديد الموقع لعرض اتجاه القبلة';
+          Swal.fire({
+            icon: 'warning',
+            title: 'صلاحية الموقع مطلوبة',
+            text: 'لحساب اتجاه القبلة، يجب السماح للتطبيق بالوصول إلى موقعك الجغرافي.',
+            confirmButtonText: 'حسناً',
+            confirmButtonColor: '#198754'
+          });
+        } else {
+          statusEl.innerText = '❌ تعذّر تحديد موقعك، تأكد من اتصالك بالإنترنت والـ GPS.';
+        }
       }
     },
     { timeout: 10000, maximumAge: 60000, enableHighAccuracy: false }
@@ -2335,27 +2372,30 @@ window.loadAzkarList = async (category) => {
   containerEl.querySelectorAll('.zikr-card').forEach(c => io.observe(c));
 };
 
-// ─── ✅ المسبحة الإلكترونية - Tasbeeh with localforage ────────────────────────
+// ─── ✅ المسبحة الإلكترونية - Tasbeeh with localforage (العداد الذكي) ──────────
 
+const TASBEEH_SMART_KEY = 'tasbeeh_smart_data';
 
-const TASBEEH_STORAGE_KEY = 'tasbeeh_state';
-
-let _tasbeehCount = 0;
-let _tasbeehType  = 'سُبْحَانَ اللَّهِ';
+let _tasbeehData = {
+  currentType: 'سُبْحَانَ اللَّهِ',
+  counts: {} // هنا هنحفظ كل ذكر ورقمه بشكل منفصل
+};
 
 /**
  * تحميل حالة المسبحة من localforage عند فتح القسم
  */
 window.loadTasbeeh = async () => {
   try {
-    const saved = await localforage.getItem(TASBEEH_STORAGE_KEY);
-    if (saved) {
-      _tasbeehCount = saved.count || 0;
-      _tasbeehType  = saved.type  || 'سُبْحَانَ اللَّهِ';
-    } else {
-      _tasbeehCount = 0;
-      _tasbeehType  = 'سُبْحَانَ اللَّهِ';
+    const saved = await localforage.getItem(TASBEEH_SMART_KEY);
+    if (saved && saved.counts) {
+      _tasbeehData = saved;
     }
+    
+    // تهيئة العداد للذكر الحالي لو مش موجود
+    if (!_tasbeehData.counts[_tasbeehData.currentType]) {
+      _tasbeehData.counts[_tasbeehData.currentType] = 0;
+    }
+    
     _updateTasbeehUI();
   } catch (e) {
     console.warn('tasbeeh load error:', e);
@@ -2364,53 +2404,67 @@ window.loadTasbeeh = async () => {
 
 const _saveTasbeeh = async () => {
   try {
-    await localforage.setItem(TASBEEH_STORAGE_KEY, { count: _tasbeehCount, type: _tasbeehType });
+    await localforage.setItem(TASBEEH_SMART_KEY, _tasbeehData);
   } catch (e) {}
 };
 
 const _updateTasbeehUI = () => {
   const counterEl = document.getElementById('tasbeeh-counter-btn');
   const typeBtn   = document.getElementById('tasbeeh-type-btn');
-  if (counterEl) counterEl.innerText = _tasbeehCount;
-  if (typeBtn)   typeBtn.innerText   = _tasbeehType;
+  
+  if (counterEl) counterEl.innerText = _tasbeehData.counts[_tasbeehData.currentType] || 0;
+  if (typeBtn)   typeBtn.innerText   = _tasbeehData.currentType;
 };
 
 /**
  * زيادة العداد - مربوطة بـ onclick في HTML
  */
 window.incrementTasbeeh = async () => {
-  _tasbeehCount++;
+  if (!_tasbeehData.counts[_tasbeehData.currentType]) {
+    _tasbeehData.counts[_tasbeehData.currentType] = 0;
+  }
+  
+  // زيادة عداد الذكر الحالي فقط
+  _tasbeehData.counts[_tasbeehData.currentType]++;
   _updateTasbeehUI();
   await _saveTasbeeh();
 
   // اهتزاز خفيف (Haptic) على الجوال
   if (navigator.vibrate) navigator.vibrate(30);
 
+  const currentCount = _tasbeehData.counts[_tasbeehData.currentType];
+
   // إشعار عند إكمال 33 و 99
-  if (_tasbeehCount === 33 || _tasbeehCount === 99) {
+  if (currentCount === 33 || currentCount === 99) {
     Swal.fire({
       toast: true, position: 'top', icon: 'success',
-      title: _tasbeehCount === 33 ? '33 تسبيحة 🌿' : '99 تسبيحة 🌟 الحمد لله!',
+      title: currentCount === 33 ? '33 تسبيحة 🌿' : '99 تسبيحة 🌟 الحمد لله!',
       showConfirmButton: false, timer: 2000, timerProgressBar: true
     });
   }
 };
 
 /**
- * إعادة تعيين العداد
+ * إعادة تعيين العداد (للذكر الحالي فقط)
  */
 window.resetTasbeeh = async () => {
-  _tasbeehCount = 0;
+  _tasbeehData.counts[_tasbeehData.currentType] = 0;
   _updateTasbeehUI();
   await _saveTasbeeh();
 };
 
 /**
- * تغيير نوع التسبيح
+ * تغيير نوع التسبيح (بدون تصفير العداد)
  */
 window.changeTasbeehType = async (type) => {
-  _tasbeehType  = type;
-  _tasbeehCount = 0;
+  _tasbeehData.currentType = type;
+  
+  // لو الذكر الجديد ملوش عداد، خليه يبدأ من الصفر
+  if (!_tasbeehData.counts[_tasbeehData.currentType]) {
+    _tasbeehData.counts[_tasbeehData.currentType] = 0;
+  }
+  
+  // تحديث الشاشة بالرقم الخاص بالذكر المختار فقط
   _updateTasbeehUI();
   await _saveTasbeeh();
 };
