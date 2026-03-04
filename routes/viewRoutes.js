@@ -10,7 +10,7 @@ router.use(authController.isLoggedIn);
 router.get(
   ['/', '/profile', '/admin', '/khatmah', '/bookmarks', 
    '/live-recitation', '/ai-correction', '/surah-index',
-   '/signup', '/login', '/reciters', '/forgot-password'], 
+   '/signup', '/login', '/reciters', '/forgot-password','/resetPassword/:token'], 
   viewsController.getOverview
 );
 
@@ -18,7 +18,7 @@ router.get('/login', viewsController.getLoginForm);
 router.get('/signup', viewsController.getSignupForm);
 router.get('/VerifyOTP', viewsController.getVerifyOTPForm);
 router.get('/forgot-password', viewsController.getForgotPasswordForm);
-router.get('/resetPassword/:token', viewsController.getResetPasswordForm);
+// router.get('/resetPassword/:token', viewsController.getResetPasswordForm);
 
 router.get('/me', authController.proctect, viewsController.getAccount);
 router.get('/manage-users', authController.proctect, authController.restrictTO("admin"), viewsController.manageUsers);

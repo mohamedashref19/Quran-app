@@ -203,9 +203,10 @@ exports.forgetPassword = catchAsync(async (req, res, next) => {
   const randomToken = user.createResetpasswordToken();
   await user.save({ validateBeforeSave: false });
   try {
-    const resetUrl = `${req.protocol}://${req.get(
-      "host"
-    )}/resetPassword/${randomToken}`;
+    // const resetUrl = `${req.protocol}://${req.get(
+    //   "host"
+    // )}/resetPassword/${randomToken}`;
+    const resetUrl = `https://aqraapp.com/resetPassword/${randomToken}`;
     await new Email(user, resetUrl).sendPasswordReset();
     res.status(200).json({
       status: "success",
