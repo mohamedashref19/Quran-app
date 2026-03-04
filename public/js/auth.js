@@ -198,13 +198,22 @@ export const resetPassword = async (token, password, passwordConfirm) => {
   try {
     const res = await axios({ method: 'PATCH', url: `/api/v1/users/resetPassword/${token}`, data: { password, passwordConfirm } });
     if (res.data.status === 'success') {
-      showAlert('success', 'تم تغيير كلمة المرور بنجاح!');
+      showAlert('success', 'تم تغيير كلمة المرور بنجاح وتسجيل الدخول!');
+      
+      const newToken = res.data.token;
+      axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+      if (Capacitor.isNativePlatform()) {
+        await Preferences.set({ key: 'auth_token', value: newToken });
+      } else {
+        localStorage.setItem('auth_token', newToken);
+      }
+
       window.setTimeout(() => {
         if (Capacitor.isNativePlatform()) {
-          window.showSection('login');
           window.checkAuth();
+          window.showSection('home');
         } else {
-          location.assign('/login');
+          location.assign('/');
         }
       }, 1500);
     }
