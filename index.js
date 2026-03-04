@@ -148,7 +148,13 @@ app.set('view engine', 'pug');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 3. Body Parser & Cookie Parser
+app.use('/.well-known', express.static(path.join(__dirname, 'public', '.well-known'), {
+    setHeaders: (res, path) => {
+        if (path.endsWith('assetlinks.json')) {
+            res.setHeader('Content-Type', 'application/json');
+        }
+    }
+}));// 3. Body Parser & Cookie Parser
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());

@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.aqraapp.app",
+      "sha256_cert_fingerprints": [
+        "3C:E2:73:F6:94:62:9D:C1:60:6D:9A:5D:31:65:1C:C7:83:1E:97:44:61:53:42:81:C8:17:EE:D9:38:24:99:10"
+      ]
+    }
+  }
+]

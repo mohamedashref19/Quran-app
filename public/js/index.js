@@ -745,7 +745,8 @@ window.showSection = async (sectionName) => {
     'home': 'Aqra | اقرأ📖', 'surah-index': 'المصحف الشريف',
     'reciters': 'القراء والمشايخ', 'bookmarks': 'علاماتي المرجعية',
     'khatmah': 'ختمتي الحالية', 'profile': 'إعدادات الحساب',
-    'live-recitation': 'تتبع التلاوة المباشر', 'ai-correction': 'المصحح الذكي'
+    'live-recitation': 'تتبع التلاوة المباشر', 'ai-correction': 'المصحح الذكي',
+    'reset-password': 'تعيين كلمة مرور جديدة',
   };
   if (sectionName !== 'quran') {
     document.title = titles[sectionName] || "تطبيق اقرأ";
@@ -1837,6 +1838,18 @@ const initNativeFeatures = async () => {
       }
     });
 
+    // ✅ التقاط الرابط لو المستخدم فتح التطبيق من الإيميل
+    await App.addListener('appUrlOpen', ({ url }) => {
+      try {
+        const urlObj = new URL(url);
+        if (urlObj.pathname.startsWith('/resetPassword/')) {
+            const token = urlObj.pathname.split('/').pop();
+            window.currentResetToken = token; // حفظ التوكن في الذاكرة
+            window.showSection('reset-password');
+        }
+      } catch (e) { console.warn('Deep link error:', e); }
+    });
+
     LocalNotifications.addListener('localNotificationActionPerformed', (notif) => {
       if (notif.notification.actionTypeId === 'OPEN_KAHF') {
         window.showSection('quran');
@@ -2014,7 +2027,11 @@ document.getElementById('tasbeeh-tab')?.addEventListener('shown.bs.tab', () => {
   if (initialPath === '/' || initialPath === '/index.html') {
     window.showSection('home');
 
-  } else if (initialPath.startsWith('/quran')) {
+  }else if (initialPath.startsWith('/resetPassword/')) {
+    const token = initialPath.split('/').pop();
+    window.currentResetToken = token;
+    window.showSection('reset-password');
+  }else if (initialPath.startsWith('/quran')) {
     document.querySelectorAll('[id$="-section"]').forEach(el => el.classList.add('d-none'));
     const quranSection = document.getElementById('quran-section');
     if (quranSection) quranSection.classList.remove('d-none');
@@ -2029,7 +2046,8 @@ document.getElementById('tasbeeh-tab')?.addEventListener('shown.bs.tab', () => {
     window.showSection('admin');
     if (window.loadAllUsers) window.loadAllUsers();
 
-  } else {
+  } 
+  else {
     // ✅ تنظيف الـ path من الشرطات الزائدة - هذا هو الإصلاح الأساسي
     const sectionName = initialPath.replace(/^\/|\/$/g, '');
     if (sectionName && document.getElementById(`${sectionName}-section`)) {
@@ -2081,6 +2099,17 @@ document.getElementById('tasbeeh-tab')?.addEventListener('shown.bs.tab', () => {
     const name  = document.getElementById('profile-name').value;
     const email = document.getElementById('profile-email').value;
     updateSettings({ name, email }, 'data');
+  });
+  handleForm('resetPasswordFormPage', () => {
+    const newPass = document.getElementById('reset-new-password').value;
+    const confirmPass = document.getElementById('reset-confirm-password').value;
+    
+    if (newPass.length < 8) return showAlert('error', 'كلمة المرور يجب أن تكون 8 أحرف على الأقل');
+    if (newPass !== confirmPass) return showAlert('error', 'كلمتا المرور غير متطابقتين');
+    if (!window.currentResetToken) return showAlert('error', 'رابط غير صالح أو مفقود التوكن');
+
+    // استدعاء دالة resetPassword من auth.js
+    resetPassword(window.currentResetToken, newPass, confirmPass);
   });
 
   document.getElementById('logoutBtnProfile')?.addEventListener('click', (e) => { e.preventDefault(); logout(); });
