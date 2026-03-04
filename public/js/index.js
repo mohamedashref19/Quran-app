@@ -1839,13 +1839,18 @@ const initNativeFeatures = async () => {
     });
 
     // ✅ التقاط الرابط لو المستخدم فتح التطبيق من الإيميل
-    await App.addListener('appUrlOpen', ({ url }) => {
+   await App.addListener('appUrlOpen', ({ url }) => {
       try {
         const urlObj = new URL(url);
         if (urlObj.pathname.startsWith('/resetPassword/')) {
-            const token = urlObj.pathname.split('/').pop();
-            window.currentResetToken = token; // حفظ التوكن في الذاكرة
-            window.showSection('reset-password');
+            // ✅ التعديل هنا: الفلترة لمنع الشرطات الفارغة
+            const pathParts = urlObj.pathname.split('/').filter(p => p !== '');
+            const token = pathParts[pathParts.length - 1];
+            
+            if (token) {
+                window.currentResetToken = token; 
+                window.showSection('reset-password');
+            }
         }
       } catch (e) { console.warn('Deep link error:', e); }
     });
@@ -2028,10 +2033,16 @@ document.getElementById('tasbeeh-tab')?.addEventListener('shown.bs.tab', () => {
     window.showSection('home');
 
   }else if (initialPath.startsWith('/resetPassword/')) {
-    const token = initialPath.split('/').pop();
-    window.currentResetToken = token;
-    window.showSection('reset-password');
-  }else if (initialPath.startsWith('/quran')) {
+    // ✅ التعديل هنا أيضاً
+    const pathParts = initialPath.split('/').filter(p => p !== '');
+    const token = pathParts[pathParts.length - 1];
+    
+    if(token) {
+        window.currentResetToken = token;
+        window.showSection('reset-password');
+    }
+  }
+  else if (initialPath.startsWith('/quran')) {
     document.querySelectorAll('[id$="-section"]').forEach(el => el.classList.add('d-none'));
     const quranSection = document.getElementById('quran-section');
     if (quranSection) quranSection.classList.remove('d-none');
