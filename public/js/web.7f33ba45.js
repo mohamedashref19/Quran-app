@@ -117,54 +117,36 @@ parcelRequire = (function (modules, cache, entry, globalName) {
   }
 
   return newRequire;
-})({"../../node_modules/@capacitor/app/dist/esm/web.js":[function(require,module,exports) {
+})({"../../node_modules/@capacitor/browser/dist/esm/web.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.AppWeb = void 0;
+exports.BrowserWeb = exports.Browser = void 0;
 var _core = require("@capacitor/core");
-class AppWeb extends _core.WebPlugin {
+class BrowserWeb extends _core.WebPlugin {
   constructor() {
     super();
-    this.handleVisibilityChange = () => {
-      const data = {
-        isActive: document.hidden !== true
-      };
-      this.notifyListeners('appStateChange', data);
-      if (document.hidden) {
-        this.notifyListeners('pause', null);
+    this._lastWindow = null;
+  }
+  async open(options) {
+    this._lastWindow = window.open(options.url, options.windowName || '_blank');
+  }
+  async close() {
+    return new Promise((resolve, reject) => {
+      if (this._lastWindow != null) {
+        this._lastWindow.close();
+        this._lastWindow = null;
+        resolve();
       } else {
-        this.notifyListeners('resume', null);
+        reject('No active window to close!');
       }
-    };
-    document.addEventListener('visibilitychange', this.handleVisibilityChange, false);
-  }
-  exitApp() {
-    throw this.unimplemented('Not implemented on web.');
-  }
-  async getInfo() {
-    throw this.unimplemented('Not implemented on web.');
-  }
-  async getLaunchUrl() {
-    return {
-      url: ''
-    };
-  }
-  async getState() {
-    return {
-      isActive: document.hidden !== true
-    };
-  }
-  async minimizeApp() {
-    throw this.unimplemented('Not implemented on web.');
-  }
-  async toggleBackButtonHandler() {
-    throw this.unimplemented('Not implemented on web.');
+    });
   }
 }
-exports.AppWeb = AppWeb;
+exports.BrowserWeb = BrowserWeb;
+const Browser = exports.Browser = new BrowserWeb();
 },{"@capacitor/core":"../../node_modules/@capacitor/core/dist/index.js"}],"../../node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
@@ -335,4 +317,4 @@ function hmrAcceptRun(bundle, id) {
   }
 }
 },{}]},{},["../../node_modules/parcel-bundler/src/builtins/hmr-runtime.js"], null)
-//# sourceMappingURL=/web.5a60469f.js.map
+//# sourceMappingURL=/web.7f33ba45.js.map

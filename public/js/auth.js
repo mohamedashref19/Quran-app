@@ -52,7 +52,7 @@ export const signup = async (name, email, password, passwordConfirm) => {
           if (emailInput) emailInput.value = email;
           window.showSection('verify-otp');
         } else {
-          location.assign('/VerifyOTP');
+          location.assign('/verify-otp.html');
         }
       }, 1500);
     }
@@ -70,7 +70,7 @@ export const verifyOTP = async (email, otp) => {
         if (Capacitor.isNativePlatform()) {
           window.showSection('login');
         } else {
-          location.assign('/login');
+          location.assign('/login.html');
         }
       }, 1500);
     }
@@ -84,7 +84,6 @@ export const logout = async () => {
     const res = await axios({ method: 'GET', url: '/api/v1/users/logout' });
     if (res.data.status === 'success') {
       
-      // 🟢 التعديل هنا: مسح بيانات الكاش المرتبطة بالحساب فقط 🟢
       try {
         await localforage.removeItem('offline_bookmarks');
         await localforage.removeItem('latest_khatmah');
@@ -106,7 +105,7 @@ export const logout = async () => {
         window.checkAuth();
         window.showSection('login');
       } else {
-        location.assign('/login');
+        location.assign('/login.html');
       }
     }
   } catch (err) {
@@ -178,34 +177,73 @@ export const forgotPassword = async (email) => {
 
     const res = await axios({ method: 'POST', url: '/api/v1/users/forgetPassword', data: { email } });
     if (res.data.status === 'success') {
-      showAlert('success', 'تم إرسال رابط الاستعادة إلى بريدك الإلكتروني! تحقق من صندوق الوارد.');
-      // إظهار رسالة النجاح في الصفحة
+      showAlert('success', 'تم إرسال كود التحقق إلى بريدك الإلكتروني!');
+
+      // حفظ الإيميل مؤقتاً للخطوة التالية
+      if (Capacitor.isNativePlatform()) {
+        await Preferences.set({ key: 'reset_email', value: email });
+      } else {
+        sessionStorage.setItem('reset_email', email);
+      }
+
       const msgEl = document.getElementById('forgot-success-msg');
       if (msgEl) {
         msgEl.classList.remove('d-none');
-        msgEl.innerText = `تم إرسال رابط إعادة التعيين إلى: ${email}`;
+        msgEl.innerText = `تم إرسال كود التحقق إلى: ${email}`;
       }
+
+      // الانتقال لصفحة إدخال الـ OTP وكلمة المرور الجديدة
+      window.setTimeout(() => {
+        if (Capacitor.isNativePlatform()) {
+          window.showSection('reset-password');
+
+        } else {
+          location.assign('/reset-password.html');
+
+        }
+      }, 1500);
     }
   } catch (err) {
     showAlert('error', err.response?.data?.message || 'خطأ في إرسال البريد، تحقق من البريد الإلكتروني');
   } finally {
     const btn = document.getElementById('forgot-password-btn');
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane me-2"></i> إرسال رابط الاستعادة'; }
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane me-2"></i> إرسال كود التحقق'; }
   }
 };
 
-export const resetPassword = async (token, password, passwordConfirm) => {
+export const resetPassword = async (otp, password, passwordConfirm) => {
   try {
-    const res = await axios({ method: 'PATCH', url: `/api/v1/users/resetPassword/${token}`, data: { password, passwordConfirm } });
+    // استرجاع الإيميل المحفوظ
+    let email;
+    if (Capacitor.isNativePlatform()) {
+      const stored = await Preferences.get({ key: 'reset_email' });
+      email = stored.value;
+    } else {
+      email = sessionStorage.getItem('reset_email');
+    }
+
+    if (!email) {
+      showAlert('error', 'انتهت الجلسة، يرجى طلب كود جديد');
+      return;
+    }
+
+    const res = await axios({
+      method: 'PATCH',
+      url: '/api/v1/users/resetPassword',
+      data: { email, otp, password, passwordConfirm }
+    });
+
     if (res.data.status === 'success') {
       showAlert('success', 'تم تغيير كلمة المرور بنجاح وتسجيل الدخول!');
-      
+
       const newToken = res.data.token;
       axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
       if (Capacitor.isNativePlatform()) {
         await Preferences.set({ key: 'auth_token', value: newToken });
+        await Preferences.remove({ key: 'reset_email' });
       } else {
         localStorage.setItem('auth_token', newToken);
+        sessionStorage.removeItem('reset_email');
       }
 
       window.setTimeout(() => {
@@ -218,7 +256,7 @@ export const resetPassword = async (token, password, passwordConfirm) => {
       }, 1500);
     }
   } catch (err) {
-    showAlert('error', err.response?.data?.message || 'خطأ في إعادة التعيين');
+    showAlert('error', err.response?.data?.message || 'الكود غير صحيح أو منتهي الصلاحية');
   }
 };
 
@@ -289,7 +327,7 @@ export const deleteUserForuser = async () => {
             window.checkAuth(); // تحديث حالة الواجهة
             window.showSection('login');
           } else {
-            location.assign('/login');
+           location.assign('/login.html');
           }
         });
       }

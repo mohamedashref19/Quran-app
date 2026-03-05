@@ -23,8 +23,8 @@ const userSchema = new mongoose.Schema({
     default: "user",
   },
     changepasswordAt: Date,
-  passwordresetToken: String,
-  resetpasswordTokenExpire: Date,
+  // passwordresetToken: String,
+  // resetpasswordTokenExpire: Date,
   active: {
     type: Boolean,
     default: true,
@@ -41,7 +41,9 @@ const userSchema = new mongoose.Schema({
         surah:{type:Number,default:1},
         ayah:{type:Number,default:1}
     },
-    createdAt:{type:Date,default:Date.now}
+    createdAt:{type:Date,default:Date.now},
+    passwordResetOTP: String,
+passwordResetOTPExpires: Date,
 })
 
 
@@ -69,12 +71,12 @@ userSchema.methods.changepassword =  function (jwtTime) {
    return false
 }
 
-userSchema.methods.createResetpasswordToken= function(){
-    const resetToken = crypto.randomBytes(32).toString("hex")
-    this.passwordresetToken= crypto.createHash("sha256").update(resetToken).digest("hex")
-    this.resetpasswordTokenExpire= Date.now() + 1000 *10*60
-    return resetToken
-}
+// userSchema.methods.createResetpasswordToken= function(){
+//     const resetToken = crypto.randomBytes(32).toString("hex")
+//     this.passwordresetToken= crypto.createHash("sha256").update(resetToken).digest("hex")
+//     this.resetpasswordTokenExpire= Date.now() + 1000 *10*60
+//     return resetToken
+// }
 
 module.exports=mongoose.model("User",userSchema)
 

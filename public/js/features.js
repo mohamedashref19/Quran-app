@@ -1,9 +1,9 @@
 /* eslint-disable */
 import localforage from 'localforage';
 import { LocalNotifications } from '@capacitor/local-notifications';
-import { Capacitor } from '@capacitor/core';
 import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
+import { CapacitorHttp, Capacitor } from '@capacitor/core';
 import axios from 'axios';
 import { showAlert } from './auth';
 import { surahNames, surahStartPages, juzData, getJuzByPage, getHizbByPage, getSurahNameByPage ,SAJDAH_WORDS_COUNT, SAJDAH_WORDS, SAJDAH_AYAH_END, UTHMANI_FIXES} from './constants';
@@ -28,41 +28,74 @@ const addToOfflineQueue = async (type, payload) => {
 let currentPage = 1;
 
 
-
-
-
-
-
-
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 window.downloadAudioOffline = async (url, buttonElement) => {
     try {
         buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحميل...';
         buttonElement.disabled = true;
+
         const audioCache = await caches.open('quran-audio-cache-v1');
+        
         const existingResponse = await audioCache.match(url);
         if (existingResponse) {
             Swal.fire('موجود مسبقاً', 'هذه السورة محفوظة بالفعل في جهازك للاستماع بدون إنترنت!', 'info');
-            buttonElement.innerHTML = '<i class="fas fa-check text-success"></i> محفوظة';
+            buttonElement.innerHTML = '<i class="fas fa-check-circle text-success"></i> محفوظة أوفلاين ✓';
+            buttonElement.classList.replace('btn-outline-secondary', 'btn-outline-success');
             return;
         }
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Network response was not ok');
-        await audioCache.put(url, response.clone());
+
+        let responseData;
+        let contentType;
+
+        if (Capacitor.isNativePlatform()) {
+            const options = {
+                url: url,
+                responseType: 'blob' 
+            };
+            const response = await CapacitorHttp.get(options);
+            
+            if (response.status !== 200) throw new Error('فشل التحميل من السيرفر');
+            
+            responseData = response.data; // Capacitor يرجع الـ blob في حقل data
+            contentType = response.headers['Content-Type'] || 'audio/mpeg';
+        } else {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Network response was not ok');
+            responseData = await response.blob();
+            contentType = response.headers.get('Content-Type') || 'audio/mpeg';
+        }
+
+        const responseToCache = new Response(responseData, {
+            headers: { 'Content-Type': contentType }
+        });
+        
+        await audioCache.put(url, responseToCache);
+
         buttonElement.innerHTML = '<i class="fas fa-check-circle text-success"></i> محفوظة أوفلاين ✓';
-        buttonElement.classList.remove('btn-outline-secondary');
-        buttonElement.classList.add('btn-outline-success');
+        buttonElement.classList.replace('btn-outline-secondary', 'btn-outline-success');
+        buttonElement.disabled = false; 
 
         Swal.fire({
-            toast: true, position: 'bottom-end', icon: 'success',
-            title: '✅ تم حفظ السورة للاستماع بدون إنترنت',
-            showConfirmButton: false, timer: 3000
+            toast: true,
+            position: 'bottom-end',
+            icon: 'success',
+            title: '✅ تم الحفظ بنجاح للاستماع أوفلاين',
+            showConfirmButton: false,
+            timer: 3000
         });
+
     } catch (err) {
-        console.error('Audio download error:', err);
-        buttonElement.innerHTML = '<i class="fas fa-download"></i> فشل، أعد المحاولة';
+        console.error('🔴 [DOWNLOAD ERROR]:', err);
+        buttonElement.innerHTML = '<i class="fas fa-download me-1"></i> فشل، أعد المحاولة';
         buttonElement.disabled = false;
+        
+        Swal.fire({
+            icon: 'error',
+            title: 'فشل التحميل',
+            text: 'تأكد من اتصالك بالإنترنت ومساحة التخزين، ثم حاول مرة أخرى.',
+            confirmButtonText: 'حسناً',
+            confirmButtonColor: '#198754'
+        });
     }
 };
 
@@ -1431,15 +1464,30 @@ export async function checkRecitation(file, surah, startAyah, endAyah, userAudio
     document.getElementById('btn-retry').addEventListener('click', () => resetRecitationUI());
 
   } catch (err) {
+     document.getElementById('result-container').classList.add('d-none');
     if (err.response && (err.response.status === 401 || err.response.status === 403)) {
       requireLogin('تصحيح التلاوة');
       setTimeout(() => { window.showSection('login'); }, 1500);
     } else if (!navigator.onLine) {
       showAlert('error', 'لا يوجد اتصال بالإنترنت، تحقق من الشبكة وحاول مرة أخرى.');
-    } else {
+    }
+   else if (err.response && err.response.status === 429) {
+    Swal.fire({
+      icon: 'info',
+      title: 'مهلاً!',
+      text: err.response.data.message || 'يرجى المحاولة لاحقاً.',
+      confirmButtonText: 'حسناً',
+      confirmButtonColor: '#198754' // لون التطبيق الأخضر
+    });
+    
+    // إيقاف التسجيل أو إعادة الأزرار لحالتها الطبيعية هنا
+    resetUIButtons(); 
+    return;
+  }
+     else {
       showAlert('error', 'حدث خطأ في السيرفر، حاول مرة أخرى.');
     }
-    document.getElementById('result-container').classList.add('d-none');
+   
   }
 }
 
@@ -1592,12 +1640,12 @@ const reciterSurahNames = surahNames;
               <select class="form-select surah-select" style="font-family: 'Amiri'; border-radius: 10px;" data-server="${serverUrl}">${optionsHTML}</select>
             </div>
 
-            <audio controls class="w-100 mt-2 quran-player" preload="none"
-              src="${defaultUrl}"
-              data-url="${defaultUrl}"
-              data-reciter="${displayName}"
-              style="border-radius: 30px;">
-            </audio>
+            <audio controls class="w-100 mt-2 quran-player" preload="metadata"
+  src="${defaultUrl}"
+  data-url="${defaultUrl}"
+  data-reciter="${displayName}"
+  style="border-radius: 30px;">
+</audio>
 
             <button class="btn btn-sm mt-2 download-audio-btn w-100 ${isDefaultCached ? 'btn-outline-success' : 'btn-outline-secondary'}"
               style="border-radius: 10px;"
@@ -1613,24 +1661,40 @@ const reciterSurahNames = surahNames;
   }
 
   // ─── Event Listeners ───────────────────────────────────────────────────────
-  // تغيير السورة
+  
+  // تغيير السورة (مع تجهيز الصوت في الخلفية لتسريع التشغيل)
   document.querySelectorAll('.surah-select').forEach(select => {
     select.addEventListener('change', async function() {
       const paddedSurah = this.value.toString().padStart(3, '0');
       const cardBody = this.closest('.card-body');
       const newUrl = `${this.dataset.server}/${paddedSurah}.mp3`;
       const audioPlayer = cardBody.querySelector('audio');
+      const downloadBtn = cardBody.querySelector('.download-audio-btn');
+
+      // وضع الرابط المباشر كأمر افتراضي (يعمل فوراً لو مش مكيش)
       if (audioPlayer) {
         audioPlayer.dataset.url = newUrl;
         audioPlayer.src = newUrl;
       }
-      const downloadBtn = cardBody.querySelector('.download-audio-btn');
+
+      // فحص الكاش وتحديث الزرار (في الخلفية بدون تعطيل الواجهة)
       const isCached = await isAudioCached(newUrl);
       if (downloadBtn) {
         if (isCached) {
           downloadBtn.innerHTML = '<i class="fas fa-check-circle text-success"></i> محفوظة أوفلاين ✓';
           downloadBtn.className = 'btn btn-sm mt-2 download-audio-btn w-100 btn-outline-success';
           downloadBtn.style.borderRadius = '10px';
+          
+          // 🚀 السحر هنا: لو مكيش، حوله لـ Blob من دلوقتي عشان يشتغل في جزء من الثانية وقت الـ Play
+          try {
+            const cache = await caches.open('quran-audio-cache-v1');
+            const cachedRes = await cache.match(newUrl);
+            if (cachedRes) {
+              const blob = await cachedRes.blob();
+              if (audioPlayer) audioPlayer.src = URL.createObjectURL(blob);
+            }
+          } catch(e) { console.error("Cache blob error", e); }
+          
         } else {
           downloadBtn.innerHTML = '<i class="fas fa-download me-1"></i> حفظ للاستماع أوفلاين';
           downloadBtn.className = 'btn btn-sm mt-2 download-audio-btn w-100 btn-outline-secondary';
@@ -1642,45 +1706,22 @@ const reciterSurahNames = surahNames;
     });
   });
 
-  // تشغيل الصوت مع دعم الكاش
+  // تشغيل الصوت (أصبح سريع جداً لأن الملف إما جاهز كـ Blob أو بيحمل Metadata)
   document.querySelectorAll('.quran-player').forEach(player => {
-    player.addEventListener('play', async function(e) {
+    player.addEventListener('play', function(e) {
       // إيقاف باقي المشغلات
       document.querySelectorAll('audio').forEach(a => { if (a !== this) a.pause(); });
-      if (this.src.startsWith('blob:')) return;
 
-      const targetUrl = this.dataset.url;
-      const reciterName = this.dataset.reciter || '';
-
-      try {
-        const cache = await caches.open('quran-audio-cache-v1');
-        const cachedRes = await cache.match(targetUrl);
-
-        if (cachedRes) {
-          // ✅ محفوظ - نشغل من الكاش
-          e.preventDefault();
-          this.pause();
-          const blob = await cachedRes.blob();
-          this.src = URL.createObjectURL(blob);
-          this.play();
-          console.log(`✅ [AUDIO CACHE] تشغيل من الكاش: ${targetUrl}`);
-
-        } else if (!navigator.onLine) {
-          // ✅ أوفلاين ومش محفوظ - رسالة أحلى
-          e.preventDefault();
-          this.pause();
-
-          // جلب اسم السورة من الـ select
-          const cardBody = this.closest('.card-body');
-          const select = cardBody?.querySelector('.surah-select');
-          const surahName = select ? select.options[select.selectedIndex]?.text.replace(/^\d+\.\s*/, '') : '';
-
-          showOfflineAudioMessage(surahName || reciterName);
-        }
-        // ✅ أونلاين ومش محفوظ - يشتغل عادي من النت
-
-      } catch(err) {
-        console.error("Audio Play Error:", err);
+      // منع التشغيل وإظهار رسالة لو المستخدم أوفلاين والملف مش مكيش (مش Blob)
+      if (!navigator.onLine && !this.src.startsWith('blob:')) {
+        e.preventDefault();
+        this.pause();
+        
+        const cardBody = this.closest('.card-body');
+        const select = cardBody?.querySelector('.surah-select');
+        const surahName = select ? select.options[select.selectedIndex]?.text.replace(/^\d+\.\s*/, '') : '';
+        
+        showOfflineAudioMessage(surahName || this.dataset.reciter);
       }
     });
   });
@@ -2132,12 +2173,29 @@ window.initQibla = async () => {
   // تنظيف أي جلسة سابقة
   if (typeof cleanupQibla === 'function') cleanupQibla();
 
-  if (statusEl) statusEl.innerText = 'جاري تحديد الموقع...';
+  if (statusEl) statusEl.innerText = 'جاري التهيئة...';
 
+  // 1️⃣ طلب إذن الحساس على iOS 13+ أولاً (يجب أن يكون هنا ليعمل مع ضغطة الزر مباشرة)
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    try {
+      const perm = await DeviceOrientationEvent.requestPermission();
+      if (perm !== 'granted') {
+        if (statusEl) statusEl.innerText = '⚠️ يرجى السماح بالوصول للحساس من إعدادات المتصفح';
+        return; // نوقف التنفيذ لو رفض
+      }
+    } catch (err) {
+      console.warn('Orientation permission error:', err);
+      // ملاحظة: هذا الخطأ يظهر عادة إذا لم يتم استدعاء الدالة عبر ضغطة زر صريحة
+    }
+  }
+
+  // 2️⃣ بعد التأكد من الحساس، نطلب الموقع الجغرافي
   if (!navigator.geolocation) {
     if (statusEl) statusEl.innerText = 'جهازك لا يدعم تحديد الموقع';
     return;
   }
+
+  if (statusEl) statusEl.innerText = 'جاري تحديد الموقع...';
 
   navigator.geolocation.getCurrentPosition(
     async (pos) => {
@@ -2147,19 +2205,7 @@ window.initQibla = async () => {
       if (textEl)   textEl.innerText = `${Math.round(_qiblaBearing)}°`;
       if (statusEl) statusEl.innerText = 'حرّك الهاتف ببطء لمعايرة البوصلة...';
 
-      // طلب إذن الحساس على iOS 13+
-      if (typeof DeviceOrientationEvent?.requestPermission === 'function') {
-        try {
-          const perm = await DeviceOrientationEvent.requestPermission();
-          if (perm !== 'granted') {
-            if (statusEl) statusEl.innerText = 'يرجى السماح بالوصول للحساس في الإعدادات';
-            return;
-          }
-        } catch (err) {
-          console.warn('Orientation permission error:', err);
-        }
-      }
-
+      // 3️⃣ تفعيل مراقبة حركة الجهاز
       if ('ondeviceorientationabsolute' in window) {
         window.addEventListener('deviceorientationabsolute', _handleOrientation, { passive: true });
         _orientationActive = true;
