@@ -21,7 +21,6 @@ import {
 
 import { surahNames, surahPageMap, juzData, getSurahNameByPage } from './constants';
 
-// ─── إخفاء رسائل الكونسول في وضع الـ Production ───
 if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     console.log = function () {};
     console.info = function () {};
@@ -29,7 +28,7 @@ if (window.location.hostname !== 'localhost' && window.location.hostname !== '12
     console.error = function () {};
 }
 
-// ─── 1. Config ────────────────────────────────────────────────────────────────
+// ─── 1. Config 
 // axios.defaults.baseURL = 'https://aqra-app.serveftp.com';
 axios.defaults.baseURL = 'https://aqraapp.com';
 // axios.defaults.baseURL ='http://127.0.0.1:3000';
@@ -76,7 +75,7 @@ window.addEventListener('offline', () => {
     timerProgressBar: true
   });
 });
-// ─── Offline Queue Processor ──────────────────────────────────────────────────
+// ─── Offline Queue Processor 
 const processOfflineQueue = async () => {
   if (!navigator.onLine) return;
   try {
@@ -480,6 +479,9 @@ const isUserLoggedIn = async () => {
 const stopAllMedia = () => {
   console.log("🔴 [SYSTEM] Stopping all media...");
   if (window.currentAudio) { window.currentAudio.pause(); window.currentAudio = null; }
+  if (typeof window.stopSheikhFollowAlong === 'function') {
+      window.stopSheikhFollowAlong();
+  }
   document.querySelectorAll('audio, video').forEach(m => { m.pause(); m.currentTime = 0; });
   if (aiMediaRecorder && aiMediaRecorder.state !== 'inactive') {
     aiMediaRecorder.stop();
@@ -808,28 +810,34 @@ window.showSection = async (sectionName) => {
   }
   const fillSelect = (id) => {
     const s = document.getElementById(id);
-    if (s && s.options.length <= 1) surahNames.forEach((n, i) => { const o = document.createElement('option'); o.value = i + 1; o.textContent = `${i + 1}. ${n}`; s.appendChild(o); });
+    if (s && s.options.length <= 1) {
+      surahNames.forEach((n, i) => { 
+        const o = document.createElement('option'); 
+        o.value = i + 1; 
+        o.textContent = `${i + 1}. ${n}`; 
+        s.appendChild(o); 
+      });
+      if (window.transformSelectToSearchable) {
+        window.transformSelectToSearchable(s);
+      }
+    }
   };
   if (sectionName === 'ai-correction') fillSelect('ai-surah-select');
   if (sectionName === 'live-recitation') fillSelect('live-surah-select');
     if (sectionName === 'qibla') {
-    // تأجيل بسيط لضمان ظهور الـ DOM قبل بدء الـ sensors
     setTimeout(() => {
       if (window.initQibla) window.initQibla();
     }, 300);
   }
 
   if (sectionName === 'azkar') {
-    // تحميل المسبحة من الكاش عند فتح قسم الأذكار
     if (window.loadTasbeeh) window.loadTasbeeh();
   }
 
   
 
-  // تنظيف بوصلة القبلة عند مغادرة الصفحة
   if (sectionName !== 'qibla') {
-    // cleanupQibla مُستدعاة تلقائياً في initQibla عند الفتح التالي
-    // لكن نوقف الـ sensors فوراً إذا غادر المستخدم
+
     window.removeEventListener('deviceorientationabsolute', window._qiblaOrientationHandler);
     window.removeEventListener('deviceorientation', window._qiblaOrientationHandler);
   }
@@ -897,7 +905,6 @@ window.openQuranAtCurrentKhatmah = async () => {
         const currentAyah    = parseInt(offlineKhatmah.currentAyah);
         const surahFirstPage = surahPageMap[currentSurah - 1] || 1;
         const savedPage      = offlineKhatmah.page ? parseInt(offlineKhatmah.page) : 0;
-        // ✅ استخدم الـ page المحفوظة لو صحيحة، غير كده أول صفحة السورة
         const targetPage = (savedPage >= surahFirstPage && savedPage <= 604)
           ? savedPage
           : surahFirstPage;
@@ -931,6 +938,9 @@ window.logout         = logout;
 // ─── 9. Live Audio Player ─────────────────────────────────────────────────────
 window.playLiveAudio = (url, btnId) => {
   if (isLiveTracking) { showAlert('error', 'أوقف التسميع أولاً قبل تشغيل الصوت'); return; }
+  if (window.stopSheikhFollowAlong && typeof window.stopSheikhFollowAlong === 'function') {
+    window.stopSheikhFollowAlong();
+  }
   const btn = document.getElementById(btnId);
   if (!btn) return;
   if (window.currentAudio && btn.classList.contains('playing')) {
@@ -1173,6 +1183,15 @@ window.startSheikhFollowAlong = function() {
   if (!ayahs || !ayahs.length) {
     showAlert('error', 'حمّل الآيات أولاً');
     return;
+  }
+  if (window.currentAudio) {
+      window.currentAudio.pause();
+      window.currentAudio = null;
+      document.querySelectorAll('.live-play-btn').forEach(b => {
+          b.innerHTML = '<i class="fas fa-play"></i>';
+          b.classList.remove('playing', 'btn-danger');
+          b.classList.add('btn-outline-success');
+      });
   }
   _sheikPlaybackActive = true;
   _sheikCurrentIndex = 0;
@@ -2115,6 +2134,42 @@ document.getElementById('tasbeeh-tab')?.addEventListener('shown.bs.tab', () => {
   });
   handleForm('verifyOTPFormPage', () => verifyOTP(document.getElementById('verify-email').value, document.getElementById('verify-otp').value));
   handleForm('verifyOTPForm',     () => verifyOTP(document.getElementById('email').value,        document.getElementById('otp').value));
+  //  منطق تفعيل/إلغاء تعديل الملف الشخصي 
+  const editProfileBtn = document.getElementById('edit-profile-btn');
+  const saveProfileBtn = document.getElementById('save-profile-btn');
+  const profileNameInput = document.getElementById('profile-name');
+  const profileEmailInput = document.getElementById('profile-email');
+
+  if (editProfileBtn) {
+    editProfileBtn.addEventListener('click', () => {
+      const isCurrentlyDisabled = profileNameInput.hasAttribute('disabled');
+
+      if (isCurrentlyDisabled) {
+        profileNameInput.removeAttribute('disabled');
+        profileEmailInput.removeAttribute('disabled');
+        
+        if (saveProfileBtn) saveProfileBtn.classList.remove('d-none');
+        
+        editProfileBtn.innerHTML = '<i class="fas fa-times me-1"></i> إلغاء';
+        editProfileBtn.classList.replace('btn-outline-success', 'btn-outline-danger');
+        
+        profileNameInput.focus();
+      } else {
+        profileNameInput.setAttribute('disabled', 'true');
+        profileEmailInput.setAttribute('disabled', 'true');
+        
+        if (saveProfileBtn) saveProfileBtn.classList.add('d-none');
+        
+        editProfileBtn.innerHTML = '<i class="fas fa-edit me-1"></i> تعديل';
+        editProfileBtn.classList.replace('btn-outline-danger', 'btn-outline-success');
+        
+        window.showSection('profile'); 
+      }
+    });
+  }
+
+
+
   handleForm('updateUserForm', () => {
     const name  = document.getElementById('profile-name').value;
     const email = document.getElementById('profile-email').value;
