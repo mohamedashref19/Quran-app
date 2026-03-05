@@ -15,7 +15,7 @@ import { login, logout, signup, verifyOTP, updateSettings, forgotPassword, reset
 import { 
   loadSurahs, startSurahReading, manageKhatmah, createKhatmah, updateKhatmahProgress,
   checkRecitation, loadReciters, loadPrayers, loadBookmarks, loadQuranPage,
-  toggleBookmark, deleteBookmark, deleteKhatmah, initSearch, initBookmarksSearch,scheduleFridayKahfNotification,
+  toggleBookmark, deleteBookmark, deleteKhatmah, initSearch, initBookmarksSearch,scheduleFridayKahfNotification,scheduleDuhaNotification,
   shareAyah,
 } from './features';
 
@@ -513,13 +513,13 @@ const stopAllMedia = () => {
 };
 
 const resetUIButtons = () => {
-  // ✅ FIX: تحقق من وجود كل عنصر قبل الوصول إليه لمنع classList null error
   document.querySelectorAll('.live-play-btn').forEach(b => {
     if (!b) return;
     b.innerHTML = '<i class="fas fa-play"></i>';
     b.classList.remove('playing', 'btn-danger');
     b.classList.add('btn-outline-success');
   });
+
   const aiBtn = document.getElementById('recordBtn');
   if (aiBtn) {
     aiBtn.classList.replace('btn-danger', 'btn-outline-danger');
@@ -527,6 +527,7 @@ const resetUIButtons = () => {
     const st = document.getElementById('recordStatus');
     if (st) st.innerText = 'اضغط للتسجيل';
   }
+
   const startLive = document.getElementById('btn-start-live');
   const stopLive  = document.getElementById('btn-stop-live');
   const liveSt    = document.getElementById('live-status');
@@ -535,11 +536,31 @@ const resetUIButtons = () => {
     stopLive.classList.add('d-none');
     if (liveSt) { liveSt.innerText = 'جاهز...'; liveSt.className = 'text-muted small mt-1'; }
   }
+
+  const radioAudio = document.getElementById('radio-audio');
+  const radioPlayIcon = document.getElementById('radio-play-icon');
+  const radioStatus = document.getElementById('radio-status');
+  const radioIcon = document.getElementById('radio-icon');
+
+  if (radioPlayIcon) {
+      radioPlayIcon.classList.replace('fa-stop', 'fa-play');
+      radioPlayIcon.style.marginLeft = '5px';
+  }
+  if (radioStatus) {
+      radioStatus.innerText = 'متوقف';
+      radioStatus.classList.replace('text-dark', 'text-success');
+  }
+  if (radioIcon) {
+      radioIcon.classList.remove('fa-fade');
+  }
+  if (radioAudio && !radioAudio.paused) {
+      radioAudio.pause();
+      radioAudio.src = '';
+  }
 };
 
 // ─── 8. checkAuth ─────────────────────────────────────────────────────────────
 window.checkAuth = async () => {
-  // ✅ 1. استرجاع التوكن دايماً حسب نوع الجهاز (موبايل أو ويب)
   let savedToken = null;
   if (Capacitor.isNativePlatform()) {
     const pref = await Preferences.get({ key: 'auth_token' });
@@ -1781,13 +1802,13 @@ document.body.addEventListener('click', (e) => {
   // تجاهل الروابط الخارجية أو الفارغة
   if (!href || href.startsWith('http') || href === '#') return;
 
-  // خريطة التوجيه (Route Map) - تربط الرابط باسم القسم
+  // خريطة التوجيه (Route Map) 
   const routeMap = {
     '/':              'home',
     '/index.html':    'home',
     '/signup':        'signup',
     '/login':         'login',
-    '/forgot-password': 'forgot-password', // إضافة نسيان كلمة المرور
+    '/forgot-password': 'forgot-password', 
     '/reciters':      'reciters',
     '/bookmarks':     'bookmarks',
     '/my-bookmarks':  'bookmarks',
@@ -1797,6 +1818,7 @@ document.body.addEventListener('click', (e) => {
     '/ai-correction': 'ai-correction',
     '/surah-index':   'surah-index',
     '/admin':         'admin',
+    '/radio':         'radio',
   };
 
   // التعامل مع روابط المصحف الديناميكية (/quran أو /quran/50)
@@ -1905,7 +1927,8 @@ const initNativeFeatures = async () => {
       
       // ✅ الحفاظ على تنبيه سورة الكهف
       await scheduleFridayKahfNotification();
-      console.log('✅ [FRIDAY] تنبيه سورة الكهف مجدول');
+        await scheduleDuhaNotification();
+     console.log('✅ [NOTIFICATIONS] تم جدولة تنبيهات سورة الكهف وصلاة الضحى بنجاح');
     }
     try { await Geolocation.requestPermissions(); } catch (e) { console.log('Geo permission:', e); }
   } catch (err) { console.error('Native Init Error:', err); }
@@ -1972,14 +1995,11 @@ const scheduleWebFridayReminder = () => {
   const isFriday = now.getDay() === 5;
   const hour = now.getHours();
 
-  // لو النهارده جمعة وقبل الساعة 12 ظهراً - نعرض تذكير
   if (isFriday && hour < 12) {
-    // تحقق إذا أُظهر التذكير بالفعل اليوم
     const lastShown = localStorage.getItem('kahf_reminder_shown');
     const today     = now.toDateString();
 
     if (lastShown !== today) {
-      // نأجره 5 ثوانٍ بعد فتح التطبيق حتى لا يزعج المستخدم فوراً
       setTimeout(() => {
         Swal.fire({
           title: '📖 يوم الجمعة المبارك',
@@ -2009,7 +2029,398 @@ const scheduleWebFridayReminder = () => {
   }
 };
 
+// ─── منطق آية اليوم ──────────────────────────────
+const dailyAyahs = [
+    // 🌸 آيات الطمأنينة والتفاؤل (تريند السوشيال ميديا)
+    { text: "فَإِنَّ مَعَ الْعُسْرِ يُسْرًا * إِنَّ مَعَ الْعُسْرِ يُسْرًا", surah: "الشرح", number: "5-6" },
+    { text: "وَلَسَوْفَ يُعْطِيكَ رَبُّكَ فَتَرْضَىٰ", surah: "الضحى", number: "5" },
+    { text: "وَاصْبِرْ لِحُكْمِ رَبِّكَ فَإِنَّكَ بِأَعْيُنِنَا", surah: "الطور", number: "48" },
+    { text: "لَا تَحْزَنْ إِنَّ اللَّهَ مَعَنَا", surah: "التوبة", number: "40" },
+    { text: "فَاسْتَجَبْنَا لَهُ وَنَجَّيْنَاهُ مِنَ الْغَمِّ ۚ وَكَذَٰلِكَ نُنجِي الْمُؤْمِنِينَ", surah: "الأنبياء", number: "88" },
+    { text: "سَيَجْعَلُ اللَّهُ بَعْدَ عُسْرٍ يُسْرًا", surah: "الطلاق", number: "7" },
+    { text: "قَالَ لَا تَخَافَا ۖ إِنَّنِي مَعَكُمَا أَسْمَعُ وَأَرَىٰ", surah: "طه", number: "46" },
+    { text: "وَلَا تَيْأَسُوا مِن رَّوْحِ اللَّهِ", surah: "يوسف", number: "87" },
+    { text: "إِنَّمَا أَشْكُو بَثِّي وَحُزْنِي إِلَى اللَّهِ", surah: "يوسف", number: "86" },
+    { text: "فَصَبْرٌ جَمِيلٌ ۖ وَاللَّهُ الْمُسْتَعَانُ", surah: "يوسف", number: "18" },
+    { text: "وَهُوَ الَّذِي يُنَزِّلُ الْغَيْثَ مِن بَعْدِ مَا قَنَطُوا وَيَنشُرُ رَحْمَتَهُ", surah: "الشورى", number: "28" },
 
+    // 🤲 آيات الدعاء والاستجابة
+    { text: "وَقَالَ رَبُّكُمُ ادْعُونِي أَسْتَجِبْ لَكُمْ", surah: "غافر", number: "60" },
+    { text: "وَإِذَا سَأَلَكَ عِبَادِي عَنِّي فَإِنِّي قَرِيبٌ ۖ أُجِيبُ دَعْوَةَ الدَّاعِ إِذَا دَعَانِ", surah: "البقرة", number: "186" },
+    { text: "أَمَّن يُجِيبُ الْمُضْطَرَّ إِذَا دَعَاهُ وَيَكْشِفُ السُّوءَ", surah: "النمل", number: "62" },
+    { text: "رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ", surah: "البقرة", number: "201" },
+
+    // 🛡️ آيات التوكل واليقين
+    { text: "وَمَن يَتَّقِ اللَّهَ يَجْعَل لَّهُ مَخْرَجًا * وَيَرْزُقْهُ مِنْ حَيْثُ لَا يَحْتَسِبُ", surah: "الطلاق", number: "2-3" },
+    { text: "وَمَن يَتَوَكَّلْ عَلَى اللَّهِ فَهُوَ حَسْبُهُ", surah: "الطلاق", number: "3" },
+    { text: "وَأُفَوِّضُ أَمْرِي إِلَى اللَّهِ ۚ إِنَّ اللَّهَ بَصِيرٌ بِالْعِبَادِ", surah: "غافر", number: "44" },
+    { text: "حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ", surah: "آل عمران", number: "173" },
+    { text: "وَتَوَكَّلْ عَلَى الْحَيِّ الَّذِي لَا يَمُوتُ", surah: "الفرقان", number: "58" },
+    { text: "لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا", surah: "البقرة", number: "286" },
+
+    // 💡 آيات الإرشادات والأخلاق (التعامل مع الناس)
+    { text: "وَقُولُوا لِلنَّاسِ حُسْنًا", surah: "البقرة", number: "83" },
+    { text: "خُذِ الْعَفْوَ وَأْمُرْ بِالْعُرْفِ وَأَعْرِضْ عَنِ الْجَاهِلِينَ", surah: "الأعراف", number: "199" },
+    { text: "ادْفَعْ بِالَّتِي هِيَ أَحْسَنُ فَإِذَا الَّذِي بَيْنَكَ وَبَيْنَهُ عَدَاوَةٌ كَأَنَّهُ وَلِيٌّ حَمِيمٌ", surah: "فصلت", number: "34" },
+    { text: "وَعِبَادُ الرَّحْمَٰنِ الَّذِينَ يَمْشُونَ عَلَى الْأَرْضِ هَوْنًا وَإِذَا خَاطَبَهُمُ الْجَاهِلُونَ قَالُوا سَلَامًا", surah: "الفرقان", number: "63" },
+    { text: "يَا أَيُّهَا الَّذِينَ آمَنُوا اجْتَنِبُوا كَثِيرًا مِّنَ الظَّنِّ إِنَّ بَعْضَ الظَّنِّ إِثْمٌ", surah: "الحجرات", number: "12" },
+    { text: "وَلَا تُصَعِّرْ خَدَّكَ لِلنَّاسِ وَلَا تَمْشِ فِي الْأَرْضِ مَرَحًا", surah: "لقمان", number: "18" },
+
+    // 💖 آيات الرحمة والمغفرة والذكر
+    { text: "قُلْ يَا عِبَادِيَ الَّذِينَ أَسْرَفُوا عَلَىٰ أَنفُسِهِمْ لَا تَقْنَطُوا مِن رَّحْمَةِ اللَّهِ", surah: "الزمر", number: "53" },
+    { text: "وَمَا كَانَ اللَّهُ مُعَذِّبَهُمْ وَهُمْ يَسْتَغْفِرُونَ", surah: "الأنفال", number: "33" },
+    { text: "وَرَحْمَتِي وَسِعَتْ كُلَّ شَيْءٍ", surah: "الأعراف", number: "156" },
+    { text: "أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ", surah: "الرعد", number: "28" },
+    { text: "فَاذْكُرُونِي أَذْكُرْكُمْ وَاشْكُرُوا لِي وَلَا تَكْفُرُونِ", surah: "البقرة", number: "152" },
+    { text: "إِنَّ اللَّهَ وَمَلَائِكَتَهُ يُصَلُّونَ عَلَى النَّبِيِّ ۚ يَا أَيُّهَا الَّذِينَ آمَنُوا صَلُّوا عَلَيْهِ وَسَلِّمُوا تَسْلِيمًا", surah: "الأحزاب", number: "56" }
+];
+
+const dailyAhadith = [
+    // 📚 أحاديث من المتفق عليه (رواه البخاري ومسلم)
+    { text: "« كَلِمَتَانِ خَفِيفَتَانِ عَلَى اللِّسَانِ، ثَقِيلَتَانِ فِي الْمِيزَانِ، حَبِيبَتَانِ إِلَى الرَّحْمَنِ: سُبْحَانَ اللَّهِ وَبِحَمْدِهِ، سُبْحَانَ اللَّهِ الْعَظِيمِ »", source: "متفق عليه" },
+    { text: "« إِنَّمَا الْأَعْمَالُ بِالنِّيَّاتِ، وَإِنَّمَا لِكُلِّ امْرِئٍ مَا نَوَى »", source: "متفق عليه" },
+    { text: "« الْمُسْلِمُ مَنْ سَلِمَ الْمُسْلِمُونَ مِنْ لِسَانِهِ وَيَدِهِ »", source: "متفق عليه" },
+    { text: "« لَا يُؤْمِنُ أَحَدُكُمْ حَتَّى يُحِبَّ لِأَخِيهِ مَا يُحِبُّ لِنَفْسِهِ »", source: "متفق عليه" },
+    { text: "« الْكَلِمَةُ الطَّيِّبَةُ صَدَقَةٌ »", source: "متفق عليه" },
+    { text: "« مَنْ كَانَ يُؤْمِنُ بِاللَّهِ وَالْيَوْمِ الْآخِرِ فَلْيَقُلْ خَيْرًا أَوْ لِيَصْمُتْ »", source: "متفق عليه" },
+    { text: "« مَنْ لَا يَرْحَمُ لَا يُرْحَمُ »", source: "متفق عليه" },
+    { text: "« يَسِّرُوا وَلَا تُعَسِّرُوا، وَبَشِّرُوا وَلَا تُنَفِّرُوا »", source: "متفق عليه" },
+    { text: "« أَحَبُّ الْأَعْمَالِ إِلَى اللَّهِ أَدْوَمُهَا وَإِنْ قَلَّ »", source: "متفق عليه" },
+    { text: "« مَنْ يُرِدِ اللَّهُ بِهِ خَيْرًا يُفَقِّهْهُ فِي الدِّينِ »", source: "متفق عليه" },
+    { text: "« إِنَّ الصِّدْقَ يَهْدِي إِلَى الْبِرِّ، وَإِنَّ الْبِرَّ يَهْدِي إِلَى الْجَنَّةِ »", source: "متفق عليه" },
+    { text: "« سِبَابُ الْمُسْلِمِ فُسُوقٌ، وَقِتَالُهُ كُفْرٌ »", source: "متفق عليه" },
+
+    // 📘 أحاديث صحيحة من صحيح البخاري
+    { text: "« خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ »", source: "رواه البخاري" },
+    { text: "« لَيْسَ الشَّدِيدُ بِالصُّرْعَةِ، إِنَّمَا الشَّدِيدُ الَّذِي يَمْلِكُ نَفْسَهُ عِنْدَ الْغَضَبِ »", source: "رواه البخاري" },
+
+    // 📗 أحاديث صحيحة من صحيح مسلم
+    { text: "« مَنْ صَلَّى عَلَيَّ صَلَاةً صَلَّى اللَّهُ عَلَيْهِ بِهَا عَشْرًا »", source: "رواه مسلم" },
+    { text: "« الدِّينُ النَّصِيحَةُ »", source: "رواه مسلم" },
+    { text: "« مَنْ سَلَكَ طَرِيقًا يَلْتَمِسُ فِيهِ عِلْمًا، سَهَّلَ اللَّهُ لَهُ بِهِ طَرِيقًا إِلَى الْجَنَّةِ »", source: "رواه مسلم" },
+    { text: "« الْبِرُّ حُسْنُ الْخُلُقِ »", source: "رواه مسلم" },
+    { text: "« لَا تَحْقِرَنَّ مِنَ الْمَعْرُوفِ شَيْئًا، وَلَوْ أَنْ تَلْقَى أَخَاكَ بِوَجْهٍ طَلْقٍ »", source: "رواه مسلم" },
+    { text: "« عَجَبًا لِأَمْرِ الْمُؤْمِنِ إِنَّ أَمْرَهُ كُلَّهُ خَيْرٌ »", source: "رواه مسلم" },
+    { text: "« مَنْ نَفَّسَ عَنْ مُؤْمِنٍ كُرْبَةً مِنْ كُرَبِ الدُّنْيَا، نَفَّسَ اللَّهُ عَنْهُ كُرْبَةً مِنْ كُرَبِ يَوْمِ الْقِيَامَةِ »", source: "رواه مسلم" },
+    { text: "« إِنَّ اللَّهَ رَفِيقٌ يُحِبُّ الرِّفْقَ »", source: "رواه مسلم" },
+    { text: "« مَا نَقَصَتْ صَدَقَةٌ مِنْ مَالٍ، وَمَا زَادَ اللَّهُ عَبْدًا بِعَفْوٍ إِلَّا عِزًّا »", source: "رواه مسلم" },
+    { text: "« اقْرَءُوا الْقُرْآنَ فَإِنَّهُ يَأْتِي يَوْمَ الْقِيَامَةِ شَفِيعًا لِأَصْحَابِهِ »", source: "رواه مسلم" },
+    { text: "« الدَّالُّ عَلَى الْخَيْرِ كَفَاعِلِهِ »", source: "رواه مسلم" },
+    { text: "« لَا يَدْخُلُ الْجَنَّةَ مَنْ كَانَ فِي قَلْبِهِ مِثْقَالُ ذَرَّةٍ مِنْ كِبْرٍ »", source: "رواه مسلم" },
+    { text: "« رَكْعَتَا الْفَجْرِ خَيْرٌ مِنَ الدُّنْيَا وَمَا فِيهَا »", source: "رواه مسلم" },
+    { text: "« الطُّهُورُ شَطْرُ الْإِيمَانِ، وَالْحَمْدُ لِلَّهِ تَمْلَأُ الْمِيزَانَ »", source: "رواه مسلم" },
+
+    // 📙 أحاديث صحيحة وحسنة من السنن (الترمذي وأبو داود)
+    { text: "« رِضَا الرَّبِّ فِي رِضَا الْوَالِدِ، وَسَخَطُ الرَّبِّ فِي سَخَطِ الْوَالِدِ »", source: "رواه الترمذي وصححه الألباني" },
+    { text: "« تَبَسُّمُكَ فِي وَجْهِ أَخِيكَ لَكَ صَدَقَةٌ »", source: "رواه الترمذي وصححه الألباني" },
+    { text: "« مِنْ حُسْنِ إِسْلَامِ الْمَرْءِ تَرْكُهُ مَا لَا يَعْنِيهِ »", source: "رواه الترمذي وحسنه الألباني" },
+    { text: "« مَنْ صَمَتَ نَجَا »", source: "رواه الترمذي وصححه الألباني" },
+    { text: "« اتَّقِ اللَّهَ حَيْثُمَا كُنْتَ، وَأَتْبِعِ السَّيِّئَةَ الْحَسَنَةَ تَمْحُهَا، وَخَالِقِ النَّاسَ بِخُلُقٍ حَسَنٍ »", source: "رواه الترمذي وقال حسن صحيح" },
+    { text: "« إِنَّ مِنْ أَحَبِّكُمْ إِلَيَّ وَأَقْرَبِكُمْ مِنِّي مَجْلِسًا يَوْمَ الْقِيَامَةِ أَحَاسِنَكُمْ أَخْلَاقًا »", source: "رواه الترمذي وصححه الألباني" },
+    { text: "« بَشِّرِ الْمَشَّائِينَ فِي الظُّلَمِ إِلَى الْمَسَاجِدِ بِالنُّورِ التَّامِّ يَوْمَ الْقِيَامَةِ »", source: "رواه أبو داود وصححه الألباني" }
+];
+function loadDailyContent() {
+    const dayOfEpoch = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+    
+    // تحميل الآية
+    const ayahIndex = dayOfEpoch % dailyAyahs.length;
+    const selectedAyah = dailyAyahs[ayahIndex];
+    const ayahTextEl = document.getElementById('daily-ayah-text');
+    const ayahSourceEl = document.getElementById('daily-ayah-source');
+    if (ayahTextEl && ayahSourceEl) {
+        ayahTextEl.innerText = selectedAyah.text;
+        ayahSourceEl.innerText = `سورة ${selectedAyah.surah} - الآية ${selectedAyah.number}`;
+    }
+
+    // تحميل الحديث
+    const hadithIndex = dayOfEpoch % dailyAhadith.length;
+    const selectedHadith = dailyAhadith[hadithIndex];
+    const hadithTextEl = document.getElementById('daily-hadith-text');
+    const hadithSourceEl = document.getElementById('daily-hadith-source');
+    if (hadithTextEl && hadithSourceEl) {
+        hadithTextEl.innerText = selectedHadith.text;
+        hadithSourceEl.innerText = selectedHadith.source;
+    }
+}
+
+window.toggleDailyCard = function(type) {
+    const ayahContent = document.getElementById('daily-ayah-content');
+    const hadithContent = document.getElementById('daily-hadith-content');
+    const btnAyah = document.getElementById('btn-show-ayah');
+    const btnHadith = document.getElementById('btn-show-hadith');
+
+    if (type === 'ayah') {
+        ayahContent.classList.remove('d-none');
+        hadithContent.classList.add('d-none');
+        btnAyah.classList.add('active-toggle-btn');
+        btnAyah.classList.remove('text-muted');
+        btnHadith.classList.remove('active-toggle-btn');
+        btnHadith.classList.add('text-muted');
+    } else {
+        ayahContent.classList.add('d-none');
+        hadithContent.classList.remove('d-none');
+        btnHadith.classList.add('active-toggle-btn');
+        btnHadith.classList.remove('text-muted');
+        btnAyah.classList.remove('active-toggle-btn');
+        btnAyah.classList.add('text-muted');
+    }
+};
+
+window.shareDailyContent = async function() {
+    const isAyah = !document.getElementById('daily-ayah-content').classList.contains('d-none');
+    
+    const textId = isAyah ? 'daily-ayah-text' : 'daily-hadith-text';
+    const sourceId = isAyah ? 'daily-ayah-source' : 'daily-hadith-source';
+    
+    const textToShare = document.getElementById(textId).innerText;
+    const sourceToShare = document.getElementById(sourceId).innerText;
+    
+    // 3. تجهيز الرسالة بشكل أنيق جداً للسوشيال ميديا
+    const shareMessage = `"${textToShare}"\n\n[ ${sourceToShare} ]\n\n✨ تم المشاركة عبر تطبيق اقرأ:\n`;
+    
+    // 4. رابط التطبيق بتاعك (ممكن تغيره للرابط الحقيقي بعد الرفع)
+    const appUrl = "https://aqraapp.com"; 
+
+    try {
+        // لو الموبايل/المتصفح بيدعم الـ Share الأصلي
+        if (navigator.share) {
+            await navigator.share({
+                title: 'تطبيق اقرأ 📖',
+                text: shareMessage,
+                url: appUrl
+            });
+        } else {
+            await navigator.clipboard.writeText(`${shareMessage} ${appUrl}`);
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم النسخ!',
+                    text: 'تم نسخ النص بنجاح، يمكنك لصقه ومشاركته.',
+                    timer: 2500,
+                    showConfirmButton: false
+                });
+            } else {
+                alert('تم نسخ النص للحافظة!');
+            }
+        }
+    } catch (err) {
+        console.log('تم إلغاء المشاركة أو حدث خطأ:', err);
+    }
+};
+// ─── منطق راديو القرآن الكريم ──────────────────────────────
+window.toggleRadio = function() {
+    const audio     = document.getElementById('radio-audio');
+    const playIcon  = document.getElementById('radio-play-icon');
+    const select    = document.getElementById('radio-station-select');
+    const status    = document.getElementById('radio-status');
+    const radioIcon = document.getElementById('radio-icon');
+
+    if (!audio.paused) {
+        audio.pause();
+        audio.src = '';
+        playIcon.classList.replace('fa-stop', 'fa-play');
+        playIcon.style.marginLeft = '5px';
+        status.innerText = 'متوقف';
+        status.classList.replace('text-dark', 'text-success');
+        if (radioIcon) radioIcon.classList.remove('fa-fade');
+        return;
+    }
+
+    status.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> جاري الاتصال...';
+    
+    // تشغيل مباشر بدون لف ودوران
+    audio.src = select.value;
+    audio.load();
+    audio.play().then(() => {
+        playIcon.classList.replace('fa-play', 'fa-stop');
+        playIcon.style.marginLeft = '0';
+        status.innerHTML = '<i class="fas fa-circle text-danger me-1 blink-animation"></i> بث مباشر';
+        status.classList.replace('text-success', 'text-dark');
+        if (radioIcon) radioIcon.classList.add('fa-fade');
+    }).catch((err) => {
+        console.error('Radio Error:', err);
+        status.innerHTML = '<i class="fas fa-exclamation-triangle text-danger me-1"></i> تعذر الاتصال بالمحطة';
+        playIcon.classList.replace('fa-stop', 'fa-play');
+        if (radioIcon) radioIcon.classList.remove('fa-fade');
+    });
+};
+
+// تشغيل المحطة الجديدة تلقائياً عند تغييرها من القائمة
+document.getElementById('radio-station-select')?.addEventListener('change', function() {
+    const audio  = document.getElementById('radio-audio');
+    const status = document.getElementById('radio-status');
+    if (!audio.paused) {
+        status.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> تبديل المحطة...';
+        audio.pause();
+        audio.src = '';
+        window.toggleRadio(); 
+    } else {
+        audio.src = this.value;
+    }
+});
+
+// ─── منطق أسماء الله الحسنى (الكارت التفاعلي والبحث) ──────────────────────────────
+
+// جعل المصفوفة عامة عشان نقدر نبحث فيها
+window.allahNamesData = [
+    { n: "اللَّهُ", m: "الاسم الأعظم الجامع لجميع صفات الكمال" },
+    { n: "الرَّحْمَنُ", m: "واسع الرحمة لجميع الخلائق في الدنيا" },
+    { n: "الرَّحِيمُ", m: "المختص برحمته للمؤمنين في الآخرة" },
+    { n: "الْمَلِكُ", m: "المتصرف في ملكه كيف يشاء" },
+    { n: "الْقُدُّوسُ", m: "المنزه عن كل نقص وعيب" },
+    { n: "السَّلَامُ", m: "الواهب للسلام والأمن لخلقه" },
+    { n: "الْمُؤْمِنُ", m: "المصدق لرسله والمانح للأمن" },
+    { n: "الْمُهَيْمِنُ", m: "الرقيب الحافظ لكل شيء" },
+    { n: "الْعَزِيزُ", m: "الغالب الذي لا يُقهر أبداً" },
+    { n: "الْجَبَّارُ", m: "الذي يجبر كسر الضعفاء ويقهر الجبابرة" },
+    { n: "الْمُتَكَبِّرُ", m: "المتفرد بالعظمة والكبرياء" },
+    { n: "الْخَالِقُ", m: "المُوجد للأشياء من العدم" },
+    { n: "الْبَارِئُ", m: "الذي خلق الخلق بريئاً من التفاوت" },
+    { n: "الْمُصَوِّرُ", m: "الذي أعطى كل خلق صورته الخاصة" },
+    { n: "الْغَفَّارُ", m: "الذي يستر الذنوب ويتجاوز عنها بكثرة" },
+    { n: "الْقَهَّارُ", m: "الغالب الذي قهر جميع الخلائق" },
+    { n: "الْوَهَّابُ", m: "كثير العطاء بغير عوض" },
+    { n: "الرَّزَّاقُ", m: "خالق الأرزاق والمتكفل بإيصالها" },
+    { n: "الْفَتَّاحُ", m: "الذي يفتح مغاليق الأمور برحمته" },
+    { n: "الْعَلِيمُ", m: "المحيط علمه بكل شيء ظاهراً وباطناً" },
+    { n: "الْقَابِضُ الْبَاسِطُ", m: "يقبض الرزق عمن يشاء ويبسطه لمن يشاء" },
+    { n: "الْخَافِضُ الرَّافِعُ", m: "يخفض المتكبرين ويرفع أوليائه" },
+    { n: "الْمُعِزُّ الْمُذِلُّ", m: "يهب العزة لمن يشاء ويذل من يشاء" },
+    { n: "السَّمِيعُ", m: "الذي يسمع السر والنجوى" },
+    { n: "الْبَصِيرُ", m: "الذي يرى كل ما تحت الثرى وما فوق السماء" },
+    { n: "الْحَكَمُ", m: "الحاكم العدل الذي لا يظلم" },
+    { n: "الْعَدْلُ", m: "المنزه عن الظلم والجور" },
+    { n: "اللَّطِيفُ", m: "البر بعباده الرفيق بهم" },
+    { n: "الْخَبِيرُ", m: "العالم ببواطن الأمور وخفاياها" },
+    { n: "الْحَلِيمُ", m: "الذي لا يعجل بالعقوبة على من عصاه" },
+    { n: "الْعَظِيمُ", m: "الذي لا تحيط به العقول" },
+    { n: "الْغَفُورُ", m: "الذي يستر الذنوب ويغفرها" },
+    { n: "الشَّكُورُ", m: "الذي يثيب على العمل القليل بالثواب الكثير" },
+    { n: "الْعَلِيُّ", m: "المرتفع عن كل نقص المتعالي عن كل ند" },
+    { n: "الْكَبِيرُ", m: "العظيم في ذاته وصفاته" },
+    { n: "الْحَفِيظُ", m: "الذي يحفظ السماوات والأرض وما فيهما" },
+    { n: "الْمُقِيتُ", m: "خالق الأقوات وموصلها للكائنات" },
+    { n: "الْحَسِيبُ", m: "الكافي لعباده المُحاسب لهم" },
+    { n: "الْجَلِيلُ", m: "عظيم القدر والجلال" },
+    { n: "الْكَرِيمُ", m: "كثير الخير الجواد المعطي" },
+    { n: "الرَّقِيبُ", m: "المراقب لأحوال العباد لا يغيب عنه شيء" },
+    { n: "الْمُجِيبُ", m: "الذي يجيب دعوة الداعين" },
+    { n: "الْوَاسِعُ", m: "الذي وسع رزقه جميع خلقه" },
+    { n: "الْحَكِيمُ", m: "المنزه عن العبث في خلقه وأمره" },
+    { n: "الْوَدُودُ", m: "المحب لأوليائه والمحبوب لهم" },
+    { n: "الْمَجِيدُ", m: "البالغ النهاية في المجد والشرف" },
+    { n: "الْبَاعِثُ", m: "الذي يبعث الموتى للحساب" },
+    { n: "الشَّهِيدُ", m: "المطلع على كل شيء لا يخفى عليه خافية" },
+    { n: "الْحَقُّ", m: "الذي لا شك في وجوده" },
+    { n: "الْوَكِيلُ", m: "الكفيل بأرزاق العباد وأمورهم" },
+    { n: "الْقَوِيُّ الْمَتِينُ", m: "التام القوة الذي لا يلحقه ضعف" },
+    { n: "الْوَلِيُّ", m: "الناصر والنصير لأوليائه" },
+    { n: "الْحَمِيدُ", m: "المستحق للحمد والثناء" },
+    { n: "الْمُحْصِي", m: "الذي أحصى كل شيء عدداً" },
+    { n: "الْمُبْدِئُ الْمُعِيدُ", m: "الذي بدأ الخلق ثم يعيده" },
+    { n: "الْمُحْيِي الْمُمِيتُ", m: "خالق الحياة والموت" },
+    { n: "الْحَيُّ", m: "الدائم البقاء الذي لا يموت" },
+    { n: "الْقَيُّومُ", m: "القائم بنفسه والمقيم لغيره" },
+    { n: "الْوَاجِدُ", m: "الذي لا يعوزه شيء" },
+    { n: "الْمَاجِدُ", m: "له الكمال المتناهي" },
+    { n: "الْوَاحِدُ الْأَحَدُ", m: "المتفرد الذي لا شريك له" },
+    { n: "الصَّمَدُ", m: "الذي يقصده الخلائق في حوائجهم" },
+    { n: "الْقَادِرُ الْمُقْتَدِرُ", m: "صاحب القدرة التامة والمطلقة" },
+    { n: "الْمُقَدِّمُ الْمُؤَخِّرُ", m: "الذي ينزل الأشياء منازلها" },
+    { n: "الْأَوَّلُ الْآخِرُ", m: "ليس قبله شيء ولا بعده شيء" },
+    { n: "الظَّاهِرُ الْبَاطِنُ", m: "ليس فوقه شيء ولا دونه شيء" },
+    { n: "الْوَالِي", m: "المالك للأشياء المتصرف فيها" },
+    { n: "الْمُتَعَالِي", m: "المنزه عن صفات المخلوقين" },
+    { n: "الْبَرُّ", m: "كثير الإحسان واللطف" },
+    { n: "التَّوَّابُ", m: "الذي يقبل التوبة عن عباده" },
+    { n: "الْمُنْتَقِمُ", m: "الذي يقصم ظهور الطغاة" },
+    { n: "الْعَفُوُّ", m: "الذي يمحو السيئات ويتجاوز عنها" },
+    { n: "الرَّؤُوفُ", m: "شديد الرحمة واللطف بعباده" },
+    { n: "مَالِكُ الْمُلْكِ", m: "الذي ينفذ مشيئته في ملكه" },
+    { n: "ذُو الْجَلَالِ وَالْإِكْرَامِ", m: "المستحق للتعظيم والتكريم" },
+    { n: "الْمُقْسِطُ", m: "العادل في حكمه" },
+    { n: "الْجَامِعُ", m: "الذي يجمع الخلائق ليوم الحساب" },
+    { n: "الْغَنِيُّ", m: "المستغني عن كل ما سواه" },
+    { n: "الْمُغْنِي", m: "الذي يغني بفضله من يشاء" },
+    { n: "الْمَانِعُ", m: "الذي يدفع أسباب الهلاك عن خلقه" },
+    { n: "الضَّارُّ النَّافِعُ", m: "مقدر الضر والنفع" },
+    { n: "النُّورُ", m: "الذي بنوره اهتدى المتقون" },
+    { n: "الْهَادِي", m: "الذي يهدي القلوب للإيمان" },
+    { n: "الْبَدِيعُ", m: "خالق الأشياء على غير مثال سابق" },
+    { n: "الْبَاقِي", m: "الدائم الذي لا يزول" },
+    { n: "الْوَارِثُ", m: "الذي تعود إليه الأملاك بعد فناء الخلق" },
+    { n: "الرَّشِيدُ", m: "الذي يرشد العباد لمصالحهم" },
+    { n: "الصَّبُورُ", m: "الذي لا يعاجل العصاة بالعقوبة" }
+];
+
+window.loadNamesOfAllah = function() {
+    const container = document.getElementById('names-carousel-inner');
+    if (!container || container.dataset.loaded === 'true') return;
+
+    window.renderAllahNames(window.allahNamesData);
+    container.dataset.loaded = 'true';
+
+    // الاستماع لتغيير الكارت لتحديث العداد
+    const myCarouselEl = document.getElementById('namesCarousel');
+    if (myCarouselEl) {
+        myCarouselEl.addEventListener('slide.bs.carousel', function (e) {
+            const total = document.querySelectorAll('.carousel-item').length;
+            document.getElementById('names-counter').innerText = `${e.to + 1} / ${total}`;
+        });
+    }
+};
+
+window.renderAllahNames = function(data) {
+    const container = document.getElementById('names-carousel-inner');
+    let html = '';
+    
+    if(data.length === 0) {
+        container.innerHTML = '<div class="text-center text-danger p-4 fw-bold mt-4"><i class="fas fa-search-minus fa-3x mb-3"></i><br>لم يتم العثور على هذا الاسم</div>';
+        document.getElementById('names-counter').innerText = '0 / 0';
+        return;
+    }
+
+    data.forEach((item, index) => {
+        const isActive = index === 0 ? 'active' : '';
+        html += `
+            <div class="carousel-item ${isActive}">
+                <div class="card border-0 shadow-lg mx-auto" style="max-width: 320px; border-radius: 24px; background: linear-gradient(135deg, #ffffff 0%, #f1f8e9 100%); border-bottom: 5px solid #198754 !important; min-height: 220px;">
+                    <div class="card-body p-4 text-center d-flex flex-column justify-content-center align-items-center h-100">
+                        <h1 class="display-3 fw-bold text-success mb-3" style="font-family: 'Amiri', serif; text-shadow: 0 2px 4px rgba(25,135,84,0.1);">${item.n}</h1>
+                        <p class="text-muted fs-6 mb-0 px-2" style="line-height: 1.8;">${item.m}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+    document.getElementById('names-counter').innerText = `1 / ${data.length}`;
+};
+
+window.filterAllahNames = function() {
+    const query = document.getElementById('search-name-input').value.trim();
+    
+    // دالة لتنظيف النص من التشكيل عشان البحث يكون دقيق
+    const cleanText = (text) => {
+        return text.replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED\u0640]/g, '')
+                   .replace(/[أإآٱ]/g, 'ا')
+                   .replace(/ى/g, 'ي')
+                   .replace(/ة/g, 'ه');
+    };
+
+    if (!query) {
+        window.renderAllahNames(window.allahNamesData);
+        return;
+    }
+
+    const cleanQuery = cleanText(query);
+    const filtered = window.allahNamesData.filter(item => {
+        return cleanText(item.n).includes(cleanQuery) || cleanText(item.m).includes(cleanQuery);
+    });
+
+    window.renderAllahNames(filtered);
+};
 
 // ─── 18. DOMContentLoaded 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -2030,6 +2441,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // }
   initNativeFeatures();
   setTimeout(checkForUpdates, 3000);
+  loadDailyContent();
 
   // 1. استرجاع التوكن أول حاجة
   try {
@@ -2378,9 +2790,55 @@ if (resultContainer) {
     document.querySelectorAll('#live-quran-container audio').forEach(a => { a.volume = parseFloat(this.value); });
   });
 
+    function setupIosInstallPrompt() {
+  const userAgent = window.navigator.userAgent.toLowerCase();
+  const isIos = /iphone|ipad|ipod/.test(userAgent);
+  const isSafari = userAgent.includes('safari') && !userAgent.includes('chrome') && !userAgent.includes('crios');
+  
+  const isStandalone = ('standalone' in window.navigator) && window.navigator.standalone;
+
+  const hasSeenPrompt = localStorage.getItem('aqra_ios_prompt_seen');
+
+  if (isIos && isSafari && !isStandalone && !hasSeenPrompt) {
+    
+    setTimeout(() => {
+      Swal.fire({
+        title: '📲 ثبّت تطبيق اقرأ',
+        html: `
+          <div style="font-family: 'Amiri', serif; text-align: center; direction: rtl; line-height: 1.8;">
+            <p class="text-muted mb-3" style="font-size: 1.1rem;">للاستمتاع بالمصحف والتلاوة بدون إنترنت، أضف التطبيق لشاشتك الرئيسية:</p>
+            <div class="bg-light p-3 rounded text-end" style="border: 1px dashed #198754;">
+              <p class="mb-2 fw-bold text-dark">
+                ١. اضغط على زر المشاركة <i class="fas fa-external-link-alt text-primary mx-1"></i> أسفل الشاشة.
+              </p>
+              <p class="mb-0 fw-bold text-dark">
+                ٢. اختر <strong>"إضافة إلى الصفحة الرئيسية"</strong> <br>
+                <span class="text-muted small" style="font-family: sans-serif;">(Add to Home Screen) <i class="far fa-plus-square ms-1"></i></span>
+              </p>
+            </div>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'حسناً، فهمت',
+        cancelButtonText: 'ليس الآن',
+        confirmButtonColor: '#198754',
+        cancelButtonColor: '#6c757d',
+      }).then((result) => {
+        localStorage.setItem('aqra_ios_prompt_seen', 'true');
+      });
+    }, 5000); 
+  }
+}
+
+setupIosInstallPrompt();
+
+
+
   console.log(Capacitor.isNativePlatform() ? '📱 Mobile Mode Active' : '🌐 Web Mode Active');
   scheduleWebFridayReminder();
 
+
+    
   // ─── Fix aria-hidden: استنى الـ modal يخلص قبل showSection ────────────────
   document.addEventListener('click', function(e) {
     const btn = e.target.closest('[data-goto][data-bs-dismiss="modal"]');
