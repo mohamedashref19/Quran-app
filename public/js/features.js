@@ -2952,12 +2952,10 @@ window.changeTasbeehType = async (type) => {
 
 
 
-// ─── ✅ تنبيه سورة الكهف - Friday Kahf Notification ──────────────────────────
+// ─── ✅ تنبيه سورة الكهف - Friday Kahf Notification 
 
 
 /**
- * جدولة تنبيه سورة الكهف كل يوم جمعة الساعة 8 صباحاً
- * يُستدعى مرة واحدة عند بدء التطبيق (native فقط)
  */
 export const scheduleFridayKahfNotification = async () => {
   try {
@@ -2993,5 +2991,42 @@ export const scheduleFridayKahfNotification = async () => {
     console.log(`✅ [FRIDAY] تنبيه سورة الكهف مجدول: ${nextFriday.toLocaleString('ar-EG')}`);
   } catch (err) {
     console.error('❌ [FRIDAY] خطأ في جدولة تنبيه الكهف:', err);
+  }
+};
+
+// ─── ✅ تنبيه صلاة الضحى - Daily Duha Notification 
+
+
+export const scheduleDuhaNotification = async () => {
+  try {
+    try { await LocalNotifications.cancel({ notifications: [{ id: 888 }] }); } catch (e) {}
+
+    const now = new Date();
+    const duhaTime = new Date(now);
+    duhaTime.setHours(11, 0, 0, 0);
+
+    if (now.getTime() > duhaTime.getTime()) {
+      duhaTime.setDate(now.getDate() + 1);
+    }
+
+    // 3. جدولة التنبيه اليومي
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id: 888,
+          title: 'صلاة الضحى ☀️',
+          body: '«وَيُجْزِئُ مِنْ ذَلِكَ رَكْعَتَانِ يَرْكَعُهُمَا مِنَ الضُّحَى» - صلاة الأوابين.',
+          schedule: {
+            at: duhaTime,
+            every: 'day',   
+            allowWhileIdle: true 
+          }
+        }
+      ]
+    });
+
+    console.log('✅ [NOTIFICATIONS] تم جدولة تنبيه صلاة الضحى يومياً الساعة 10:30 ص');
+  } catch (error) {
+    console.error('❌ [NOTIFICATIONS] خطأ في جدولة تنبيه الضحى:', error);
   }
 };

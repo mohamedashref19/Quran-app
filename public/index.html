@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aqra |  اقرأ</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/icon-192.webp">
+    <link rel="preload" href="/fonts/UthmanicHafs.otf" as="font" type="font/otf" crossorigin>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Amiri:ital,wght@0,400;0,700;1,400&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
@@ -11,7 +14,6 @@
     <link rel="shortcut icon" type="image/png" href="/img/title.png">
     <meta name="theme-color" content="#1e5f31">
     <style>
-        /* ─── الخط الرسمي للمصحف (الرسم العثماني) ─── */
 
 @font-face {
             font-family: 'Uthmani';
@@ -139,6 +141,8 @@
             color: #6c757d;
         }
         .password-field-wrapper { position: relative; }
+        .blink-animation { animation: blinker 1.5s linear infinite; }
+@keyframes blinker { 50% { opacity: 0; } }
 
         /* ══════════════════════════════════════════════
         /* ─── Zoom & AutoScroll toolbar ──────────────── */
@@ -173,7 +177,62 @@
             display: flex !important;
         }
         #autoscroll-fab:active { transform: scale(0.92); }
+        .daily-ayah-card {
+            border-radius: 20px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-bottom: 4px solid #198754 !important;
+            transition: transform 0.3s ease;
+        }
+        .daily-ayah-card:hover {
+            transform: translateY(-3px);
+        }
+        
+        /* تظبيط الكارت في الوضع الليلي */
+        [data-theme="dark"] .daily-ayah-card {
+            background: linear-gradient(135deg, #1a1a1a 0%, #121212 100%);
+            border-bottom-color: #4ade80 !important;
+        }
+        [data-theme="dark"] #daily-ayah-text {
+            color: #a5d6a7 !important;
+        }
+        [data-theme="dark"] #daily-ayah-source {
+            background: #2d2d2d !important;
+            color: #aaa !important;
+            border-color: #444 !important;
+        }
 
+
+        .active-toggle-btn {
+            background-color: #198754 !important;
+            color: white !important;
+            box-shadow: 0 2px 8px rgba(25, 135, 84, 0.3);
+            transition: all 0.3s ease;
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* تظبيط الوضع الليلي لأزرار التبديل والحديث */
+        [data-theme="dark"] .active-toggle-btn {
+            background-color: #4ade80 !important;
+            color: #121212 !important;
+        }
+        [data-theme="dark"] .daily-ayah-card .bg-light.border {
+            background-color: #2d2d2d !important;
+            border-color: #444 !important;
+        }
+        [data-theme="dark"] #daily-hadith-text {
+            color: #a5d6a7 !important;
+        }
+        [data-theme="dark"] #daily-hadith-source {
+            background: #2d2d2d !important;
+            color: #aaa !important;
+            border-color: #444 !important;
+        }
         /* ══════════════════════════════════════════════
    ─── وضع القراءة الليلية 🌙 ─────────────────
 ══════════════════════════════════════════════ */
@@ -577,6 +636,48 @@ nav#main-navbar {
                     </div>
                 </div>
             </div>
+
+            <div class="row justify-content-center mb-4">
+                <div class="col-lg-8">
+                    <div class="card border-0 shadow-sm daily-ayah-card overflow-hidden">
+                        <div class="card-body p-4 text-center position-relative">
+                            <i class="fas fa-quote-right position-absolute opacity-10" style="font-size: 4rem; top: 10px; right: 20px; color: #198754;"></i>
+                            
+                            <div class="d-flex justify-content-center mb-4 position-relative z-1">
+                                <div class="bg-light p-1 rounded-pill border d-inline-flex">
+                                    <button class="btn btn-sm rounded-pill px-4 fw-bold active-toggle-btn" id="btn-show-ayah" onclick="toggleDailyCard('ayah')">آية اليوم</button>
+                                    <button class="btn btn-sm rounded-pill px-4 fw-bold text-muted" id="btn-show-hadith" onclick="toggleDailyCard('hadith')">حديث اليوم</button>
+                                </div>
+                            </div>
+                            
+                            <div id="daily-ayah-content" class="animate-fade-in">
+                                <h4 id="daily-ayah-text" class="fw-bold mb-3 mx-auto" style="font-family: 'Amiri Quran', 'Amiri', serif; line-height: 2; max-width: 90%; color: #1e5f31;">
+                                    جاري التحميل...
+                                </h4>
+                                <div class="d-flex justify-content-center align-items-center gap-2 mt-3 flex-wrap">
+                                    <span id="daily-ayah-source" class="text-muted small fw-bold bg-light px-3 py-1 rounded-pill border"></span>
+                                    <button onclick="shareDailyContent()" class="btn btn-sm btn-outline-success rounded-circle shadow-sm" style="width: 32px; height: 32px; padding: 0;" title="مشاركة">
+                                        <i class="fas fa-share-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="daily-hadith-content" class="animate-fade-in d-none">
+                                <h4 id="daily-hadith-text" class="fw-bold mb-3 mx-auto" style="font-family: 'Amiri', serif; line-height: 2; max-width: 90%; color: #1e5f31;">
+                                    جاري التحميل...
+                                </h4>
+                                <div class="d-flex justify-content-center align-items-center gap-2 mt-3 flex-wrap">
+                                    <span id="daily-hadith-source" class="text-muted small fw-bold bg-light px-3 py-1 rounded-pill border"></span>
+                                    <button onclick="shareDailyContent()" class="btn btn-sm btn-outline-success rounded-circle shadow-sm" style="width: 32px; height: 32px; padding: 0;" title="مشاركة">
+                                        <i class="fas fa-share-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
             
             <div class="row g-3">
                 <div class="col-6 col-md-4">
@@ -639,6 +740,61 @@ nav#main-navbar {
                         <div class="mb-2"><i class="fas fa-chart-bar fa-2x text-info"></i></div>
                         <h6 class="fw-bold">إحصائياتي</h6>
                         <p id="home-stats-today" class="text-muted small mb-0">— صفحة اليوم</p>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4">
+                    <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow" onclick="showSection('radio')" style="cursor: pointer;">
+                        <div class="mb-2"><i class="fas fa-broadcast-tower fa-2x text-success"></i></div>
+                        <h6 class="fw-bold">إذاعة القرآن</h6>
+                    </div>
+                </div>
+            </div>
+            </div>
+
+        <div id="radio-section" class="d-none animate-fade-in">
+            <div class="container d-flex flex-column justify-content-center" style="min-height: 80vh; padding-bottom: 80px;">
+                <div class="text-center mb-4">
+                    <button class="btn btn-outline-success mb-3" onclick="window.showSection('home')">
+                        <i class="fas fa-arrow-right me-1"></i> عودة للرئيسية
+                    </button>
+                    <h2 class="fw-bold text-success"><i class="fas fa-broadcast-tower me-2"></i> إذاعة القرآن</h2>
+                    <p class="text-muted">بث مباشر لتلاوات خاشعة على مدار الساعة</p>
+                </div>
+
+                <div class="card border-0 shadow-lg mx-auto" style="max-width: 380px; border-radius: 20px; overflow: hidden;">
+                    <div class="card-body p-4 text-center" style="background: linear-gradient(135deg, #1e5f31, #144021); color: white;">
+                        
+                        <div class="mb-4 mt-3">
+                            <i id="radio-icon" class="fas fa-radio fa-5x text-white opacity-75"></i>
+                        </div>
+
+                        <div class="mb-4 text-start">
+                            <label class="form-label small text-white-50 fw-bold">اختر المحطة الإذاعية:</label>
+                            <select id="radio-station-select" class="form-select border-0 shadow-sm fw-bold" style="border-radius: 12px; color: #1e5f31;">
+                                <optgroup >
+                                    <option value="https://stream.radiojar.com/8s5u5tpdtwzuv">📻 إذاعة القرآن الكريم (القاهرة)</option>
+        
+                                    <option value="https://backup.qurango.net/radio/tarteel">🌿 إذاعة تلاوات خاشعة</option>
+                                    <option value="https://backup.qurango.net/radio/albaqarah">📖 إذاعة سورة البقرة</option>
+                                    <option value="https://backup.qurango.net/radio/mohammad_siddiq_alminshawi">الشيخ محمد صديق المنشاوي</option>
+                                    <option value="https://backup.qurango.net/radio/abdulbasit_abdulsamad_mojawwad">الشيخ عبدالباسط عبدالصمد</option>
+                                    <option value="https://backup.qurango.net/radio/mahmoud_khalil_alhussary">الشيخ محمود خليل الحصري</option>
+                                    <option value="https://backup.qurango.net/radio/mishary_alafasi">الشيخ مشاري العفاسي</option>
+                                </optgroup>
+                            </select>
+                        </div>
+
+                        <audio id="radio-audio" preload="none"></audio>
+
+                        <button id="btn-toggle-radio" class="btn btn-light rounded-circle shadow mb-3" style="width: 75px; height: 75px; transition: all 0.2s;" onclick="toggleRadio()">
+                            <i id="radio-play-icon" class="fas fa-play fa-2x text-success" style="margin-left: 5px;"></i>
+                        </button>
+                        
+                        <div>
+                            <span id="radio-status" class="badge bg-white text-success rounded-pill px-3 py-2 border border-success border-opacity-25" style="font-size: 0.9rem;">
+                                متوقف
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -749,7 +905,7 @@ nav#main-navbar {
             </div>
         </div>
 
-        <div id="azkar-section" class="d-none">
+      <div id="azkar-section" class="d-none">
             <div class="d-flex align-items-center mb-4">
                 <button class="btn btn-sm btn-secondary me-3" onclick="showSection('home')"><i class="fas fa-arrow-right"></i></button>
                 <h3 class="flex-grow-1 text-center m-0 text-success fw-bold">
@@ -766,6 +922,11 @@ nav#main-navbar {
                 <li class="nav-item" role="presentation">
                     <button class="nav-link rounded-pill fw-bold" id="azkar-tab" data-bs-toggle="pill" data-bs-target="#azkar-pane" type="button" role="tab">
                         <i class="fas fa-book-open me-1"></i> الأذكار
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link rounded-pill fw-bold" id="names-tab" data-bs-toggle="pill" data-bs-target="#names-pane" type="button" role="tab" onclick="if(typeof loadNamesOfAllah === 'function') loadNamesOfAllah()">
+                        <i class="fas fa-heart text-danger me-1"></i> أسماء الله
                     </button>
                 </li>
             </ul>
@@ -837,6 +998,34 @@ nav#main-navbar {
                         </div>
                     </div>
                 </div>
+
+               <div class="tab-pane fade" id="names-pane" role="tabpanel">
+                    
+                    <div class="mb-4 position-relative mx-auto" style="max-width: 350px;">
+                        <input type="text" id="search-name-input" class="form-control rounded-pill text-center shadow-sm border-success" placeholder="🔍 ابحث عن اسم أو معنى..." oninput="filterAllahNames()" style="padding-right: 40px; font-family: 'Amiri', serif; font-size: 1.1rem;">
+                    </div>
+
+                    <div id="namesCarousel" class="carousel slide" data-bs-ride="false" data-bs-touch="true">
+                        <div class="carousel-inner pb-2" id="names-carousel-inner" style="min-height: 250px;">
+                            </div>
+                        
+                        <div class="d-flex justify-content-center align-items-center gap-4 mt-3">
+                            <button class="btn btn-outline-success rounded-circle shadow-sm" type="button" data-bs-target="#namesCarousel" data-bs-slide="next" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-chevron-right fs-5"></i>
+                            </button>
+                            
+                            <div class="text-center text-success fw-bold" id="names-counter" style="font-size: 1.2rem; min-width: 80px;">
+                                1 / 99
+                            </div>
+                            
+                            <button class="btn btn-outline-success rounded-circle shadow-sm" type="button" data-bs-target="#namesCarousel" data-bs-slide="prev" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-chevron-left fs-5"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
             </div>
         </div>
 
