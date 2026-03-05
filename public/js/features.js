@@ -3,7 +3,7 @@ import localforage from 'localforage';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
-import { CapacitorHttp, Capacitor } from '@capacitor/core';
+import {  Capacitor } from '@capacitor/core';
 import axios from 'axios';
 import { showAlert } from './auth';
 import { surahNames, surahStartPages, juzData, getJuzByPage, getHizbByPage, getSurahNameByPage ,SAJDAH_WORDS_COUNT, SAJDAH_WORDS, SAJDAH_AYAH_END, UTHMANI_FIXES} from './constants';
@@ -11,7 +11,7 @@ import { surahNames, surahStartPages, juzData, getJuzByPage, getHizbByPage, getS
 
 
 
-// ─── Offline Queue Helpers ────────────────────────────────────────────────────
+// ─── Offline Queue Helpers 
 const OFFLINE_QUEUE_KEY = 'offline_actions_queue';
 
 const addToOfflineQueue = async (type, payload) => {
@@ -28,7 +28,7 @@ const addToOfflineQueue = async (type, payload) => {
 let currentPage = 1;
 
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Helpers 
 window.downloadAudioOffline = async (url, buttonElement) => {
     try {
         buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحميل...';
@@ -41,35 +41,14 @@ window.downloadAudioOffline = async (url, buttonElement) => {
             Swal.fire('موجود مسبقاً', 'هذه السورة محفوظة بالفعل في جهازك للاستماع بدون إنترنت!', 'info');
             buttonElement.innerHTML = '<i class="fas fa-check-circle text-success"></i> محفوظة أوفلاين ✓';
             buttonElement.classList.replace('btn-outline-secondary', 'btn-outline-success');
+            buttonElement.disabled = false;
             return;
         }
 
-        let responseData;
-        let contentType;
-
-        if (Capacitor.isNativePlatform()) {
-            const options = {
-                url: url,
-                responseType: 'blob' 
-            };
-            const response = await CapacitorHttp.get(options);
-            
-            if (response.status !== 200) throw new Error('فشل التحميل من السيرفر');
-            
-            responseData = response.data; // Capacitor يرجع الـ blob في حقل data
-            contentType = response.headers['Content-Type'] || 'audio/mpeg';
-        } else {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Network response was not ok');
-            responseData = await response.blob();
-            contentType = response.headers.get('Content-Type') || 'audio/mpeg';
-        }
-
-        const responseToCache = new Response(responseData, {
-            headers: { 'Content-Type': contentType }
-        });
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('فشل التحميل من السيرفر');
         
-        await audioCache.put(url, responseToCache);
+        await audioCache.put(url, response.clone());
 
         buttonElement.innerHTML = '<i class="fas fa-check-circle text-success"></i> محفوظة أوفلاين ✓';
         buttonElement.classList.replace('btn-outline-secondary', 'btn-outline-success');
@@ -79,7 +58,7 @@ window.downloadAudioOffline = async (url, buttonElement) => {
             toast: true,
             position: 'bottom-end',
             icon: 'success',
-            title: '✅ تم الحفظ بنجاح للاستماع أوفلاين',
+            title: '✅ تم حفظ السورة للاستماع بدون إنترنت',
             showConfirmButton: false,
             timer: 3000
         });
@@ -89,17 +68,24 @@ window.downloadAudioOffline = async (url, buttonElement) => {
         buttonElement.innerHTML = '<i class="fas fa-download me-1"></i> فشل، أعد المحاولة';
         buttonElement.disabled = false;
         
+        let errorTitle = 'فشل التحميل';
+        let errorMessage = 'حدث خطأ أثناء التحميل، تأكد من اتصالك بالإنترنت ثم حاول مرة أخرى.';
+
+        if (err.name === 'QuotaExceededError' || err.message.toLowerCase().includes('quota') || err.message.toLowerCase().includes('space')) {
+            errorTitle = 'مساحة التخزين ممتلئة!';
+            errorMessage = 'عفواً، لا توجد مساحة كافية في هاتفك لحفظ السورة. يرجى تفريغ بعض المساحة والمحاولة مجدداً.';
+        }
+
         Swal.fire({
             icon: 'error',
-            title: 'فشل التحميل',
-            text: 'تأكد من اتصالك بالإنترنت ومساحة التخزين، ثم حاول مرة أخرى.',
+            title: errorTitle,
+            text: errorMessage,
             confirmButtonText: 'حسناً',
             confirmButtonColor: '#198754'
         });
     }
 };
 
-// ─── ✅ دالة: فحص إذا كان URL محفوظ في الكاش ─────────────────────────────────
 const isAudioCached = async (url) => {
   try {
     const cache = await caches.open('quran-audio-cache-v1');
@@ -108,7 +94,6 @@ const isAudioCached = async (url) => {
   } catch { return false; }
 };
 
-// ─── ✅ دالة: رسالة Swal أوفلاين أحلى ────────────────────────────────────────
 const showOfflineAudioMessage = (surahName) => {
   Swal.fire({
     icon: 'info',
@@ -179,7 +164,7 @@ function checkConnection() {
 
 const isUserLoggedIn = () => {
   if (axios.defaults.headers.common['Authorization']) return true;
-  if (localStorage.getItem('auth_token')) return true; // ← أضف هذا السطر
+  if (localStorage.getItem('auth_token')) return true; 
   const userLinks = document.querySelectorAll('.user-link:not(.d-none)');
   return userLinks.length > 0;
 };
@@ -199,13 +184,13 @@ let _loadingPage = null;
 
 
 
-// ─── Bookmarks Session Cache ───────────────────────────────────────────────────
+// ─── Bookmarks Session Cache 
 
 let _bookmarksCache    = null;
 let _bookmarksFetching = false;
 
 const getBookmarks = async () => {
-  if (!isUserLoggedIn()) return []; // ← تحقق أولاً
+  if (!isUserLoggedIn()) return []; 
   if (_bookmarksCache !== null) return _bookmarksCache;
   if (_bookmarksFetching) {
     await new Promise(r => setTimeout(r, 300));
@@ -252,9 +237,8 @@ function updateNavButtons() {
 
 
 
-// ─── loadQuranPage ─────────────────────────────────────────────────────────────
+// ─── loadQuranPage 
 
-// ─── مشاركة آية ────────────────────────────────────────────────────────────────
 
 // ── رسم القالب على الـ Canvas ──
 const drawTemplate = (ctx, templateId, ayahText, surahName, ayahNum) => {
@@ -379,7 +363,6 @@ const wrapText = (ctx, text, x, startY, maxW, lineH) => {
   if (line) ctx.fillText(line, x, y);
 };
 
-// رسم نجمة
 const drawStar = (ctx, cx, cy, spikes, outerR, innerR, color) => {
   let rot = (Math.PI / 2) * 3, step = Math.PI / spikes;
   ctx.beginPath(); ctx.moveTo(cx, cy - outerR);
@@ -391,7 +374,6 @@ const drawStar = (ctx, cx, cy, spikes, outerR, innerR, color) => {
   ctx.fillStyle = color; ctx.fill();
 };
 
-// ── عرض نافذة اختيار القالب ──
 const showTemplateChooser = (ayahText, surahName, ayahNum) => {
   return new Promise((resolve) => {
     const templates = [
@@ -444,10 +426,8 @@ const showTemplateChooser = (ayahText, surahName, ayahNum) => {
 };
 
 export const shareAyah = async (ayahText, surahName, ayahNum) => {
-  // 🌟 1. تنظيف اسم السورة من كلمة "سورة" أو "سُورَةُ" عشان متتكررش
   const cleanSurahName = surahName.replace(/سورة /g, '').replace(/سُورَةُ /g, '').trim();
 
-  // 2. إنشاء الكارت (التصميم) بشكل مخفي في الشاشة
   const card = document.createElement('div');
   card.style.cssText = `
     width: 1080px; 
@@ -462,7 +442,6 @@ export const shareAyah = async (ayahText, surahName, ayahNum) => {
     direction: rtl;
   `;
   
-  // 🌟 3. تم تعديل لون الآية (لون كريمي #fdf5e6) وتغميق الخلفية عشان الكلام يوضح وينور
   card.innerHTML = `
     <div style="border: 3px solid #d4af37; padding: 70px 50px; border-radius: 40px; background: rgba(0,0,0,0.45); box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
       <div style="margin-bottom: 40px;">
@@ -481,7 +460,6 @@ export const shareAyah = async (ayahText, surahName, ayahNum) => {
   `;
   document.body.appendChild(card);
 
-  // إظهار اللودنج
   Swal.fire({
     title: 'جاري تجهيز الصورة...',
     allowOutsideClick: false,
@@ -489,18 +467,15 @@ export const shareAyah = async (ayahText, surahName, ayahNum) => {
   });
 
   try {
-    // 4. تحويل الكارت لصورة
     const canvas = await html2canvas(card, { scale: 2, backgroundColor: '#0d1b0f', useCORS: true });
     const imgData = canvas.toDataURL('image/png');
     document.body.removeChild(card); // تنظيف الشاشة
 
-    // 5. تحويل الـ base64 لملف File
     const blob = await (await fetch(imgData)).blob();
     const file = new File([blob], `ayah_${cleanSurahName}_${ayahNum}.png`, { type: 'image/png' });
 
     Swal.close(); // قفل اللودنج
 
-    // 6. مشاركة الصورة بالنصوص المحدثة)
     if (Capacitor.isNativePlatform()) {
        const base64Data = imgData.split(',')[1];
        const fileName = `ayah_share_${Date.now()}.png`;
@@ -584,13 +559,11 @@ export async function loadQuranPage(pageNumber, targetSurah = null, targetAyah =
       khatmah = pageData.khatmah;
     }
 
-    // ─── ✅ FIX: جلب الـ Bookmarks بشكل صحيح أونلاين وأوفلاين ─────────────────
     let userBookmarks = [];
     const loggedIn = isUserLoggedIn();
     if (loggedIn) {
   userBookmarks = await localforage.getItem('offline_bookmarks') || [];
 
-  // ✅ تحقق من وجود token قبل الـ background call
   if (navigator.onLine && localStorage.getItem('auth_token')) {
     axios.get('/api/v1/bookmarks').then(async (res) => {
       const freshBookmarks = res.data.data.bookmarks;
@@ -958,7 +931,7 @@ export async function toggleBookmark(surah, ayah, iconElement) {
 
 
 
-// ─── updateKhatmahProgress ─────────────────────────────────────────────────────
+// ─── updateKhatmahProgress 
 
 export async function updateKhatmahProgress(surah, ayah) {
   if (!isUserLoggedIn()) {
@@ -966,23 +939,23 @@ export async function updateKhatmahProgress(surah, ayah) {
     return;
   }
 
-  // ✅ حساب الـ page صح مرة واحدة في الأول
-  const currentPage = (window.currentPage && window.currentPage >= 1)
-    ? window.currentPage
-    : (surahStartPages[parseInt(surah)] || 1);
+  let currentPageForKhatmah = 0;
+  const quranSection = document.getElementById('quran-section');
+  if (quranSection && !quranSection.classList.contains('d-none')) {
+    currentPageForKhatmah = window.currentPage || 1;
+  }
 
   if (!navigator.onLine) {
     await addToOfflineQueue('UPDATE_KHATMAH', {
       surah,
       ayah,
-      page: currentPage  // ✅
+      page: currentPageForKhatmah  
     });
 
-    // ✅ حفظ الـ page في الكاش
     await localforage.setItem('latest_khatmah', {
       currentSurah: surah,
       currentAyah: ayah,
-      page: currentPage,  // ✅
+      page: currentPageForKhatmah,  
       updatedAt: Date.now()
     });
 
@@ -1018,14 +991,13 @@ export async function updateKhatmahProgress(surah, ayah) {
   }
 
   try {
-    const res = await axios.patch('/api/v1/khatmah', { surah, ayah, page: currentPage });  // ✅
+    const res = await axios.patch('/api/v1/khatmah', { surah, ayah, page: currentPageForKhatmah });  
 
     if (res.data.status === 'success') {
-      // ✅ حفظ الـ page في الكاش
       await localforage.setItem('latest_khatmah', {
         currentSurah: surah,
         currentAyah: ayah,
-        page: currentPage,  // ✅
+        page: currentPageForKhatmah,  
         updatedAt: Date.now()
       });
 
@@ -1073,13 +1045,13 @@ export async function updateKhatmahProgress(surah, ayah) {
   } catch (err) {
     console.error("❌ خطأ في التحديث:", err);
     if (!navigator.onLine || err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
-      await addToOfflineQueue('UPDATE_KHATMAH', { surah, ayah, page: currentPage });  // ✅
       
-      // ✅ حفظ الـ page في الكاش
+      await addToOfflineQueue('UPDATE_KHATMAH', { surah, ayah, page: currentPageForKhatmah });  
+      
       await localforage.setItem('latest_khatmah', {
         currentSurah: surah,
         currentAyah: ayah,
-        page: currentPage,  // ✅
+        page: currentPageForKhatmah,  
         updatedAt: Date.now()
       });
 
@@ -1280,7 +1252,7 @@ const loadFromCache = async () => {
     return {
       currentSurah: offlineKhatmah.currentSurah,
       currentAyah:  offlineKhatmah.currentAyah,
-      page:         offlineKhatmah.page || null, // ✅
+      page:         offlineKhatmah.page || null, 
       name: offlineMeta ? offlineMeta.name : 'ختمتي الحالية'
     };
   };
@@ -1318,7 +1290,7 @@ const loadFromCache = async () => {
      await localforage.setItem('latest_khatmah', { 
   currentSurah: k.currentSurah, 
   currentAyah: k.currentAyah,
-  page: k.page || null  // ✅
+  page: k.page || null  
 });
       await localforage.setItem('khatmah_meta', { name: k.name, targetMsg: res.data.data.message || "واصل تقدمك لختم القرآن الكريم ✨" });
       if (kTargetEl) kTargetEl.innerText = res.data.data.message || "واصل تقدمك لختم القرآن الكريم ✨";
@@ -1453,7 +1425,6 @@ export async function checkRecitation(file, surah, startAyah, endAyah, userAudio
           </div>`;
       } else {
         const className = item.status === 'Correct' ? 'word-correct' : (item.status === 'missing' ? 'word-missing' : 'word-wrong');
-        // ✅ XSS protection + مسافة فارغة بعد الـ span عشان الكلمات متلزقش في بعض
         const safeText = item.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
         resultHTML += `<span class="${className}">${safeText}</span> `;
       }
@@ -1505,7 +1476,6 @@ function resetRecitationUI() {
 
 
 // ─── loadReciters ─────────────────────────────────────────────────────────────
-// ✅ UPDATED: أوفلاين-فيرست مع badge وتجربة أفضل + إضافة الشيخ عبد الرحمن الزواوي
 
 export async function loadReciters() {
   try {
@@ -1515,9 +1485,7 @@ export async function loadReciters() {
       const cachedRecitersData = await localforage.getItem('cached_reciters');
 
       if (cachedRecitersData) {
-        // ✅ عندنا بيانات محفوظة - نعرضها في أوفلاين
         await renderReciters(cachedRecitersData, container);
-        // إضافة banner أوفلاين في الأعلى
         container.insertAdjacentHTML('afterbegin', `
           <div class="col-12 mb-3">
             <div class="alert mb-0 text-end d-flex align-items-center gap-3"
@@ -1530,7 +1498,6 @@ export async function loadReciters() {
             </div>
           </div>`);
       } else {
-        // ✅ مفيش بيانات أوفلاين - رسالة أحلى
         if (container) {
           container.innerHTML = `
             <div class="col-12">
@@ -1585,18 +1552,107 @@ export async function loadReciters() {
   }
 }
 
-// ─── ✅ دالة مستقلة: رسم كروت القراء (تُستخدم أونلاين وأوفلاين) ─────────────
+//   Custom Searchable Dropdown 
+window.transformSelectToSearchable = (selectElement) => {
+  if (!selectElement || selectElement.dataset.searchableInit === 'true') return;
+  selectElement.dataset.searchableInit = 'true';
+  
+  selectElement.style.display = 'none';
+  
+  const styleId = 'custom-dropdown-style';
+  if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.innerHTML = `
+          .custom-surah-dropdown .dropdown-item:hover { background-color: rgba(25, 135, 84, 0.1) !important; color: #198754 !important; font-weight: bold; }
+          [data-theme="dark"] .custom-surah-dropdown .dropdown-menu { border: 1px solid #444 !important; background-color: #1a2e1f !important; }
+          [data-theme="dark"] .custom-surah-dropdown .dropdown-item { color: #e8f5e9 !important; border-bottom: 1px solid #2d4a35 !important; }
+          [data-theme="dark"] .custom-surah-dropdown .surah-search-input { background-color: #0d1b0f !important; color: #fff !important; border-color: #2d4a35 !important; }
+          [data-theme="dark"] .custom-surah-dropdown .sticky-top { background-color: #1a2e1f !important; }
+      `;
+      document.head.appendChild(style);
+  }
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'custom-surah-dropdown w-100 position-relative mb-2';
+  
+  const initialSelected = selectElement.options[selectElement.selectedIndex];
+  const initialText = initialSelected ? initialSelected.textContent : 'اختر السورة';
+  
+  wrapper.innerHTML = `
+    <button class="btn border w-100 d-flex justify-content-between align-items-center shadow-sm" 
+            type="button" data-bs-toggle="dropdown" aria-expanded="false" 
+            style="font-family: 'Amiri', serif; border-radius: 10px; padding: 10px 15px; background-color: var(--card-bg, #fff); color: var(--text-color, #333); border-color: var(--border-color, #ced4da) !important;">
+        <span class="selected-text">${initialText}</span>
+        <i class="fas fa-chevron-down text-success" style="font-size: 0.8rem;"></i>
+    </button>
+    <ul class="dropdown-menu w-100 shadow border-0 p-0" 
+        style="max-height: 320px; overflow-y: auto; text-align: right; direction: rtl; border-radius: 12px; z-index: 1050;">
+        <div class="p-2 sticky-top" style="border-bottom: 1px solid #f1f1f1;">
+            <input type="text" class="form-control surah-search-input" placeholder="🔍 ابحث عن سورة..." 
+                   style="font-family: sans-serif; font-size: 0.95rem; border-radius: 8px; border: 1px solid #198754; padding: 10px;">
+        </div>
+        <div class="surah-items-container pb-2"></div>
+    </ul>
+  `;
+  
+  const itemsContainer = wrapper.querySelector('.surah-items-container');
+  const searchInput = wrapper.querySelector('.surah-search-input');
+  const btnText = wrapper.querySelector('.selected-text');
+  
+  Array.from(selectElement.options).forEach(opt => {
+      if (!opt.value) return; 
+      const li = document.createElement('li');
+      li.innerHTML = `<a class="dropdown-item" href="#" data-value="${opt.value}" 
+                         style="font-family: 'Amiri', serif; padding: 10px 15px; border-bottom: 1px solid #f9f9f9; font-size: 1.1rem;">
+                         ${opt.textContent}
+                      </a>`;
+      itemsContainer.appendChild(li);
+      
+      li.querySelector('a').addEventListener('click', (e) => {
+          e.preventDefault();
+          btnText.textContent = opt.textContent;
+          selectElement.value = opt.value;
+          searchInput.value = ''; // تصفير البحث
+          itemsContainer.querySelectorAll('li').forEach(i => i.style.display = 'block');
+          
+          selectElement.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+  });
+  
+  searchInput.addEventListener('click', e => e.stopPropagation());
+  
+  searchInput.addEventListener('input', (e) => {
+      const term = e.target.value.replace(/[أإآٱ]/g, 'ا').toLowerCase();
+      itemsContainer.querySelectorAll('li').forEach(li => {
+          const text = li.textContent.replace(/[أإآٱ]/g, 'ا').toLowerCase();
+          li.style.display = text.includes(term) ? 'block' : 'none';
+      });
+  });
+
+  selectElement.addEventListener('change', () => {
+     const selectedOpt = selectElement.options[selectElement.selectedIndex];
+     if (selectedOpt) btnText.textContent = selectedOpt.textContent;
+  });
+  
+  selectElement.parentNode.insertBefore(wrapper, selectElement.nextSibling);
+};
+
+
+
+
+
 async function renderReciters(recitersList, container) {
   if (!container) return;
   container.innerHTML = '';
-const reciterSurahNames = surahNames;
+  const reciterSurahNames = surahNames;
   const reciterNamesAr = {
     "Mishary Rashid Alafasy": "مشاري راشد العفاسي",
     "Maher Al Muaiqly": "ماهر المعيقلي",
     "Mahmoud Khalil Al-Hussary": "محمود خليل الحصري",
     "Saud Al-Shuraim": "سعود الشريم",
     "Abdelbasset Abdessamad": "عبد الباسط عبد الصمد",
-    "Abdelrahman Elzwawy": "عبد الرحمن الزواوي" // 🌟 تم الإضافة
+    "Abdelrahman Elzwawy": "عبد الرحمن الزواوي" 
   };
   const reciterImages = {
     "Mishary Rashid Alafasy": "/img/reciters/mishary.jpg",
@@ -1604,7 +1660,7 @@ const reciterSurahNames = surahNames;
     "Mahmoud Khalil Al-Hussary": "/img/reciters/hussary.jpg",
     "Saud Al-Shuraim": "/img/reciters/shuraim.jpg",
     "Abdelbasset Abdessamad": "/img/reciters/abdelbasset.jpg",
-    "Abdelrahman Elzwawy": "/img/reciters/elzwawy.jpg" // 🌟 تم الإضافة
+    "Abdelrahman Elzwawy": "/img/reciters/elzwawy.jpg" 
   };
 
   let optionsHTML = '';
@@ -1619,8 +1675,19 @@ const reciterSurahNames = surahNames;
     const serverUrl = reciter.server.endsWith('/') ? reciter.server.slice(0, -1) : reciter.server;
     const defaultUrl = `${serverUrl}/001.mp3`;
 
-    // ✅ فحص إذا السورة الأولى محفوظة أوفلاين
     const isDefaultCached = await isAudioCached(defaultUrl);
+    
+    let audioSrc = defaultUrl;
+    if (isDefaultCached) {
+      try {
+        const cache = await caches.open('quran-audio-cache-v1');
+        const cachedRes = await cache.match(defaultUrl);
+        if (cachedRes) {
+          const blob = await cachedRes.blob();
+          audioSrc = URL.createObjectURL(blob); 
+        }
+      } catch(e) { console.error("Cache blob error during render", e); }
+    }
 
     container.insertAdjacentHTML('beforeend', `
       <div class="col-md-4 col-sm-6">
@@ -1641,11 +1708,11 @@ const reciterSurahNames = surahNames;
             </div>
 
             <audio controls class="w-100 mt-2 quran-player" preload="metadata"
-  src="${defaultUrl}"
-  data-url="${defaultUrl}"
-  data-reciter="${displayName}"
-  style="border-radius: 30px;">
-</audio>
+              src="${audioSrc}"  
+              data-url="${defaultUrl}"
+              data-reciter="${displayName}"
+              style="border-radius: 30px;">
+            </audio>
 
             <button class="btn btn-sm mt-2 download-audio-btn w-100 ${isDefaultCached ? 'btn-outline-success' : 'btn-outline-secondary'}"
               style="border-radius: 10px;"
@@ -1662,8 +1729,8 @@ const reciterSurahNames = surahNames;
 
   // ─── Event Listeners ───────────────────────────────────────────────────────
   
-  // تغيير السورة (مع تجهيز الصوت في الخلفية لتسريع التشغيل)
   document.querySelectorAll('.surah-select').forEach(select => {
+    if (window.transformSelectToSearchable) window.transformSelectToSearchable(select);
     select.addEventListener('change', async function() {
       const paddedSurah = this.value.toString().padStart(3, '0');
       const cardBody = this.closest('.card-body');
@@ -1671,13 +1738,11 @@ const reciterSurahNames = surahNames;
       const audioPlayer = cardBody.querySelector('audio');
       const downloadBtn = cardBody.querySelector('.download-audio-btn');
 
-      // وضع الرابط المباشر كأمر افتراضي (يعمل فوراً لو مش مكيش)
       if (audioPlayer) {
         audioPlayer.dataset.url = newUrl;
         audioPlayer.src = newUrl;
       }
 
-      // فحص الكاش وتحديث الزرار (في الخلفية بدون تعطيل الواجهة)
       const isCached = await isAudioCached(newUrl);
       if (downloadBtn) {
         if (isCached) {
@@ -1685,7 +1750,6 @@ const reciterSurahNames = surahNames;
           downloadBtn.className = 'btn btn-sm mt-2 download-audio-btn w-100 btn-outline-success';
           downloadBtn.style.borderRadius = '10px';
           
-          // 🚀 السحر هنا: لو مكيش، حوله لـ Blob من دلوقتي عشان يشتغل في جزء من الثانية وقت الـ Play
           try {
             const cache = await caches.open('quran-audio-cache-v1');
             const cachedRes = await cache.match(newUrl);
@@ -1706,13 +1770,11 @@ const reciterSurahNames = surahNames;
     });
   });
 
-  // تشغيل الصوت (أصبح سريع جداً لأن الملف إما جاهز كـ Blob أو بيحمل Metadata)
   document.querySelectorAll('.quran-player').forEach(player => {
     player.addEventListener('play', function(e) {
       // إيقاف باقي المشغلات
       document.querySelectorAll('audio').forEach(a => { if (a !== this) a.pause(); });
 
-      // منع التشغيل وإظهار رسالة لو المستخدم أوفلاين والملف مش مكيش (مش Blob)
       if (!navigator.onLine && !this.src.startsWith('blob:')) {
         e.preventDefault();
         this.pause();
@@ -1861,7 +1923,7 @@ export function loadPrayers() {
         }
       } catch (err) {
         console.error('فشل جلب مواقيت الصلاة:', err);
-        await showOfflineMessage(); // لو المشكلة سيرفر أو نت، بيجيب كاش أو رسالة نت
+        await showOfflineMessage(); 
       }
     },
     async (geoErr) => {
@@ -1870,7 +1932,6 @@ export function loadPrayers() {
       (geoErr.message && (geoErr.message.toLowerCase().includes('permission') || geoErr.message.toLowerCase().includes('denied')));
 
       if (isPermissionDenied) {
-        // لو رفض الإذن، نعرض رسالة واضحة في الواجهة بدل رسالة النت المقطوع
         if (locationEl) locationEl.innerText = 'مواقيت الصلاة';
         if (hijriEl) hijriEl.innerText = '';
         if (container) {
@@ -1908,7 +1969,6 @@ export const initBookmarksSearch = () => {
   });
 };
 
-// ─── دوال مساعدة للبحث الأوفلاين وإزالة التشكيل ────────────────────────────
 const stripTashkeel = (text) => {
   if (!text) return '';
   return text
@@ -2011,14 +2071,12 @@ export const initSearch = () => {
       resultsContainer.innerHTML = '<div class="list-group-item text-center">جاري البحث...</div>';
       resultsContainer.classList.remove('d-none');
 
-      // ─── دالة مجمعة للبحث الأوفلاين للنداء عليها كبديل (Fallback) ───
       const doOfflineSearch = async () => {
         try {
           resultsContainer.innerHTML = '<div class="list-group-item text-center text-muted small">🔌 وضع أوفلاين - البحث في المصحف المحفوظ...</div>';
           const ayahs = await searchInCachedPages(query);
 
           if (ayahs.length === 0) {
-            // جرب آخر نتائج محفوظة إذا كان نفس الاستعلام
             const lastSearch = await localforage.getItem('last_search_results');
             if (lastSearch && lastSearch.query === query && lastSearch.ayahs?.length > 0) {
               resultsContainer.innerHTML = '<div class="list-group-item text-center text-warning small">📦 نتائج محفوظة مسبقاً</div>';
@@ -2035,14 +2093,11 @@ export const initSearch = () => {
         }
       };
 
-      // ─── التوجيه الذكي ───
     if (navigator.onLine) {
         try {
-          // 1. حاول البحث عبر السيرفر
            const res = await axios.get(`/api/v1/quran/search?q=${encodeURIComponent(query)}`, { timeout: 5000 });
           const ayahs = res.data.data.ayahs;
           
-          // ✅ التعديل السحري: لو السيرفر لم يجد الكلمة (بسبب اختلاف الـ ى والـ ي)، شغل بحثنا الذكي!
           if (!ayahs || ayahs.length === 0) {
              console.log('لم يجد السيرفر نتائج، جاري التشغيل البحث المحلي الذكي...');
              await doOfflineSearch();

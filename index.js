@@ -55,7 +55,7 @@ app.use(
           "https://browser.sentry-cdn.com",
           "https://www.gstatic.com",
           "https://www.googletagmanager.com",
-          "https://static.cloudflareinsights.com", // سكريبت كلاود فلير
+          "https://static.cloudflareinsights.com", 
           "capacitor://localhost",
           "http://localhost"
         ],
@@ -101,7 +101,9 @@ app.use(
         
         connectSrc: [
           "'self'",
-          "https://aqraapp.com", // الدومين الجديد
+           "data:",
+            "https://static.cloudflareinsights.com", 
+          "https://aqraapp.com",
           "https://www.aqraapp.com",
           "https://www.transparenttextures.com",
           "https://*.googleusercontent.com",
