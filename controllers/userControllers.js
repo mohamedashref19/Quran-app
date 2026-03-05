@@ -38,14 +38,6 @@ exports.updateMe = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.deleteMe = catchAsync(async (req, res, next) => {
-  await User.findByIdAndUpdate(req.user, { active: false });
-
-  res.status(204).json({
-    status: "success",
-    data: null,
-  });
-});
 
 
 exports.getMe = (req, res, next) => {
@@ -62,21 +54,16 @@ exports.UpdateUser = factory.updateone(User);
 exports.DeleteUser = factory.deleteone(User);
 exports.CreateUser = factory.createone(User);
 
+exports.deleteMe = catchAsync(async (req, res, next) => {
+  await User.findByIdAndUpdate(req.user.id, { active: false });
+  
+  res.cookie('jwt', 'loggedout', {
+    expires: new Date(Date.now() + 10 * 1000),
+    httpOnly: true
+  });
 
-exports.deleteMe = async (req, res, next) => {
-  try {
-    await User.findByIdAndDelete(req.user.id);
-    
-    res.cookie('jwt', 'loggedout', {
-      expires: new Date(Date.now() + 10 * 1000),
-      httpOnly: true
-    });
-
-    res.status(200).json({
-      status: 'success',
-      data: null
-    });
-  } catch (err) {
-    res.status(500).json({ status: 'error', message: 'فشل حذف الحساب، حاول مرة أخرى.' });
-  }
-};
+  res.status(200).json({
+    status: 'success',
+    message: 'تم حذف الحساب بنجاح.'
+  });
+});

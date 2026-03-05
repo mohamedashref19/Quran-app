@@ -32,6 +32,7 @@ if (window.location.hostname !== 'localhost' && window.location.hostname !== '12
 // ─── 1. Config ────────────────────────────────────────────────────────────────
 // axios.defaults.baseURL = 'https://aqra-app.serveftp.com';
 axios.defaults.baseURL = 'https://aqraapp.com';
+// axios.defaults.baseURL ='http://127.0.0.1:3000';
 axios.defaults.withCredentials =  Capacitor.isNativePlatform();
 const OFFLINE_HANDLED_URLS = [
   '/api/v1/bookmarks',
@@ -920,6 +921,12 @@ window.loadQuranPage = loadQuranPage;
 window.startSurahReading = startSurahReading;
 window.changePassword = changePassword;
 window.forgotPasswordHandler = forgotPassword;
+window.forgotPassword = forgotPassword;
+window.resetPassword  = resetPassword;
+window.login          = login;
+window.signup         = signup;
+window.verifyOTP      = verifyOTP;
+window.logout         = logout;
 
 // ─── 9. Live Audio Player ─────────────────────────────────────────────────────
 window.playLiveAudio = (url, btnId) => {
@@ -977,7 +984,23 @@ async function sendChunkToAPI(blob) {
         if (res.data.status === 'success' && res.data.text) {
             highlightSpokenAyah(res.data.text);
         }
-    } catch (e) { console.error("🔴 [CHUNK ERROR]", e.message); }
+    } catch (e) { 
+      console.error("🔴 [CHUNK ERROR]", e.message); 
+      if (e.response && e.response.status === 429) {
+    Swal.fire({
+      icon: 'info',
+      title: 'مهلاً!',
+      text: e.response.data.message || 'يرجى المحاولة لاحقاً.',
+      confirmButtonText: 'حسناً',
+      confirmButtonColor: '#198754' 
+    });
+    if (typeof stopLiveTracking === 'function') stopLiveTracking();
+    
+    resetUIButtons(); 
+    return;
+  }
+
+    }
 }
 
 function startChunkLoop() {
@@ -1136,6 +1159,7 @@ window.loadLiveAyahs = async () => {
   } catch (err) {
     console.error(err);
     container.innerHTML = '<p class="text-danger">حدث خطأ في تحميل الآيات.</p>';
+
   }
 };
 
@@ -1842,15 +1866,8 @@ const initNativeFeatures = async () => {
    await App.addListener('appUrlOpen', ({ url }) => {
       try {
         const urlObj = new URL(url);
-        if (urlObj.pathname.startsWith('/resetPassword/')) {
-            // ✅ التعديل هنا: الفلترة لمنع الشرطات الفارغة
-            const pathParts = urlObj.pathname.split('/').filter(p => p !== '');
-            const token = pathParts[pathParts.length - 1];
-            
-            if (token) {
-                window.currentResetToken = token; 
+        if (urlObj.pathname === '/resetPassword' || urlObj.pathname === '/reset-password.html') {
                 window.showSection('reset-password');
-            }
         }
       } catch (e) { console.warn('Deep link error:', e); }
     });
@@ -1932,7 +1949,6 @@ const checkForUpdates = async () => {
 };
 
 const scheduleWebFridayReminder = () => {
-  // على الويب نستخدم setTimeout لليوم الحالي فقط (لا يوجد persistent notifications)
   const now = new Date();
   const isFriday = now.getDay() === 5;
   const hour = now.getHours();
@@ -1976,7 +1992,7 @@ const scheduleWebFridayReminder = () => {
 
 
 
-// ─── 18. DOMContentLoaded ─────────────────────────────────────────────────────
+// ─── 18. DOMContentLoaded 
 document.addEventListener('DOMContentLoaded', async () => {
   // if ('serviceWorker' in navigator) {
   //   try {
@@ -2032,15 +2048,8 @@ document.getElementById('tasbeeh-tab')?.addEventListener('shown.bs.tab', () => {
   if (initialPath === '/' || initialPath === '/index.html') {
     window.showSection('home');
 
-  }else if (initialPath.startsWith('/resetPassword/')) {
-    // ✅ التعديل هنا أيضاً
-    const pathParts = initialPath.split('/').filter(p => p !== '');
-    const token = pathParts[pathParts.length - 1];
-    
-    if(token) {
-        window.currentResetToken = token;
-        window.showSection('reset-password');
-    }
+  }else if (initialPath === '/resetPassword') {
+    window.showSection('reset-password');
   }
   else if (initialPath.startsWith('/quran')) {
     document.querySelectorAll('[id$="-section"]').forEach(el => el.classList.add('d-none'));
@@ -2068,7 +2077,7 @@ document.getElementById('tasbeeh-tab')?.addEventListener('shown.bs.tab', () => {
     }
   }
 
-  // ─── Form Handlers ──────────────────────────────────────────────────────
+  // ─── Form Handlers 
   const handleForm = (id, action) => {
     const f = document.getElementById(id);
     if (f) {
@@ -2112,15 +2121,15 @@ document.getElementById('tasbeeh-tab')?.addEventListener('shown.bs.tab', () => {
     updateSettings({ name, email }, 'data');
   });
   handleForm('resetPasswordFormPage', () => {
-    const newPass = document.getElementById('reset-new-password').value;
-    const confirmPass = document.getElementById('reset-confirm-password').value;
-    
-    if (newPass.length < 8) return showAlert('error', 'كلمة المرور يجب أن تكون 8 أحرف على الأقل');
-    if (newPass !== confirmPass) return showAlert('error', 'كلمتا المرور غير متطابقتين');
-    if (!window.currentResetToken) return showAlert('error', 'رابط غير صالح أو مفقود التوكن');
+    const otp         = document.getElementById('reset-otp').value;
+    const newPass     = document.getElementById('reset-password').value;
+    const confirmPass = document.getElementById('reset-password-confirm').value;
 
-    // استدعاء دالة resetPassword من auth.js
-    resetPassword(window.currentResetToken, newPass, confirmPass);
+    if (!otp)                        return showAlert('error', 'يرجى إدخال كود التحقق');
+    if (newPass.length < 8)          return showAlert('error', 'كلمة المرور يجب أن تكون 8 أحرف على الأقل');
+    if (newPass !== confirmPass)      return showAlert('error', 'كلمتا المرور غير متطابقتين');
+
+    resetPassword(otp, newPass, confirmPass);
   });
 
   document.getElementById('logoutBtnProfile')?.addEventListener('click', (e) => { e.preventDefault(); logout(); });
@@ -2300,7 +2309,7 @@ document.getElementById('tasbeeh-tab')?.addEventListener('shown.bs.tab', () => {
 const resultContainer = document.getElementById('result-container');
 if (resultContainer) {
   const observer = new MutationObserver(() => {
-    const volumeControlAi = document.getElementById('volume-control-ai'); // ← جوا الـ observer
+    const volumeControlAi = document.getElementById('volume-control-ai'); 
     if (!resultContainer.classList.contains('d-none')) {
       if (volumeControlAi) volumeControlAi.classList.remove('d-none');
     } else {

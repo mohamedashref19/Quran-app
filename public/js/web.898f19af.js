@@ -117,54 +117,39 @@ parcelRequire = (function (modules, cache, entry, globalName) {
   }
 
   return newRequire;
-})({"../../node_modules/@capacitor/app/dist/esm/web.js":[function(require,module,exports) {
+})({"../../node_modules/@capacitor/share/dist/esm/web.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.AppWeb = void 0;
+exports.ShareWeb = void 0;
 var _core = require("@capacitor/core");
-class AppWeb extends _core.WebPlugin {
-  constructor() {
-    super();
-    this.handleVisibilityChange = () => {
-      const data = {
-        isActive: document.hidden !== true
+class ShareWeb extends _core.WebPlugin {
+  async canShare() {
+    if (typeof navigator === 'undefined' || !navigator.share) {
+      return {
+        value: false
       };
-      this.notifyListeners('appStateChange', data);
-      if (document.hidden) {
-        this.notifyListeners('pause', null);
-      } else {
-        this.notifyListeners('resume', null);
-      }
-    };
-    document.addEventListener('visibilitychange', this.handleVisibilityChange, false);
+    } else {
+      return {
+        value: true
+      };
+    }
   }
-  exitApp() {
-    throw this.unimplemented('Not implemented on web.');
-  }
-  async getInfo() {
-    throw this.unimplemented('Not implemented on web.');
-  }
-  async getLaunchUrl() {
-    return {
-      url: ''
-    };
-  }
-  async getState() {
-    return {
-      isActive: document.hidden !== true
-    };
-  }
-  async minimizeApp() {
-    throw this.unimplemented('Not implemented on web.');
-  }
-  async toggleBackButtonHandler() {
-    throw this.unimplemented('Not implemented on web.');
+  async share(options) {
+    if (typeof navigator === 'undefined' || !navigator.share) {
+      throw this.unavailable('Share API not available in this browser');
+    }
+    await navigator.share({
+      title: options.title,
+      text: options.text,
+      url: options.url
+    });
+    return {};
   }
 }
-exports.AppWeb = AppWeb;
+exports.ShareWeb = ShareWeb;
 },{"@capacitor/core":"../../node_modules/@capacitor/core/dist/index.js"}],"../../node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
@@ -335,4 +320,4 @@ function hmrAcceptRun(bundle, id) {
   }
 }
 },{}]},{},["../../node_modules/parcel-bundler/src/builtins/hmr-runtime.js"], null)
-//# sourceMappingURL=/web.5a60469f.js.map
+//# sourceMappingURL=/web.898f19af.js.map

@@ -72,20 +72,24 @@ async send(subject, htmlContent) {
     await this.send("مرحباً بك في تطبيق اقرأ | Welcome to Aqra App", html);
   }
 
-  async sendPasswordReset() {
-    const html = `
-      <div style="max-width: 600px; margin:auto; border-top: 8px solid #d4af37; padding: 40px 20px; font-family: sans-serif; text-align: center; background-color: #fff;">
-        <h2 style="color: #333;">إعادة تعيين كلمة المرور</h2>
-        <h2 style="color: #333;">Password Reset</h2>
-        <p style="color: #666;">هل نسيت كلمة المرور؟ لا تقلق، اضغط على الزر أدناه لتعيين كلمة مرور جديدة (صالح لمدة 10 دقائق فقط).</p>
-        <div style="margin: 30px 0;">
-          <a href="${this.url}" style="background: #2c3e50; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">إعادة تعيين | Reset Password</a>
-        </div>
-        <p style="font-size: 14px; color: #999;">إذا لم تطلب هذا التغيير، يرجى تجاهل هذا البريد.</p>
+  async sendPasswordResetOTP(otpCode) {
+  const html = `
+    <div style="font-family:Arial,sans-serif;text-align:center;padding:30px;">
+      <h2 style="color:#1e5f31;">إعادة تعيين كلمة المرور</h2>
+      <p>كود التحقق الخاص بك:</p>
+      <div style="font-size:2.5rem;font-weight:bold;letter-spacing:10px;
+                  color:#198754;border:2px dashed #198754;
+                  padding:15px 30px;display:inline-block;border-radius:10px;
+                  margin:20px 0;">
+        ${otpCode}
       </div>
-    `;
-    await this.send("رابط إعادة تعيين كلمة المرور (صالح لـ 10 دقائق)", html);
-  }
+      <p style="color:#666;">صالح لمدة <strong>10 دقائق</strong> فقط</p>
+      <p style="color:#999;font-size:0.85rem;">
+        إذا لم تطلب إعادة تعيين كلمة المرور، تجاهل هذا البريد.
+      </p>
+    </div>`;
+  await this.send('إعادة تعيين كلمة المرور 🔐', html);
+}
 
   async sendOTP(otpCode) {
     const html = `

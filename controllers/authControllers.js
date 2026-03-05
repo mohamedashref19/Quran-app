@@ -200,43 +200,46 @@ exports.forgetPassword = catchAsync(async (req, res, next) => {
   if (!user) {
     return next(new AppError("there is no user with email user enter", 404));
   }
-  const randomToken = user.createResetpasswordToken();
+
+  // توليد OTP مكون من 6 أرقام
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  user.passwordResetOTP = otp;
+  user.passwordResetOTPExpires = Date.now() + 10 * 60 * 1000; 
   await user.save({ validateBeforeSave: false });
+
   try {
-    // const resetUrl = `${req.protocol}://${req.get(
-    //   "host"
-    // )}/resetPassword/${randomToken}`;
-    const resetUrl = `https://aqraapp.com/resetPassword/${randomToken}`;
-    await new Email(user, resetUrl).sendPasswordReset();
+    await new Email(user, "").sendPasswordResetOTP(otp);
     res.status(200).json({
       status: "success",
-      message: "reset token sent to your email",
+      message: "OTP sent to your email",
+      email: user.email,
     });
   } catch (err) {
     console.error("--- 📧 EMAIL SENDING FAILED! ---", err);
-    user.passwordresetToken = undefined;
-    user.resetpasswordTokenExpire = undefined;
+    user.passwordResetOTP = undefined;
+    user.passwordResetOTPExpires = undefined;
     await user.save({ validateBeforeSave: false });
     return next(new AppError("some thing is error on server", 500));
   }
 });
 
 exports.resetPassword = catchAsync(async (req, res, next) => {
-  const hashToken = crypto
-    .createHash("sha256")
-    .update(req.params.token)
-    .digest("hex");
+  const { email, otp, password, passwordConfirm } = req.body;
+
   const user = await User.findOne({
-    passwordresetToken: hashToken,
-    resetpasswordTokenExpire: { $gt: Date.now() },
+    email,
+    passwordResetOTP: otp,
+    passwordResetOTPExpires: { $gt: Date.now() },
   });
+
   if (!user) {
-    return next(new AppError("Token it invaild or Token is expired", 400));
+    return next(new AppError("OTP is invalid or has expired", 400));
   }
-  user.password = req.body.password;
-  user.passwordConfirm = req.body.passwordConfirm;
-  user.passwordresetToken = undefined;
-  user.resetpasswordTokenExpire = undefined;
+
+  user.password = password;
+  user.passwordConfirm = passwordConfirm;
+  user.passwordResetOTP = undefined;
+  user.passwordResetOTPExpires = undefined;
   await user.save();
 
   createandsentToken(user, 200, res);

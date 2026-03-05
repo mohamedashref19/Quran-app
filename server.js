@@ -1,7 +1,8 @@
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const monitorMemory = require('./utils/memoryMonitor');
-dotenv.config({ path: "./config.env" });
+// dotenv.config({ path: "./config.env" });
+dotenv.config({ path: "./.env" });
 
 const app = require("./index");
 
