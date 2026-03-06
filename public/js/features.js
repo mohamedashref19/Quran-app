@@ -2127,13 +2127,7 @@ export const initSearch = () => {
 
 
 
-// ─── ✅ بوصلة القبلة - Qibla Compass ─────────────────────────────────────────
-
-
-/**
- * حساب اتجاه القبلة (Qibla bearing) من موقع المستخدم
- * باستخدام صيغة Haversine/Bearing الجغرافية
- */
+// Qibla Compass 
 const calculateQiblaBearing = (lat, lng) => {
   const KAABA_LAT = 21.4225;
   const KAABA_LNG = 39.8262;
@@ -2152,65 +2146,73 @@ const calculateQiblaBearing = (lat, lng) => {
 };
 
 let _qiblaWatchId      = null;
-let _qiblaBearing      = null; // الاتجاه المحسوب من GPS
-let _compassHeading    = 0;    // اتجاه الهاتف من الحساس
+let _qiblaBearing      = null;
+let _compassHeading    = 0;
 let _orientationActive = false;
 
-/**
- * تنظيف listeners القبلة عند مغادرة الصفحة
- */
 const cleanupQibla = () => {
-  // if (_qiblaWatchId !== null) {
-  //   navigator.geolocation.clearWatch(_qiblaWatchId);
-  //   _qiblaWatchId = null;
-  // }
   window.removeEventListener('deviceorientationabsolute', _handleOrientation);
   window.removeEventListener('deviceorientation',         _handleOrientation);
   _orientationActive = false;
 };
 
-/**
- * معالج حركة الحساس - يدور الديل ويحدّث النص
- */
+// 🧭 معالج البوصلة وتوجيه المستخدم
 const _handleOrientation = (event) => {
   let heading = null;
 
-  // iOS Safari: webkitCompassHeading أدق
+  // دعم iOS Safari
   if (event.webkitCompassHeading !== undefined && event.webkitCompassHeading !== null) {
     heading = event.webkitCompassHeading;
   }
-  // Android / deviceorientationabsolute: alpha بالنسبة للشمال الحقيقي
-  else if (event.absolute && event.alpha !== null) {
+  // دعم Android absolute (أدق)
+  else if (event.absolute === true && event.alpha !== null) {
     heading = (360 - event.alpha) % 360;
   }
-  // Fallback: alpha عادي (غير مضمون الدقة)
+  // Fallback لأجهزة الأندرويد الأقدم
   else if (event.alpha !== null) {
     heading = (360 - event.alpha) % 360;
   }
 
-  if (heading === null) return;
+  if (heading === null || isNaN(heading)) return;
+
+  // 🌟 [اللمسة السحرية]: تعويض ميل الشاشة عشان البوصلة تفضل دقيقة لو الموبايل مال
+  let screenOrientation = 0;
+  if (window.screen && window.screen.orientation && window.screen.orientation.angle !== undefined) {
+      screenOrientation = window.screen.orientation.angle;
+  } else if (typeof window.orientation !== 'undefined') {
+      screenOrientation = window.orientation;
+  }
+  heading = (heading + screenOrientation) % 360;
+
   _compassHeading = heading;
 
-  const dial    = document.getElementById('qibla-dial');
-  const text    = document.getElementById('qibla-angle-text');
-  const status  = document.getElementById('qibla-status');
-  if (!dial) return;
+  const dial   = document.getElementById('qibla-dial');
+  const text   = document.getElementById('qibla-angle-text');
+  const status = document.getElementById('qibla-status');
 
-  if (_qiblaBearing !== null) {
-    // زاوية دوران الديل = اتجاه القبلة - اتجاه الهاتف
-    const rotation = (_qiblaBearing - _compassHeading + 360) % 360;
-    dial.style.transform = `rotate(${rotation}deg)`;
+  if (!dial || _qiblaBearing === null) return;
 
-    const diff = Math.abs(rotation);
-    const normalizedDiff = diff > 180 ? 360 - diff : diff;
+  // الكعبة في الـ CSS مصممة عند الساعة 12 (بدون الحاجة لإضافة 180 درجة)
+  const rotation = (_qiblaBearing - _compassHeading + 360) % 360;
+  dial.style.transform = `rotate(${rotation}deg)`;
 
-    if (text)   text.innerText = `${Math.round(_qiblaBearing)}°`;
-    if (status) {
-      if (normalizedDiff <= 5) {
-        status.innerHTML = `<span class="text-success fw-bold"><i class="fas fa-kaaba me-1"></i> أنت تواجه القبلة الآن ✅</span>`;
-      } else {
-        status.innerText = `أدر الهاتف ${Math.round(normalizedDiff)}° لمواجهة القبلة`;
-      }
+  const diff = Math.abs((_qiblaBearing - _compassHeading + 360) % 360);
+  const normalizedDiff = diff > 180 ? 360 - diff : diff;
+
+  // تحديد الاتجاه (يميناً أو يساراً) بشكل ذكي
+  let directionText = '';
+  if (normalizedDiff > 5) {
+      directionText = diff < 180 ? 'يميناً ↻' : 'يساراً ↺';
+  }
+
+  if (text) text.innerText = `${Math.round(_qiblaBearing)}°`;
+
+  if (status) {
+    if (normalizedDiff <= 5) {
+      status.innerHTML = `<span class="text-success fw-bold"><i class="fas fa-kaaba me-1"></i> أنت تواجه القبلة الآن ✅</span>`;
+      if (navigator.vibrate) navigator.vibrate(50); // فايبريشن خفيف
+    } else {
+      status.innerText = `أدر الهاتف ${Math.round(normalizedDiff)}° ${directionText}`;
     }
   }
 };
@@ -2218,80 +2220,97 @@ const _handleOrientation = (event) => {
 window._qiblaOrientationHandler = _handleOrientation;
 
 
-/**
- * الدالة الرئيسية لتشغيل بوصلة القبلة
- */
+// 🌍 التهيئة - نظام 3 طبقات عبقري: GPS دقيق -> GPS تقريبي -> IP Location
 window.initQibla = async () => {
   const statusEl = document.getElementById('qibla-status');
   const textEl   = document.getElementById('qibla-angle-text');
 
-  // تنظيف أي جلسة سابقة
   if (typeof cleanupQibla === 'function') cleanupQibla();
-
   if (statusEl) statusEl.innerText = 'جاري التهيئة...';
 
-  // 1️⃣ طلب إذن الحساس على iOS 13+ أولاً (يجب أن يكون هنا ليعمل مع ضغطة الزر مباشرة)
+  // طلب صلاحيات الحساس في الـ iOS
   if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
     try {
       const perm = await DeviceOrientationEvent.requestPermission();
       if (perm !== 'granted') {
         if (statusEl) statusEl.innerText = '⚠️ يرجى السماح بالوصول للحساس من إعدادات المتصفح';
-        return; // نوقف التنفيذ لو رفض
+        return;
       }
-    } catch (err) {
-      console.warn('Orientation permission error:', err);
-      // ملاحظة: هذا الخطأ يظهر عادة إذا لم يتم استدعاء الدالة عبر ضغطة زر صريحة
-    }
+    } catch (err) { console.warn('Orientation permission error:', err); }
   }
 
-  // 2️⃣ بعد التأكد من الحساس، نطلب الموقع الجغرافي
+  // دالة تشغيل البوصلة بمجرد توفر الموقع الجغرافي
+  const startCompassEngine = (lat, lng, sourceMsg) => {
+    _qiblaBearing = calculateQiblaBearing(lat, lng);
+    console.log(`📍 الموقع (${sourceMsg}): ${lat}, ${lng} | 🕋 القبلة: ${_qiblaBearing}°`);
+
+    if (textEl)   textEl.innerText = `${Math.round(_qiblaBearing)}°`;
+    if (statusEl) statusEl.innerText = 'ضع الهاتف بشكل مسطح وحركه ببطء لمعايرة البوصلة...';
+
+    if ('ondeviceorientationabsolute' in window) {
+      window.addEventListener('deviceorientationabsolute', _handleOrientation, { passive: true });
+    } else {
+      window.addEventListener('deviceorientation', _handleOrientation, { passive: true });
+    }
+    _orientationActive = true;
+  };
+
   if (!navigator.geolocation) {
     if (statusEl) statusEl.innerText = 'جهازك لا يدعم تحديد الموقع';
     return;
   }
 
-  if (statusEl) statusEl.innerText = 'جاري تحديد الموقع...';
+  if (statusEl) statusEl.innerText = 'جاري تحديد الموقع (دقة عالية)...';
 
+  // 🥇 الطبقة الأولى: محاولة جلب موقع عالي الدقة (8 ثوانٍ كحد أقصى)
   navigator.geolocation.getCurrentPosition(
-    async (pos) => {
-      const { latitude, longitude } = pos.coords;
-      _qiblaBearing = calculateQiblaBearing(latitude, longitude);
-
-      if (textEl)   textEl.innerText = `${Math.round(_qiblaBearing)}°`;
-      if (statusEl) statusEl.innerText = 'حرّك الهاتف ببطء لمعايرة البوصلة...';
-
-      // 3️⃣ تفعيل مراقبة حركة الجهاز
-      if ('ondeviceorientationabsolute' in window) {
-        window.addEventListener('deviceorientationabsolute', _handleOrientation, { passive: true });
-        _orientationActive = true;
-      } else {
-        window.addEventListener('deviceorientation', _handleOrientation, { passive: true });
-        _orientationActive = true;
-      }
-    },
+    (pos) => startCompassEngine(pos.coords.latitude, pos.coords.longitude, 'GPS دقيق'),
     (err) => {
-      const isPermissionDenied = err.code === 1 || 
-      (err.message && (err.message.toLowerCase().includes('permission') || err.message.toLowerCase().includes('denied')));
+      console.warn('GPS دقيق فشل، جاري المحاولة بدقة أقل...', err.message);
+      if (statusEl) statusEl.innerText = 'جاري البحث عن موقع تقريبي...';
 
-      if (statusEl) {
-        if (isPermissionDenied) {
-          statusEl.innerText = '⚠️ يرجى السماح بتحديد الموقع لعرض اتجاه القبلة';
-          Swal.fire({
-            icon: 'warning',
-            title: 'صلاحية الموقع مطلوبة',
-            text: 'لحساب اتجاه القبلة، يجب السماح للتطبيق بالوصول إلى موقعك الجغرافي.',
-            confirmButtonText: 'حسناً',
-            confirmButtonColor: '#198754'
-          });
-        } else {
-          statusEl.innerText = '❌ تعذّر تحديد موقعك، تأكد من اتصالك بالإنترنت والـ GPS.';
-        }
-      }
+      // 🥈 الطبقة الثانية: محاولة جلب موقع منخفض الدقة / متكيش (5 ثوانٍ كحد أقصى)
+      navigator.geolocation.getCurrentPosition(
+        (pos) => startCompassEngine(pos.coords.latitude, pos.coords.longitude, 'GPS تقريبي'),
+        async (err2) => {
+          const isPermissionDenied = err2.code === 1;
+
+          // لو المستخدم هو اللي رفض يدي صلاحية الموقع
+          if (isPermissionDenied) {
+            if (statusEl) statusEl.innerText = '⚠️ يرجى السماح بتحديد الموقع لعرض اتجاه القبلة';
+            Swal.fire({
+              icon: 'warning',
+              title: 'صلاحية الموقع مطلوبة',
+              text: 'لحساب اتجاه القبلة، يجب السماح للتطبيق بالوصول إلى موقعك الجغرافي.',
+              confirmButtonText: 'حسناً',
+              confirmButtonColor: '#198754'
+            });
+            return;
+          }
+
+          // 🥉 الطبقة الثالثة: لو الـ GPS مقفول أو جوه مبنى، نجيب الموقع بالـ IP (إنترنت)
+          console.warn('GPS فشل تماماً، جاري استخدام IP location...', err2.message);
+          if (statusEl) statusEl.innerText = 'جاري تحديد الموقع عبر الإنترنت...';
+
+          try {
+            const response = await fetch('https://ipapi.co/json/');
+            const data = await response.json();
+            if (data.latitude && data.longitude) {
+              startCompassEngine(data.latitude, data.longitude, 'شبكة الإنترنت');
+            } else {
+              throw new Error('Invalid IP data');
+            }
+          } catch (ipErr) {
+            console.error('IP fallback failed', ipErr);
+            if (statusEl) statusEl.innerText = '❌ تعذّر تحديد موقعك، تأكد من تشغيل الـ GPS أو الإنترنت.';
+          }
+        },
+        { timeout: 5000, maximumAge: 60000, enableHighAccuracy: false } // إعدادات الطبقة الثانية
+      );
     },
-    { timeout: 10000, maximumAge: 60000, enableHighAccuracy: false }
+    { timeout: 8000, maximumAge: 0, enableHighAccuracy: true } // إعدادات الطبقة الأولى
   );
 };
-
 
 
 // ─── ✅ الأذكار - Azkar Data & Loader ─────────────────────────────────────────
@@ -2996,7 +3015,6 @@ export const scheduleFridayKahfNotification = async () => {
 
 // ─── ✅ تنبيه صلاة الضحى - Daily Duha Notification 
 
-
 export const scheduleDuhaNotification = async () => {
   try {
     try { await LocalNotifications.cancel({ notifications: [{ id: 888 }] }); } catch (e) {}
@@ -3009,23 +3027,25 @@ export const scheduleDuhaNotification = async () => {
       duhaTime.setDate(now.getDate() + 1);
     }
 
-    // 3. جدولة التنبيه اليومي
     await LocalNotifications.schedule({
       notifications: [
         {
           id: 888,
           title: 'صلاة الضحى ☀️',
-          body: '«وَيُجْزِئُ مِنْ ذَلِكَ رَكْعَتَانِ يَرْكَعُهُمَا مِنَ الضُّحَى» - صلاة الأوابين.',
+          body: '«وَيُجْزِئُ مِنْ ذَلِكَ رَكْعَتَانِ يَرْكَعُهُمَا مِنَ الضُّحَى» - صلاة الأوابين.',
           schedule: {
             at: duhaTime,
             every: 'day',   
             allowWhileIdle: true 
-          }
+          },
+          smallIcon: 'ic_notification', 
+          channelId: 'azan-channel', 
+          
         }
       ]
     });
 
-    console.log('✅ [NOTIFICATIONS] تم جدولة تنبيه صلاة الضحى يومياً الساعة 10:30 ص');
+    console.log('✅ [NOTIFICATIONS] تم جدولة تنبيه صلاة الضحى يومياً الساعة 11:00 ص');
   } catch (error) {
     console.error('❌ [NOTIFICATIONS] خطأ في جدولة تنبيه الضحى:', error);
   }

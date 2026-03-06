@@ -482,6 +482,7 @@ const stopAllMedia = () => {
   if (typeof window.stopSheikhFollowAlong === 'function') {
       window.stopSheikhFollowAlong();
   }
+  if (typeof window.stopAzkarAudio === 'function') window.stopAzkarAudio();
   document.querySelectorAll('audio, video').forEach(m => { m.pause(); m.currentTime = 0; });
   if (aiMediaRecorder && aiMediaRecorder.state !== 'inactive') {
     aiMediaRecorder.stop();
@@ -659,11 +660,13 @@ window.loadJuzIndex = () => {
   if (!container || container.dataset.loaded === 'true') return;
   container.dataset.loaded = 'true';
   let html = '';
+  
   juzData.forEach(juz => {
     const hizb1Page = juz.page;
     const hizb2Page = juz.page + 10;
     const hizbNum1  = (juz.juz - 1) * 2 + 1;
     const hizbNum2  = (juz.juz - 1) * 2 + 2;
+    
     html += `
       <div class="juz-header">
         <div><h5><i class="fas fa-book-open me-2"></i>الجزء ${juz.juz}</h5><small style="opacity:0.85">${juz.name}</small></div>
@@ -671,35 +674,37 @@ window.loadJuzIndex = () => {
       </div>
       <div class="row g-2 mb-3">
         <div class="col-6">
-          <div class="card border-success h-100 hover-shadow" style="cursor:pointer;border-width:2px!important"
+          <div class="card bg-transparent border-success h-100 hover-shadow" style="cursor:pointer; border-width:2px !important;"
             onclick="window.showSection('quran'); window.loadQuranPage(${hizb1Page});">
             <div class="card-body text-center py-3">
-              <div class="text-success fw-bold mb-1" style="font-size:1.1rem">الحزب ${hizbNum1}</div>
-              <div class="hizb-tabs justify-content-center d-flex flex-wrap gap-1 mt-2">
-                <span class="hizb-tab" onclick="event.stopPropagation(); window.showSection('quran'); window.loadQuranPage(${hizb1Page});">ص ${hizb1Page} الربع الأول</span>
-                <span class="hizb-tab" onclick="event.stopPropagation(); window.showSection('quran'); window.loadQuranPage(${hizb1Page + 2});">ص ${hizb1Page + 2} الربع الثاني</span>
-                <span class="hizb-tab" onclick="event.stopPropagation(); window.showSection('quran'); window.loadQuranPage(${hizb1Page + 5});">ص ${hizb1Page + 5} الربع الثالث</span>
-                <span class="hizb-tab" onclick="event.stopPropagation(); window.showSection('quran'); window.loadQuranPage(${hizb1Page + 7});">ص ${hizb1Page + 7} الربع الرابع</span>
+              <div class="text-success fw-bold mb-2" style="font-size:1.1rem">الحزب ${hizbNum1}</div>
+              <div class="justify-content-center d-flex flex-wrap gap-2">
+                <button class="btn btn-sm btn-success text-white rounded-pill px-2 py-1" onclick="event.stopPropagation(); window.showSection('quran'); window.loadQuranPage(${hizb1Page});">ص ${hizb1Page} الربع 1</button>
+                <button class="btn btn-sm btn-success text-white rounded-pill px-2 py-1" onclick="event.stopPropagation(); window.showSection('quran'); window.loadQuranPage(${hizb1Page + 2});">ص ${hizb1Page + 2} الربع 2</button>
+                <button class="btn btn-sm btn-success text-white rounded-pill px-2 py-1" onclick="event.stopPropagation(); window.showSection('quran'); window.loadQuranPage(${hizb1Page + 5});">ص ${hizb1Page + 5} الربع 3</button>
+                <button class="btn btn-sm btn-success text-white rounded-pill px-2 py-1" onclick="event.stopPropagation(); window.showSection('quran'); window.loadQuranPage(${hizb1Page + 7});">ص ${hizb1Page + 7} الربع 4</button>
               </div>
             </div>
           </div>
         </div>
+        
         <div class="col-6">
-          <div class="card border-success h-100 hover-shadow" style="cursor:pointer;border-width:2px!important"
+          <div class="card bg-transparent border-success h-100 hover-shadow" style="cursor:pointer; border-width:2px !important;"
             onclick="window.showSection('quran'); window.loadQuranPage(${hizb2Page});">
             <div class="card-body text-center py-3">
-              <div class="text-success fw-bold mb-1" style="font-size:1.1rem">الحزب ${hizbNum2}</div>
-              <div class="hizb-tabs justify-content-center d-flex flex-wrap gap-1 mt-2">
-                <span class="hizb-tab" onclick="event.stopPropagation(); window.showSection('quran'); window.loadQuranPage(${hizb2Page});">ص ${hizb2Page} الربع الأول</span>
-                <span class="hizb-tab" onclick="event.stopPropagation(); window.showSection('quran'); window.loadQuranPage(${hizb2Page + 2});">ص ${hizb2Page + 2} الربع الثاني</span>
-                <span class="hizb-tab" onclick="event.stopPropagation(); window.showSection('quran'); window.loadQuranPage(${hizb2Page + 5});">ص ${hizb2Page + 5} الربع الثالث</span>
-                <span class="hizb-tab" onclick="event.stopPropagation(); window.showSection('quran'); window.loadQuranPage(${hizb2Page + 7});">ص ${hizb2Page + 7} الربع الرابع</span>
+              <div class="text-success fw-bold mb-2" style="font-size:1.1rem">الحزب ${hizbNum2}</div>
+              <div class="justify-content-center d-flex flex-wrap gap-2">
+                <button class="btn btn-sm btn-success text-white rounded-pill px-2 py-1" onclick="event.stopPropagation(); window.showSection('quran'); window.loadQuranPage(${hizb2Page});">ص ${hizb2Page} الربع 1</button>
+                <button class="btn btn-sm btn-success text-white rounded-pill px-2 py-1" onclick="event.stopPropagation(); window.showSection('quran'); window.loadQuranPage(${hizb2Page + 2});">ص ${hizb2Page + 2} الربع 2</button>
+                <button class="btn btn-sm btn-success text-white rounded-pill px-2 py-1" onclick="event.stopPropagation(); window.showSection('quran'); window.loadQuranPage(${hizb2Page + 5});">ص ${hizb2Page + 5} الربع 3</button>
+                <button class="btn btn-sm btn-success text-white rounded-pill px-2 py-1" onclick="event.stopPropagation(); window.showSection('quran'); window.loadQuranPage(${hizb2Page + 7});">ص ${hizb2Page + 7} الربع 4</button>
               </div>
             </div>
           </div>
         </div>
       </div>`;
   });
+  
   container.innerHTML = html;
 };
 
@@ -2167,44 +2172,135 @@ window.toggleDailyCard = function(type) {
 };
 
 window.shareDailyContent = async function() {
+    if (typeof html2canvas === 'undefined') {
+        Swal.fire({ icon: 'error', title: 'عفواً', text: 'مكتبة الصور غير محملة.' });
+        return;
+    }
+
     const isAyah = !document.getElementById('daily-ayah-content').classList.contains('d-none');
-    
     const textId = isAyah ? 'daily-ayah-text' : 'daily-hadith-text';
     const sourceId = isAyah ? 'daily-ayah-source' : 'daily-hadith-source';
     
     const textToShare = document.getElementById(textId).innerText;
     const sourceToShare = document.getElementById(sourceId).innerText;
+    const shareMessage = `"${textToShare}"\n\n[ ${sourceToShare} ]\n\n✨ تمت المشاركة عبر تطبيق اقرأ`;
+
+    const card = document.createElement('div');
+    card.style.cssText = `
+        width: 1080px; 
+        padding: 100px 80px; 
+        background: linear-gradient(135deg, #ffffff 0%, #f1f8e9 100%); 
+        border-bottom: 25px solid #198754; 
+        text-align: center; 
+        direction: rtl; 
+        font-family: 'Amiri', serif; 
+        position: fixed; 
+        left: -9999px; 
+        top: 0;
+    `;
     
-    // 3. تجهيز الرسالة بشكل أنيق جداً للسوشيال ميديا
-    const shareMessage = `"${textToShare}"\n\n[ ${sourceToShare} ]\n\n✨ تم المشاركة عبر تطبيق اقرأ:\n`;
-    
-    // 4. رابط التطبيق بتاعك (ممكن تغيره للرابط الحقيقي بعد الرفع)
-    const appUrl = "https://aqraapp.com"; 
+    card.innerHTML = `
+        <div style="display: inline-block; background: rgba(25,135,84,0.1); color: #198754; padding: 15px 45px; border-radius: 50px; border: 2px solid rgba(25,135,84,0.2); font-size: 2.2rem; font-weight: bold; margin-bottom: 60px;">
+            <span style="color: #ffc107; margin-left: 15px;">★</span> ${isAyah ? 'آية اليوم' : 'حديث اليوم'}
+        </div>
+        
+        <h1 style="font-family: 'Amiri Quran', 'Amiri', serif; font-size: 4.5rem; line-height: 1.9; color: #1e5f31; font-weight: bold; margin-bottom: 60px;">
+            ${textToShare}
+        </h1>
+        
+        <div style="display: inline-block; background: #ffffff; border: 3px solid #c8e6c9; color: #2e7d32; padding: 20px 60px; border-radius: 60px; font-size: 2.5rem; font-weight: bold;">
+            ${sourceToShare}
+        </div>
+
+        <div style="margin-top: 80px; padding-top: 40px; border-top: 4px dashed #dee2e6; color: #6c757d; font-size: 2rem; font-weight: bold;">
+            📖 تمت المشاركة عبر تطبيق اقرأ
+        </div>
+    `;
+    document.body.appendChild(card);
+
+    Swal.fire({
+        title: 'جاري تجهيز الصورة...',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
 
     try {
-        // لو الموبايل/المتصفح بيدعم الـ Share الأصلي
-        if (navigator.share) {
-            await navigator.share({
-                title: 'تطبيق اقرأ 📖',
-                text: shareMessage,
-                url: appUrl
+        await document.fonts.ready; 
+        
+        const canvas = await html2canvas(card, { 
+            scale: 2, 
+            backgroundColor: '#ffffff', 
+            useCORS: true 
+        });
+        const imgData = canvas.toDataURL('image/png');
+        document.body.removeChild(card); 
+
+        const fileNameBase = isAyah ? 'daily_ayah' : 'daily_hadith';
+
+        // 🔴 التعديل السحري هنا: جلب إضافات Capacitor بطريقة آمنة
+        if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+            
+            // استدعاء المكتبات بشكل مباشر من الكائن العام لتجنب خطأ is not defined
+            const Filesystem = window.Capacitor.Plugins.Filesystem;
+            const Share = window.Capacitor.Plugins.Share;
+
+            const base64Data = imgData.split(',')[1];
+            const fileName = `${fileNameBase}_share_${Date.now()}.png`;
+            
+            // استخدام كلمة 'CACHE' مباشرة بدل Directory.Cache
+            await Filesystem.writeFile({ 
+                path: fileName, 
+                data: base64Data, 
+                directory: 'CACHE' 
             });
+            
+            const { uri } = await Filesystem.getUri({ 
+                path: fileName, 
+                directory: 'CACHE' 
+            });
+            
+            Swal.close();
+            
+            await Share.share({
+                title: isAyah ? 'آية اليوم' : 'حديث اليوم',
+                text: shareMessage,
+                url: uri,
+                dialogTitle: 'مشاركة',
+            });
+            
         } else {
-            await navigator.clipboard.writeText(`${shareMessage} ${appUrl}`);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'تم النسخ!',
-                    text: 'تم نسخ النص بنجاح، يمكنك لصقه ومشاركته.',
-                    timer: 2500,
-                    showConfirmButton: false
+            // كود متصفح الويب العادي
+            const blob = await (await fetch(imgData)).blob();
+            const file = new File([blob], `${fileNameBase}.png`, { type: 'image/png' });
+            
+            Swal.close();
+
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    title: 'تطبيق اقرأ 📖',
+                    text: shareMessage,
+                    files: [file]
                 });
             } else {
-                alert('تم نسخ النص للحافظة!');
+                const link = document.createElement('a');
+                link.download = `${fileNameBase}.png`;
+                link.href = imgData;
+                link.click();
+                
+                await navigator.clipboard.writeText(shareMessage);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم الحفظ بنجاح!',
+                    text: 'تم تحميل الصورة لجهازك ونسخ النص.',
+                    timer: 3500,
+                    showConfirmButton: false
+                });
             }
         }
-    } catch (err) {
-        console.log('تم إلغاء المشاركة أو حدث خطأ:', err);
+    } catch (e) {
+        console.error('خطأ في توليد الصورة:', e);
+        if (document.body.contains(card)) document.body.removeChild(card);
+        Swal.fire('خطأ', 'تعذر إنشاء الصورة، تأكد من اتصالك بالإنترنت', 'error');
     }
 };
 // ─── منطق راديو القرآن الكريم ──────────────────────────────
@@ -2259,7 +2355,6 @@ document.getElementById('radio-station-select')?.addEventListener('change', func
     }
 });
 
-// ─── منطق أسماء الله الحسنى (الكارت التفاعلي والبحث) ──────────────────────────────
 
 // جعل المصفوفة عامة عشان نقدر نبحث فيها
 window.allahNamesData = [
@@ -2401,7 +2496,6 @@ window.renderAllahNames = function(data) {
 window.filterAllahNames = function() {
     const query = document.getElementById('search-name-input').value.trim();
     
-    // دالة لتنظيف النص من التشكيل عشان البحث يكون دقيق
     const cleanText = (text) => {
         return text.replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED\u0640]/g, '')
                    .replace(/[أإآٱ]/g, 'ا')
@@ -2421,6 +2515,199 @@ window.filterAllahNames = function() {
 
     window.renderAllahNames(filtered);
 };
+
+window.initIslamicCountdown = function() {
+    const hijriEvents = [
+        { name: 'رمضان المبارك 🌙', m: 9, d: 1 },
+        { name: 'عيد الفطر 🎉', m: 10, d: 1 },
+        { name: 'يوم عرفة 🕋', m: 12, d: 9 },
+        { name: 'عيد الأضحى 🐑', m: 12, d: 10 },
+        { name: 'رأس السنة الهجرية 📅', m: 1, d: 1 }
+    ];
+
+    const formatter = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', { 
+        day: 'numeric', month: 'numeric' 
+    });
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let nextEvent = null;
+    let diffDays = 0;
+
+    for (let i = 0; i <= 360; i++) {
+        const checkDate = new Date(today.getTime() + i * 24 * 60 * 60 * 1000);
+        const parts = formatter.formatToParts(checkDate);
+        
+        const hDay = parseInt(parts.find(p => p.type === 'day').value);
+        const hMonth = parseInt(parts.find(p => p.type === 'month').value);
+
+        const matched = hijriEvents.find(e => e.m === hMonth && e.d === hDay);
+        if (matched) {
+            nextEvent = matched;
+            diffDays = i;
+            break; 
+        }
+    }
+
+    const container = document.getElementById('islamic-countdown-container');
+    if (!container) return;
+
+    if (nextEvent) {
+        let daysText = '';
+        if (diffDays === 0) daysText = 'اليوم!';
+        else if (diffDays === 1) daysText = 'غداً';
+        else if (diffDays === 2) daysText = 'بعد يومين';
+        else if (diffDays <= 10) daysText = `باقي ${diffDays} أيام`;
+        else daysText = `باقي ${diffDays} يوماً`;
+
+        const note = diffDays > 2 ? ' <span style="font-size: 0.65rem; opacity: 0.7; font-weight: normal; margin-right: 2px;">(فلكياً)</span>' : '';
+
+       container.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="fw-bold" style="font-family: 'Tajawal', sans-serif;">
+                    <i class="fas fa-hourglass-half text-warning me-2 fa-spin-hover"></i> ${nextEvent.name}
+                </span>
+                <span class="badge rounded-pill px-3 py-2 fs-6 shadow-sm" style="background-color: #ffc107 !important; color: #000000 !important;">
+                    ${daysText}${note}
+                </span>
+            </div>
+        `;
+        container.classList.remove('d-none');
+    } else {
+        container.classList.add('d-none');
+    }
+};
+
+const AZKAR_AUDIO_LINKS = {
+ 'morning': 'audio/sabah.mp3',
+    'evening': 'audio/masaa.mp3',
+    'sleep': 'audio/sleep.mp3'
+};
+
+function formatAudioTime(seconds) {
+    if (isNaN(seconds)) return "00:00";
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
+}
+
+window.openAzkarCategory = function(type) {
+    showSection('azkar-detail');
+    if(typeof loadAzkarList === 'function') loadAzkarList(type);
+
+    const audioBox = document.getElementById('azkar-audio-box');
+    const audioPlayer = document.getElementById('azkar-audio-player');
+    const progressBar = document.getElementById('azkar-progress-bar');
+    const btnIcon = document.querySelector('#btn-play-azkar i');
+    const btn = document.getElementById('btn-play-azkar');
+    
+    // 🔴 جلب عنصر اسم القارئ
+    const reciterName = document.getElementById('azkar-audio-reciter'); 
+    
+    if(typeof window.stopAzkarAudio === 'function') window.stopAzkarAudio();
+
+    if (AZKAR_AUDIO_LINKS[type]) {
+        audioBox.classList.remove('d-none');
+        audioPlayer.src = AZKAR_AUDIO_LINKS[type];
+        audioPlayer.load();
+
+        // 🌟 الذكاء هنا: تغيير اسم القارئ حسب نوع الذكر
+        if (reciterName) {
+            if (type === 'sleep') {
+                reciterName.innerText = 'بصوت الشيخ مشاري راشد';
+            } else {
+                reciterName.innerText = 'بصوت الشيخ محمد جبريل';
+            }
+        }
+        
+        progressBar.value = 0;
+        document.getElementById('azkar-current-time').innerText = "00:00";
+        document.getElementById('azkar-duration').innerText = "00:00";
+        if(btnIcon) {
+            btnIcon.className = 'fas fa-play fs-5';
+            btnIcon.style.marginLeft = '3px';
+            btn.classList.replace('btn-danger', 'btn-success');
+        }
+
+        audioPlayer.onloadedmetadata = () => {
+            document.getElementById('azkar-duration').innerText = formatAudioTime(audioPlayer.duration);
+        };
+        
+        audioPlayer.ontimeupdate = () => {
+            const current = audioPlayer.currentTime;
+            const duration = audioPlayer.duration;
+            document.getElementById('azkar-current-time').innerText = formatAudioTime(current);
+            if (duration > 0) {
+                progressBar.value = (current / duration) * 100;
+            }
+        };
+    } else {
+        audioBox.classList.add('d-none');
+        audioPlayer.removeAttribute('src');
+    }
+};
+
+window.toggleAzkarAudio = function() {
+    const audio = document.getElementById('azkar-audio-player');
+    const btn = document.getElementById('btn-play-azkar');
+    const icon = btn.querySelector('i');
+
+    if (!audio.src || audio.src === window.location.href) return;
+
+    if (audio.paused) {
+        if (typeof stopAllMedia === 'function') stopAllMedia(); 
+        
+        icon.className = 'fas fa-spinner fa-spin fs-5';
+        icon.style.marginLeft = '0';
+        
+        audio.play().then(() => {
+            icon.className = 'fas fa-pause fs-5'; // زرار إيقاف مؤقت عشان شريط التقدم
+            btn.classList.replace('btn-success', 'btn-danger');
+        }).catch(e => {
+            icon.className = 'fas fa-play fs-5';
+            icon.style.marginLeft = '3px';
+            Swal.fire({ toast: true, position: 'top', icon: 'error', title: 'تأكد من اتصالك بالإنترنت', showConfirmButton: false, timer: 3000 });
+        });
+    } else {
+        audio.pause();
+        icon.className = 'fas fa-play fs-5';
+        icon.style.marginLeft = '3px';
+        btn.classList.replace('btn-danger', 'btn-success');
+    }
+    
+    audio.onended = () => {
+        icon.className = 'fas fa-play fs-5';
+        icon.style.marginLeft = '3px';
+        btn.classList.replace('btn-danger', 'btn-success');
+        document.getElementById('azkar-progress-bar').value = 0;
+    };
+};
+
+window.seekAzkarAudio = function(value) {
+    const audio = document.getElementById('azkar-audio-player');
+    if (audio && audio.duration) {
+        // حساب الوقت الجديد بناءً على سحب المستخدم للشريط
+        audio.currentTime = (value / 100) * audio.duration;
+    }
+};
+
+window.stopAzkarAudio = function() {
+    const audio = document.getElementById('azkar-audio-player');
+    const btn = document.getElementById('btn-play-azkar');
+    const icon = btn?.querySelector('i');
+    
+    if (audio && !audio.paused) {
+        audio.pause();
+        // مش هنصفر الوقت عشان لو المستخدم خرج ورجع يكمل من نفس المكان
+    }
+    if (icon) {
+        icon.className = 'fas fa-play fs-5';
+        icon.style.marginLeft = '3px';
+        if (btn) btn.classList.replace('btn-danger', 'btn-success');
+    }
+};
+
 
 // ─── 18. DOMContentLoaded 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -2442,7 +2729,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initNativeFeatures();
   setTimeout(checkForUpdates, 3000);
   loadDailyContent();
-
+initIslamicCountdown();
   // 1. استرجاع التوكن أول حاجة
   try {
     if (Capacitor.isNativePlatform()) {

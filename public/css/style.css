@@ -1681,3 +1681,5 @@ p.zikr-text {
     background-color: var(--bg-color) !important;
     transition: background-color 0.3s ease;
 } */
+
+#qibla-dial { transition: transform 0.2s ease-out; }
