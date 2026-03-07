@@ -9,33 +9,58 @@ module.exports = class Email {
     this.from = `Aqra App <${process.env.EMAIL_FROM}>`;
   }
 
-  newTransport() {
+  // 1.(Brevo -> MailerSend -> Mailjet)
+  getTransports() {
     console.log("Current Env:", process.env.NODE_ENV);
+    
     if (process.env.NODE_ENV === "production") {
-      // استخدام AWS SES
-      return nodemailer.createTransport({
-        host: process.env.AWS_SMTP_HOST,
-        port: 465,
-        secure: true, 
-        auth: {
-          user: process.env.AWS_SMTP_USERNAME,
-          pass: process.env.AWS_SMTP_PASSWORD,
-        },
-      });
+      return [
+        // 🥇  Brevo
+        nodemailer.createTransport({
+          host: process.env.BREVO_SMTP_HOST,
+          port: 587,
+          secure: false,
+          auth: {
+            user: process.env.BREVO_SMTP_USERNAME,
+            pass: process.env.BREVO_SMTP_PASSWORD,
+          },
+        }),
+        // 🥈 MailerSend
+        nodemailer.createTransport({
+          host: process.env.MAILERSEND_SMTP_HOST,
+          port: 587,
+          secure: false,
+          auth: {
+            user: process.env.MAILERSEND_SMTP_USERNAME,
+            pass: process.env.MAILERSEND_SMTP_PASSWORD,
+          },
+        }),
+        nodemailer.createTransport({
+          host: process.env.MAILJET_SMTP_HOST,
+          port: 587,
+          secure: false,
+          auth: {
+            user: process.env.MAILJET_SMTP_USERNAME,
+            pass: process.env.MAILJET_SMTP_PASSWORD,
+          },
+        })
+      ].filter(t => t.options.auth.user); 
     }
 
-    // Mailtrap (Development)
-    return nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT,
-      auth: {
-        user: process.env.EMAIL_USERNAME,
-        pass: process.env.EMAIL_PASSWORD,
-      },
-    });
+    // 🛠️ Mailtrap (Development)
+    return [
+      nodemailer.createTransport({
+        host: process.env.EMAIL_HOST,
+        port: process.env.EMAIL_PORT,
+        auth: {
+          user: process.env.EMAIL_USERNAME,
+          pass: process.env.EMAIL_PASSWORD,
+        },
+      })
+    ];
   }
 
-async send(subject, htmlContent) {
+  async send(subject, htmlContent) {
     const emailOptions = {
       from: this.from,
       to: this.to,
@@ -44,14 +69,25 @@ async send(subject, htmlContent) {
       text: convert(htmlContent),
     };
 
-    try {
-      await this.newTransport().sendMail(emailOptions);
-      console.log(`✅ Email sent successfully to: ${this.to}`);
-    } catch (err) {
-      console.error("❌ Error sending email:", err);
-      throw err;
+    const transports = this.getTransports();
+
+    for (let i = 0; i < transports.length; i++) {
+      try {
+        await transports[i].sendMail(emailOptions);
+        console.log(`✅ Email sent successfully via Provider #${i + 1} to: ${this.to}`);
+        return;
+      } catch (err) {
+        console.warn(`⚠️ Provider #${i + 1} failed. Trying next... Error: ${err.message}`);
+        
+        if (i === transports.length - 1) {
+          console.error("❌ Error sending email (All providers failed):", err);
+          throw err;
+        }
+      }
     }
   }
+
+
 
   async sendWelcome() {
     const html = `
@@ -73,23 +109,23 @@ async send(subject, htmlContent) {
   }
 
   async sendPasswordResetOTP(otpCode) {
-  const html = `
-    <div style="font-family:Arial,sans-serif;text-align:center;padding:30px;">
-      <h2 style="color:#1e5f31;">إعادة تعيين كلمة المرور</h2>
-      <p>كود التحقق الخاص بك:</p>
-      <div style="font-size:2.5rem;font-weight:bold;letter-spacing:10px;
+    const html = `
+      <div style="font-family:Arial,sans-serif;text-align:center;padding:30px;">
+        <h2 style="color:#1e5f31;">إعادة تعيين كلمة المرور</h2>
+        <p>كود التحقق الخاص بك:</p>
+        <div style="font-size:2.5rem;font-weight:bold;letter-spacing:10px;
                   color:#198754;border:2px dashed #198754;
                   padding:15px 30px;display:inline-block;border-radius:10px;
                   margin:20px 0;">
-        ${otpCode}
-      </div>
-      <p style="color:#666;">صالح لمدة <strong>10 دقائق</strong> فقط</p>
-      <p style="color:#999;font-size:0.85rem;">
-        إذا لم تطلب إعادة تعيين كلمة المرور، تجاهل هذا البريد.
-      </p>
-    </div>`;
-  await this.send('إعادة تعيين كلمة المرور 🔐', html);
-}
+          ${otpCode}
+        </div>
+        <p style="color:#666;">صالح لمدة <strong>10 دقائق</strong> فقط</p>
+        <p style="color:#999;font-size:0.85rem;">
+          إذا لم تطلب إعادة تعيين كلمة المرور، تجاهل هذا البريد.
+        </p>
+      </div>`;
+    await this.send('إعادة تعيين كلمة المرور 🔐', html);
+  }
 
   async sendOTP(otpCode) {
     const html = `
@@ -104,7 +140,6 @@ async send(subject, htmlContent) {
         <p style="color: #999; font-size: 12px; margin-top: 30px;">شكراً لثقتك بنا.</p>
       </div>
     `;
-
     await this.send("رمز التحقق الخاص بحسابك - Aqra App", html);
   }
 
