@@ -1093,7 +1093,7 @@ export async function updateKhatmahProgress(surah, ayah) {
 
 export async function loadBookmarks() {
   try {
-    if (!isUserLoggedIn()) {
+    if (!await isUserLoggedIn()) {
       const container = document.getElementById('bookmarks-container');
       if (container) {
         container.innerHTML = `
@@ -1118,83 +1118,88 @@ export async function loadBookmarks() {
     const container = document.getElementById('bookmarks-container');
     if (!container) return;
 
-    container.innerHTML = '<div class="col-12 text-center py-4"><div class="spinner-border text-success"></div></div>';
-
-    let bookmarks = [];
-
-    if (navigator.onLine) {
-      try {
-        const res = await axios.get('/api/v1/bookmarks');
-        bookmarks = res.data.data.bookmarks;
-        await localforage.setItem('offline_bookmarks', bookmarks);
-      } catch (apiErr) {
-        console.warn('⚠️ فشل الاتصال بالسيرفر، جاري جلب العلامات من الكاش');
-        bookmarks = await localforage.getItem('offline_bookmarks') || [];
+    // ─── دالة رسم العلامات (تُستخدم مرتين: كاش + API) ────────────────────────
+    const renderBookmarksToUI = (bookmarksList) => {
+      container.innerHTML = '';
+      if (!bookmarksList || bookmarksList.length === 0) {
+        container.innerHTML = `<div class="text-center py-5"><i class="far fa-bookmark fa-4x text-muted mb-3"></i><p class="lead">لا توجد علامات محفوظة حالياً</p><a href="#" onclick="window.showSection('quran'); return false;" class="btn btn-success">اذهب للمصحف واحفظ أول علامة</a></div>`;
+        return;
       }
-    } else {
-      bookmarks = await localforage.getItem('offline_bookmarks') || [];
-    }
+      let html = '';
+      bookmarksList.forEach(b => {
+        const surahNum  = parseInt(b.surah);
+        let targetPage  = b.page ? parseInt(b.page) : null;
+        // 🛠️ تم التصحيح هنا لاستخدام المتغير الصحيح surahPageMap الخاص بك
+        // if (!targetPage || isNaN(targetPage)) targetPage = surahPageMap[surahNum - 1] || 1;
+        if (!targetPage || isNaN(targetPage)) targetPage = surahStartPages[surahNum] || 1;
 
-    container.innerHTML = '';
+        const noteHTML = b.note
+          ? `<div class="mt-2 p-2 rounded bookmark-note-box">
+               <small class="note-text"><i class="fas fa-sticky-note me-1 text-success"></i>${b.note}</small>
+             </div>`
+          : '';
 
-    if (bookmarks.length === 0) {
-      container.innerHTML = `<div class="text-center py-5"><i class="far fa-bookmark fa-4x text-muted mb-3"></i><p class="lead">لا توجد علامات محفوظة حالياً</p><a href="/quran" class="btn btn-success">اذهب للمصحف واحفظ أول علامة</a></div>`;
-      return;
-    }
-
-    bookmarks.forEach(b => {
-      const surahNum  = parseInt(b.surah);
-      let targetPage  = b.page ? parseInt(b.page) : null;
-      if (!targetPage || isNaN(targetPage)) targetPage = surahStartPages[surahNum] || 1;
-
-      const noteHTML = b.note
-        ? `<div class="mt-2 p-2 rounded bookmark-note-box">
-             <small class="note-text"><i class="fas fa-sticky-note me-1 text-success"></i>${b.note}</small>
-           </div>`
-        : '';
-
-      const html = `
-        <div class="col-md-6 mb-3">
-          <div class="card shadow-sm border-start border-success border-4 h-100">
-            <div class="card-body">
-              <div class="d-flex justify-content-between align-items-start">
-                <h5 class="card-title text-success">${b.surahName}</h5>
-                <button class="btn btn-sm btn-outline-danger delete-bookmark-btn" data-id="${b._id}" ${!navigator.onLine ? 'disabled title="تحتاج للإنترنت لحذف العلامة"' : ''}>
-                  <i class="fas fa-trash"></i>
-                </button>
+        html += `
+          <div class="col-md-6 mb-3">
+            <div class="card shadow-sm border-start border-success border-4 h-100">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                  <h5 class="card-title text-success">${b.surahName}</h5>
+                  <button class="btn btn-sm btn-outline-danger delete-bookmark-btn" data-id="${b._id}" ${!navigator.onLine ? 'disabled title="تحتاج للإنترنت لحذف العلامة"' : ''}>
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+                <p class="ayah-text text-dark mt-2" style="font-family: 'Amiri'; font-size: 1.2rem;">${b.ayahText || b.text || ""}</p>
+                ${noteHTML}
+                <div class="mt-3 d-flex justify-content-between align-items-center">
+                  <span class="badge bg-light text-dark">آية رقم: ${b.ayah}</span>
+                  <button class="btn btn-sm btn-success"
+                    onclick="window.showSection('quran'); window.loadQuranPage(${targetPage}, ${surahNum}, ${parseInt(b.ayah)});">
+                    <i class="fas fa-book-open me-1"></i> انتقل للآية
+                  </button>
+                </div>
               </div>
-              <p class="ayah-text text-dark mt-2" style="font-family: 'Amiri'; font-size: 1.2rem;">${b.ayahText || b.text || ""}</p>
-              ${noteHTML}
-              <div class="mt-3 d-flex justify-content-between align-items-center">
-                <span class="badge bg-light text-dark">آية رقم: ${b.ayah}</span>
-                <button class="btn btn-sm btn-success"
-                  onclick="window.showSection('quran'); window.loadQuranPage(${targetPage}, ${surahNum}, ${parseInt(b.ayah)});">
-                  <i class="fas fa-book-open me-1"></i> انتقل للآية
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>`;
-      container.insertAdjacentHTML('beforeend', html);
-    });
-  } catch (err) {
-    console.error("خطأ عام في عرض العلامات:", err);
-    if (err.response && err.response.status === 401) {
-      const container = document.getElementById('bookmarks-container');
-      if (container) {
-        container.innerHTML = `
-          <div class="col-12">
-            <div class="text-center py-5">
-              <i class="fas fa-lock fa-4x text-muted mb-4"></i>
-              <h4 class="text-muted mb-3">انتهت الجلسة</h4>
-              <p class="text-muted mb-4">يرجى تسجيل الدخول مرة أخرى لرؤية علاماتك.</p>
-              <button class="btn btn-success btn-lg px-5" onclick="window.showSection('login')">
-                <i class="fas fa-sign-in-alt me-2"></i> تسجيل الدخول
-              </button>
             </div>
           </div>`;
-      }
+      });
+      container.innerHTML = html;
+    };
+
+    // ─── 1. عرض فوري من الكاش (0 ثانية انتظار) ───────────────────────────────
+    const cachedBookmarks = await localforage.getItem('offline_bookmarks');
+    if (cachedBookmarks) {
+      renderBookmarksToUI(cachedBookmarks);
+    } else {
+      container.innerHTML = '<div class="col-12 text-center py-4"><div class="spinner-border text-success"></div></div>';
     }
+
+    // ─── 2. مزامنة صامتة في الخلفية ──────────────────────────────────────────
+    if (navigator.onLine) {
+      axios.get('/api/v1/bookmarks')
+        .then(async (res) => {
+          const freshBookmarks = res.data.data.bookmarks;
+          await localforage.setItem('offline_bookmarks', freshBookmarks);
+          renderBookmarksToUI(freshBookmarks); // تحديث الشاشة لو فيه جديد
+        })
+        .catch(apiErr => {
+          console.warn('⚠️ فشل المزامنة الخلفية للعلامات:', apiErr.message);
+          if (apiErr.response?.status === 401) {
+            container.innerHTML = `
+              <div class="col-12">
+                <div class="text-center py-5">
+                  <i class="fas fa-lock fa-4x text-muted mb-4"></i>
+                  <h4 class="text-muted mb-3">انتهت الجلسة</h4>
+                  <p class="text-muted mb-4">يرجى تسجيل الدخول مرة أخرى لرؤية علاماتك.</p>
+                  <button class="btn btn-success btn-lg px-5" onclick="window.showSection('login')">
+                    <i class="fas fa-sign-in-alt me-2"></i> تسجيل الدخول
+                  </button>
+                </div>
+              </div>`;
+          }
+        });
+    }
+  } catch (err) {
+    console.error("خطأ عام في عرض العلامات:", err);
   }
 }
 
@@ -1232,19 +1237,22 @@ export const scheduleDailyWird = async (khatmahName) => {
 export async function manageKhatmah() {
   const activeDiv       = document.getElementById('active-khatmah');
   const createDiv       = document.getElementById('create-khatmah');
-    if (!isUserLoggedIn()) {
+  
+  if (!await isUserLoggedIn()) {
     if (activeDiv) activeDiv.classList.add('d-none');
     if (createDiv) createDiv.classList.remove('d-none');
     return;
   }
-  const kNameEl         = document.getElementById('khatmah-name');
-  const kTargetEl       = document.getElementById('daily-target');
-  const statusText      = document.getElementById('khatmah-status-text');
-  const progressBar     = document.getElementById('progress-bar');
-  const surahSelect     = document.getElementById('currentSurah');
+  
+  const kNameEl          = document.getElementById('khatmah-name');
+  const kTargetEl        = document.getElementById('daily-target');
+  const statusText       = document.getElementById('khatmah-status-text');
+  const progressBar      = document.getElementById('progress-bar');
+  const surahSelect      = document.getElementById('currentSurah');
   const currentAyahInput = document.getElementById('currentAyah');
 
-const loadFromCache = async () => {
+  // ─── قراءة الكاش ─────────────────────────────────────────────────────────
+  const loadFromCache = async () => {
     const offlineKhatmah = await localforage.getItem('latest_khatmah');
     const offlineMeta    = await localforage.getItem('khatmah_meta');
     if (!offlineKhatmah) return null;
@@ -1252,59 +1260,81 @@ const loadFromCache = async () => {
     return {
       currentSurah: offlineKhatmah.currentSurah,
       currentAyah:  offlineKhatmah.currentAyah,
-      page:         offlineKhatmah.page || null, 
-      name: offlineMeta ? offlineMeta.name : 'ختمتي الحالية'
+      page:         offlineKhatmah.page || null,
+      name:         offlineMeta ? offlineMeta.name : 'ختمتي الحالية'
     };
   };
 
+  // ─── رسم الختمة في الشاشة ────────────────────────────────────────────────
   const renderKhatmah = async (k) => {
     if (activeDiv) activeDiv.classList.remove('d-none');
     if (createDiv) createDiv.classList.add('d-none');
     if (kNameEl) kNameEl.innerText = k.name || 'ختمتي';
-
+    
     const sIdx      = parseInt(k.currentSurah) - 1;
     const surahName = surahNames[sIdx] || `سورة ${k.currentSurah}`;
-
+    
     if (statusText) {
       statusText.innerHTML = `أنت متوقف عند <strong>سورة ${surahName}</strong> - آية <strong>${k.currentAyah}</strong>`;
     }
     if (surahSelect)       surahSelect.value      = k.currentSurah;
     if (currentAyahInput)  currentAyahInput.value = k.currentAyah;
-
+    
     const progress = Math.round((parseInt(k.currentSurah) / 114) * 100);
     if (progressBar) {
       progressBar.style.width = `${progress}%`;
       progressBar.innerText   = `${progress}%`;
     }
-    if (Capacitor.isNativePlatform() && k.name) {
+    
+    if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform() && k.name && typeof scheduleDailyWird === 'function') {
       await scheduleDailyWird(k.name);
     }
   };
 
-  let k = null;
-
-  if (navigator.onLine) {
-    try {
-      const res = await axios.get('/api/v1/khatmah');
-      k = res.data.data.khatmah;
-     await localforage.setItem('latest_khatmah', { 
-  currentSurah: k.currentSurah, 
-  currentAyah: k.currentAyah,
-  page: k.page || null  
-});
-      await localforage.setItem('khatmah_meta', { name: k.name, targetMsg: res.data.data.message || "واصل تقدمك لختم القرآن الكريم ✨" });
-      if (kTargetEl) kTargetEl.innerText = res.data.data.message || "واصل تقدمك لختم القرآن الكريم ✨";
-    } catch (apiErr) {
-      console.warn('⚠️ [KHATMAH] فشل API، جاري تحميل الختمة من الكاش:', apiErr.message);
-      k = await loadFromCache();
-    }
-  } else {
-    k = await loadFromCache();
+  // ─── 1. عرض فوري من الكاش (0 ثانية انتظار) ───────────────────────────────
+  const cachedKhatmah = await loadFromCache();
+  if (cachedKhatmah) {
+    await renderKhatmah(cachedKhatmah);
   }
 
-  if (k) {
-    await renderKhatmah(k);
-  } else {
+  // ─── 2. مزامنة صامتة في الخلفية ──────────────────────────────────────────
+  if (navigator.onLine) {
+    axios.get('/api/v1/khatmah')
+      .then(async (res) => {
+        const freshK = res.data.data.khatmah;
+        await localforage.setItem('latest_khatmah', {
+          currentSurah: freshK.currentSurah,
+          currentAyah:  freshK.currentAyah,
+          page:         freshK.page || null
+        });
+        await localforage.setItem('khatmah_meta', {
+          name:      freshK.name,
+          targetMsg: res.data.data.message || "واصل تقدمك لختم القرآن الكريم ✨"
+        });
+        
+        if (kTargetEl) kTargetEl.innerText = res.data.data.message || "واصل تقدمك لختم القرآن الكريم ✨";
+        
+        await renderKhatmah({
+          currentSurah: freshK.currentSurah,
+          currentAyah:  freshK.currentAyah,
+          page:         freshK.page,
+          name:         freshK.name
+        });
+      })
+      .catch(async (apiErr) => {
+        console.warn('⚠️ [KHATMAH] فشل المزامنة الخلفية:', apiErr.message);
+        // لو الختمة اتمسحت من جهاز تاني → نمسح الكاش ونظهر فورم الإنشاء
+        if (apiErr.response?.status === 404) {
+          await localforage.removeItem('latest_khatmah');
+          await localforage.removeItem('khatmah_meta');
+          if (activeDiv) activeDiv.classList.add('d-none');
+          if (createDiv) createDiv.classList.remove('d-none');
+        } else if (!cachedKhatmah) {
+          if (activeDiv) activeDiv.classList.add('d-none');
+          if (createDiv) createDiv.classList.remove('d-none');
+        }
+      });
+  } else if (!cachedKhatmah) {
     if (activeDiv) activeDiv.classList.add('d-none');
     if (createDiv) createDiv.classList.remove('d-none');
   }

@@ -18,6 +18,8 @@ import {
   toggleBookmark, deleteBookmark, deleteKhatmah, initSearch, initBookmarksSearch,scheduleFridayKahfNotification,scheduleDuhaNotification,
   shareAyah,
 } from './features';
+import './insights';
+
 
 import { surahNames, surahPageMap, juzData, getSurahNameByPage } from './constants';
 
@@ -872,81 +874,61 @@ window.showSection = async (sectionName) => {
 window.openQuranAtCurrentKhatmah = async () => {
   try {
     if (!await isUserLoggedIn()) { requireLogin('متابعة الختمة'); return; }
-    Swal.fire({
-      title: '📖 جاري فتح ختمتك...',
-      html: `<div class="text-center py-2"><div class="spinner-border text-success mb-3" style="width: 3rem; height: 3rem;"></div><p class="text-muted mb-0">جاري البحث عن موضع الختمة</p></div>`,
-      allowOutsideClick: false, allowEscapeKey: false, showConfirmButton: false,
-      didOpen: () => Swal.showLoading()
-    });
-    const res = await axios.get('/api/v1/khatmah');
-    const k = res.data.data.khatmah;
-    if (!k || !k.currentSurah || !k.currentAyah) { Swal.close(); window.showSection('khatmah'); return; }
+
+    // ─── 1. قراءة الكاش فوراً (0 ثانية انتظار) ───────────────────────────────
+    let k = await localforage.getItem('latest_khatmah');
+
+    // ─── 2. تحديث صامت في الخلفية لتحديث الكاش للمرة القادمة ─────────────────
+    if (navigator.onLine) {
+      axios.get('/api/v1/khatmah').then(async (res) => {
+        const fresh = res.data?.data?.khatmah;
+        if (fresh) await localforage.setItem('latest_khatmah', fresh);
+      }).catch(() => {});
+    }
+
+    // ─── 3. لو مفيش كاش خالص (أول مرة)، هنا فقط نظهر اللودينج ──────────────
+    if (!k) {
+      if (!navigator.onLine) { window.showSection('khatmah'); return; }
+      Swal.fire({
+        title: '📖 جاري فتح ختمتك...',
+        html: `<div class="text-center py-2"><div class="spinner-border text-success mb-3" style="width:3rem;height:3rem;"></div></div>`,
+        allowOutsideClick: false, showConfirmButton: false, didOpen: () => Swal.showLoading()
+      });
+      try {
+        const res = await axios.get('/api/v1/khatmah');
+        k = res.data.data.khatmah;
+        if (k) await localforage.setItem('latest_khatmah', k);
+      } catch (fetchErr) {
+        Swal.close();
+        if (fetchErr.response?.status === 401) requireLogin('متابعة الختمة');
+        else if (fetchErr.response?.status === 404) window.showSection('khatmah');
+        else showAlert('error', 'تعذر تحميل الختمة');
+        return;
+      }
+      Swal.close();
+    }
+
+    // ─── 4. الانتقال المباشر بدون أي انتظار ──────────────────────────────────
+    if (!k || !k.currentSurah || !k.currentAyah) { window.showSection('khatmah'); return; }
+    
     const currentSurah   = parseInt(k.currentSurah);
     const currentAyah    = parseInt(k.currentAyah);
     const surahFirstPage = surahPageMap[currentSurah - 1] || 1;
     const savedPage      = k.page ? parseInt(k.page) : 0;
-    const isSavedPageValid = savedPage >= surahFirstPage && savedPage <= 604;
- 
-    let targetPage;
-    if (isSavedPageValid) {
-      targetPage = savedPage;
-    } else {
-      const nextSurahPage = surahPageMap[currentSurah] || 604;
-      targetPage = surahFirstPage;
-      for (let p = surahFirstPage; p <= nextSurahPage && p <= 604; p++) {
-        try {
-          let ayahs;
-          const cached = await cacheGet(p);
-          if (cached) { ayahs = cached.ayahs; }
-          else {
-            const pageRes = await axios.get(`/api/v1/quran/page/${p}`);
-            ayahs = pageRes.data.data.ayahs;
-            await cacheSet(p, pageRes.data.data);
-          }
-          const matched = ayahs.find(a => parseInt(a.surahNumber) === currentSurah && parseInt(a.ayahNumber) === currentAyah);
-          if (matched) {
-            targetPage = p;
-            try { await axios.patch('/api/v1/khatmah', { surah: currentSurah, ayah: currentAyah, page: p }); } catch(e) {}
-            break;
-          }
-        } catch (e) { break; }
-      }
-    }
-    Swal.close();
+    const targetPage     = (savedPage >= surahFirstPage && savedPage <= 604) ? savedPage : surahFirstPage;
+    
     document.querySelectorAll('[id$="-section"]').forEach(el => el.classList.add('d-none'));
     document.getElementById('quran-section')?.classList.remove('d-none');
     window.scrollTo(0, 0);
     window.history.pushState({ section: 'quran' }, '', '/quran');
     document.querySelectorAll('.bottom-nav-item').forEach(btn => btn.classList.remove('active'));
     document.getElementById('bnav-quran')?.classList.add('active');
+    
     await window.loadQuranPage(targetPage, currentSurah, currentAyah);
   } catch (err) {
     Swal.close();
     if (err.response?.status === 401) requireLogin('متابعة الختمة');
-    else if (err.response?.status === 404) window.showSection('khatmah');
-    else if (!navigator.onLine || err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
-      const offlineKhatmah = await localforage.getItem('latest_khatmah');
-      if (offlineKhatmah && offlineKhatmah.currentSurah && offlineKhatmah.currentAyah) {
-        const currentSurah   = parseInt(offlineKhatmah.currentSurah);
-        const currentAyah    = parseInt(offlineKhatmah.currentAyah);
-        const surahFirstPage = surahPageMap[currentSurah - 1] || 1;
-        const savedPage      = offlineKhatmah.page ? parseInt(offlineKhatmah.page) : 0;
-        const targetPage = (savedPage >= surahFirstPage && savedPage <= 604)
-          ? savedPage
-          : surahFirstPage;
-        document.querySelectorAll('[id$="-section"]').forEach(el => el.classList.add('d-none'));
-        document.getElementById('quran-section')?.classList.remove('d-none');
-        window.scrollTo(0, 0);
-        window.history.pushState({ section: 'quran' }, '', '/quran');
-        document.querySelectorAll('.bottom-nav-item').forEach(btn => btn.classList.remove('active'));
-        document.getElementById('bnav-quran')?.classList.add('active');
-        await window.loadQuranPage(targetPage, currentSurah, currentAyah);
-      } else {
-        window.showSection('khatmah');
-      }
-    } else {
-      showAlert('error', 'تعذر تحميل الختمة');
-    }
+    else window.showSection('khatmah');
   }
 };
 
@@ -1381,6 +1363,23 @@ document.addEventListener('click', async (e) => {
     if (selectedVerseData) window.showTafseer(selectedVerseData.surah, selectedVerseData.ayah);
     return;
   }
+   if (e.target.closest('.action-btn-nuzul')) {
+    e.preventDefault();
+    
+    const sheetEl = document.getElementById('verseActionSheet');
+    if (sheetEl) {
+        const bsSheet = bootstrap.Offcanvas.getInstance(sheetEl) || new bootstrap.Offcanvas(sheetEl);
+        bsSheet.hide();
+    }
+
+    setTimeout(() => {
+        if (selectedVerseData && window.openAyahInsights) {
+            window.openAyahInsights(selectedVerseData.surah, selectedVerseData.ayah);
+        }
+    }, 300);
+    
+    return;
+  }
   
   if (e.target.closest('.action-btn-bookmark')) {
     if (!await isUserLoggedIn()) { requireLogin('استخدام العلامات المرجعية'); return; }
@@ -1692,11 +1691,23 @@ if (_origLoadForZoom) {
 })();
 
 // ══════════════════════════════════════════════════════════════════════════════
-// ─── Auto Scroll ──────────────────────────────────────────────────────────────
+// ─── Auto Scroll (Pro Version) ────────────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════════════════
-let _autoScrollTimer  = null;
-let _scrollSpeedLevel = 2;
-const SCROLL_SPEEDS   = [0, 40, 25, 15, 8, 4];
+let _autoScrollReq = null; // هنستخدم Request بدل Timer
+let _scrollSpeedLevel = 2; // المستوى الافتراضي (بطيء)
+
+// السرعات هنا بتمثل: كام بيكسل هيتحرك في الفريم الواحد (الشاشة بتعرض 60 فريم في الثانية)
+// زودتلك المستويات لـ 7 عشان المستخدم يلاقي السرعة اللي تريحه بالظبط
+const SCROLL_SPEEDS = [
+  null,
+  0.5, // 1 - بطيء جداً (نص بيكسل في الفريم للمبتدئين)
+  1,   // 2 - بطيء (بيكسل واحد للمتأملين)
+  1.5, // 3 - بطيء لمتوسط
+  2,   // 4 - متوسط
+  3,   // 5 - سريع 
+  4,   // 6 - سريع جداً
+  6    // 7 - طلقة (للمراجعة السريعة)
+];
 
 function _isOnQuranPage() {
   const qs = document.getElementById('quran-section');
@@ -1704,7 +1715,7 @@ function _isOnQuranPage() {
 }
 
 window.toggleAutoScroll = function() {
-  _autoScrollTimer ? _stopAutoScroll() : _startAutoScroll();
+  _autoScrollReq ? _stopAutoScroll() : _startAutoScroll();
 };
 
 function _startAutoScroll() {
@@ -1712,17 +1723,24 @@ function _startAutoScroll() {
   const btn = document.getElementById('btn-autoscroll');
   const ctl = document.getElementById('autoscroll-controls');
   const fab = document.getElementById('autoscroll-fab');
+  
   if (btn) { btn.classList.add('active'); btn.innerHTML = '<i class="fas fa-pause me-1"></i> إيقاف'; }
   if (ctl) ctl.classList.replace('d-none', 'd-flex');
   if (fab) fab.classList.add('visible');
+  
+  // تحديث رقم السرعة
+  const lbl = document.getElementById('scroll-speed-label');
+  if (lbl) lbl.textContent = _scrollSpeedLevel;
+
   _runScrollLoop();
 }
 
 function _stopAutoScroll() {
-  if (_autoScrollTimer) { clearTimeout(_autoScrollTimer); _autoScrollTimer = null; }
+  if (_autoScrollReq) { cancelAnimationFrame(_autoScrollReq); _autoScrollReq = null; }
   const btn = document.getElementById('btn-autoscroll');
   const ctl = document.getElementById('autoscroll-controls');
   const fab = document.getElementById('autoscroll-fab');
+  
   if (btn) { btn.classList.remove('active'); btn.innerHTML = '<i class="fas fa-scroll me-1"></i> تمرير تلقائي'; }
   if (ctl) ctl.classList.replace('d-flex', 'd-none');
   if (fab) fab.classList.remove('visible');
@@ -1730,35 +1748,37 @@ function _stopAutoScroll() {
 
 function _runScrollLoop() {
   if (!_isOnQuranPage()) { _stopAutoScroll(); return; }
-  const delay = SCROLL_SPEEDS[_scrollSpeedLevel] || 25;
-  _autoScrollTimer = setTimeout(() => {
-    if (!_isOnQuranPage()) { _stopAutoScroll(); return; }
-    const maxY = document.body.scrollHeight - window.innerHeight;
-    if (window.scrollY >= maxY - 5) {
-      _stopAutoScroll();
-      if (window.currentPage < 604) {
-        document.getElementById('btn-prev-page')?.click();
-        setTimeout(() => {
-          if (_isOnQuranPage()) {
-            window.scrollTo({ top: 0, behavior: 'instant' });
-            _startAutoScroll();
-          }
-        }, 700);
-      }
-    } else {
-      window.scrollBy(0, 1);
-      _runScrollLoop();
+
+  const step = SCROLL_SPEEDS[_scrollSpeedLevel] || 1;
+  const maxY = document.body.scrollHeight - window.innerHeight;
+
+  // لو وصل لآخر الصفحة
+  if (window.scrollY >= maxY - 2) {
+    _stopAutoScroll();
+    if (window.currentPage < 604) {
+      document.getElementById('btn-prev-page')?.click();
+      setTimeout(() => {
+        if (_isOnQuranPage()) {
+          window.scrollTo({ top: 0, behavior: 'instant' });
+          _startAutoScroll();
+        }
+      }, 700); // استراحة صغيرة عشان الصفحة الجديدة تحمل براحتها
     }
-  }, delay);
+  } else {
+    window.scrollBy(0, step);
+    // استدعاء الدالة مع الفريم الجاي للشاشة (بيخلي الحركة ناعمة جداً)
+    _autoScrollReq = requestAnimationFrame(_runScrollLoop);
+  }
 }
 
 window.changeScrollSpeed = function(dir) {
-  _scrollSpeedLevel = Math.max(1, Math.min(5, _scrollSpeedLevel + dir));
+  // خليناهم 7 مستويات بدل 5 عشان التدرج يكون أنعم
+  _scrollSpeedLevel = Math.max(1, Math.min(7, _scrollSpeedLevel + dir));
   const lbl = document.getElementById('scroll-speed-label');
   if (lbl) lbl.textContent = _scrollSpeedLevel;
 };
 
-function _pauseAutoScrollOnManualNav() { if (_autoScrollTimer) _stopAutoScroll(); }
+function _pauseAutoScrollOnManualNav() { if (_autoScrollReq) _stopAutoScroll(); }
 
 // ─── 15. Nav Buttons ──────────────────────────────────────────────────────────
 document.getElementById('btn-prev-page')?.addEventListener('click', () => {
@@ -2356,96 +2376,106 @@ document.getElementById('radio-station-select')?.addEventListener('change', func
 });
 
 
-// جعل المصفوفة عامة عشان نقدر نبحث فيها
 window.allahNamesData = [
     { n: "اللَّهُ", m: "الاسم الأعظم الجامع لجميع صفات الكمال" },
-    { n: "الرَّحْمَنُ", m: "واسع الرحمة لجميع الخلائق في الدنيا" },
-    { n: "الرَّحِيمُ", m: "المختص برحمته للمؤمنين في الآخرة" },
-    { n: "الْمَلِكُ", m: "المتصرف في ملكه كيف يشاء" },
+    { n: "الرَّحْمَنُ", m: "واسع الرحمة لجميع الخلائق في الدنيا والآخرة" },
+    { n: "الرَّحِيمُ", m: "المختص برحمته للمؤمنين" },
+    { n: "الْمَلِكُ", m: "المالك المتصرف في ملكه كيف يشاء" },
     { n: "الْقُدُّوسُ", m: "المنزه عن كل نقص وعيب" },
     { n: "السَّلَامُ", m: "الواهب للسلام والأمن لخلقه" },
-    { n: "الْمُؤْمِنُ", m: "المصدق لرسله والمانح للأمن" },
+    { n: "الْمُؤْمِنُ", m: "المصدق لرسله والمانح للأمن لخلقه" },
     { n: "الْمُهَيْمِنُ", m: "الرقيب الحافظ لكل شيء" },
     { n: "الْعَزِيزُ", m: "الغالب الذي لا يُقهر أبداً" },
     { n: "الْجَبَّارُ", m: "الذي يجبر كسر الضعفاء ويقهر الجبابرة" },
     { n: "الْمُتَكَبِّرُ", m: "المتفرد بالعظمة والكبرياء" },
     { n: "الْخَالِقُ", m: "المُوجد للأشياء من العدم" },
     { n: "الْبَارِئُ", m: "الذي خلق الخلق بريئاً من التفاوت" },
-    { n: "الْمُصَوِّرُ", m: "الذي أعطى كل خلق صورته الخاصة" },
+    { n: "الْمُصَوِّرُ", m: "الذي أعطى كل مخلوق صورته الخاصة" },
     { n: "الْغَفَّارُ", m: "الذي يستر الذنوب ويتجاوز عنها بكثرة" },
     { n: "الْقَهَّارُ", m: "الغالب الذي قهر جميع الخلائق" },
     { n: "الْوَهَّابُ", m: "كثير العطاء بغير عوض" },
-    { n: "الرَّزَّاقُ", m: "خالق الأرزاق والمتكفل بإيصالها" },
+    { n: "الرَّزَّاقُ", m: "خالق الأرزاق والمتكفل بإيصالها لخلقه" },
     { n: "الْفَتَّاحُ", m: "الذي يفتح مغاليق الأمور برحمته" },
     { n: "الْعَلِيمُ", m: "المحيط علمه بكل شيء ظاهراً وباطناً" },
-    { n: "الْقَابِضُ الْبَاسِطُ", m: "يقبض الرزق عمن يشاء ويبسطه لمن يشاء" },
-    { n: "الْخَافِضُ الرَّافِعُ", m: "يخفض المتكبرين ويرفع أوليائه" },
-    { n: "الْمُعِزُّ الْمُذِلُّ", m: "يهب العزة لمن يشاء ويذل من يشاء" },
-    { n: "السَّمِيعُ", m: "الذي يسمع السر والنجوى" },
+    { n: "الْقَابِضُ", m: "الذي يقبض الرزق والأرواح بحكمته" },
+    { n: "الْبَاسِطُ", m: "الذي يبسط الرزق لمن يشاء بفضله" },
+    { n: "الْخَافِضُ", m: "الذي يخفض المتكبرين والظالمين" },
+    { n: "الرَّافِعُ", m: "الذي يرفع درجات المؤمنين وأوليائه" },
+    { n: "الْمُعِزُّ", m: "الذي يهب العزة لمن يشاء" },
+    { n: "الْمُذِلُّ", m: "الذي يذل من يشاء بحكمته" },
+    { n: "السَّمِيعُ", m: "الذي يسمع السر والنجوى وكل صوت" },
     { n: "الْبَصِيرُ", m: "الذي يرى كل ما تحت الثرى وما فوق السماء" },
     { n: "الْحَكَمُ", m: "الحاكم العدل الذي لا يظلم" },
-    { n: "الْعَدْلُ", m: "المنزه عن الظلم والجور" },
-    { n: "اللَّطِيفُ", m: "البر بعباده الرفيق بهم" },
+    { n: "الْعَدْلُ", m: "المنزه عن الظلم والجور في أحكامه" },
+    { n: "اللَّطِيفُ", m: "العالم بخفايا الأمور، البر بعباده" },
     { n: "الْخَبِيرُ", m: "العالم ببواطن الأمور وخفاياها" },
     { n: "الْحَلِيمُ", m: "الذي لا يعجل بالعقوبة على من عصاه" },
-    { n: "الْعَظِيمُ", m: "الذي لا تحيط به العقول" },
-    { n: "الْغَفُورُ", m: "الذي يستر الذنوب ويغفرها" },
+    { n: "الْعَظِيمُ", m: "الذي لا تحيط به العقول، عظيم الشأن" },
+    { n: "الْغَفُورُ", m: "الذي يستر الذنوب ويغفرها مهما بلغت" },
     { n: "الشَّكُورُ", m: "الذي يثيب على العمل القليل بالثواب الكثير" },
-    { n: "الْعَلِيُّ", m: "المرتفع عن كل نقص المتعالي عن كل ند" },
-    { n: "الْكَبِيرُ", m: "العظيم في ذاته وصفاته" },
+    { n: "الْعَلِيُّ", m: "المرتفع عن كل نقص، المتعالي عن كل ند" },
+    { n: "الْكَبِيرُ", m: "العظيم في ذاته وصفاته، الأكبر من كل شيء" },
     { n: "الْحَفِيظُ", m: "الذي يحفظ السماوات والأرض وما فيهما" },
     { n: "الْمُقِيتُ", m: "خالق الأقوات وموصلها للكائنات" },
-    { n: "الْحَسِيبُ", m: "الكافي لعباده المُحاسب لهم" },
-    { n: "الْجَلِيلُ", m: "عظيم القدر والجلال" },
-    { n: "الْكَرِيمُ", m: "كثير الخير الجواد المعطي" },
+    { n: "الْحَسِيبُ", m: "الكافي لعباده، المُحاسب لهم" },
+    { n: "الْجَلِيلُ", m: "عظيم القدر والجلال، المستحق للتعظيم" },
+    { n: "الْكَرِيمُ", m: "كثير الخير، الجواد المعطي الذي لا ينفد عطاؤه" },
     { n: "الرَّقِيبُ", m: "المراقب لأحوال العباد لا يغيب عنه شيء" },
-    { n: "الْمُجِيبُ", m: "الذي يجيب دعوة الداعين" },
-    { n: "الْوَاسِعُ", m: "الذي وسع رزقه جميع خلقه" },
-    { n: "الْحَكِيمُ", m: "المنزه عن العبث في خلقه وأمره" },
+    { n: "الْمُجِيبُ", m: "الذي يجيب دعوة الداعين وسؤال السائلين" },
+    { n: "الْوَاسِعُ", m: "الذي وسع رزقه ورحمته جميع خلقه" },
+    { n: "الْحَكِيمُ", m: "المنزه عن العبث، الذي يضع الأشياء مواضعها" },
     { n: "الْوَدُودُ", m: "المحب لأوليائه والمحبوب لهم" },
     { n: "الْمَجِيدُ", m: "البالغ النهاية في المجد والشرف" },
-    { n: "الْبَاعِثُ", m: "الذي يبعث الموتى للحساب" },
-    { n: "الشَّهِيدُ", m: "المطلع على كل شيء لا يخفى عليه خافية" },
-    { n: "الْحَقُّ", m: "الذي لا شك في وجوده" },
-    { n: "الْوَكِيلُ", m: "الكفيل بأرزاق العباد وأمورهم" },
-    { n: "الْقَوِيُّ الْمَتِينُ", m: "التام القوة الذي لا يلحقه ضعف" },
-    { n: "الْوَلِيُّ", m: "الناصر والنصير لأوليائه" },
-    { n: "الْحَمِيدُ", m: "المستحق للحمد والثناء" },
-    { n: "الْمُحْصِي", m: "الذي أحصى كل شيء عدداً" },
-    { n: "الْمُبْدِئُ الْمُعِيدُ", m: "الذي بدأ الخلق ثم يعيده" },
-    { n: "الْمُحْيِي الْمُمِيتُ", m: "خالق الحياة والموت" },
-    { n: "الْحَيُّ", m: "الدائم البقاء الذي لا يموت" },
-    { n: "الْقَيُّومُ", m: "القائم بنفسه والمقيم لغيره" },
-    { n: "الْوَاجِدُ", m: "الذي لا يعوزه شيء" },
-    { n: "الْمَاجِدُ", m: "له الكمال المتناهي" },
-    { n: "الْوَاحِدُ الْأَحَدُ", m: "المتفرد الذي لا شريك له" },
+    { n: "الْبَاعِثُ", m: "الذي يبعث الموتى للحساب يوم القيامة" },
+    { n: "الشَّهِيدُ", m: "المطلع على كل شيء، الحاضر الذي لا يغيب" },
+    { n: "الْحَقُّ", m: "الذي لا شك في وجوده ووحدانيته" },
+    { n: "الْوَكِيلُ", m: "الكفيل بأرزاق العباد والمدبر لأمورهم" },
+    { n: "الْقَوِيُّ", m: "صاحب القوة التامة المطلقة" },
+    { n: "الْمَتِينُ", m: "الشديد القوة الذي لا يلحقه ضعف أو تعب" },
+    { n: "الْوَلِيُّ", m: "الناصر والنصير لأوليائه المؤمنين" },
+    { n: "الْحَمِيدُ", m: "المستحق للحمد والثناء في كل حال" },
+    { n: "الْمُحْصِي", m: "الذي أحصى كل شيء عدداً وعلماً" },
+    { n: "الْمُبْدِئُ", m: "الذي بدأ الخلق من عدم" },
+    { n: "الْمُعِيدُ", m: "الذي يعيد الخلائق بعد الموت" },
+    { n: "الْمُحْيِي", m: "خالق الحياة وواهبها لمن يشاء" },
+    { n: "الْمُمِيتُ", m: "المقدر للموت على كل من أماته" },
+    { n: "الْحَيُّ", m: "الدائم البقاء الذي لا يموت ولا يزول" },
+    { n: "الْقَيُّومُ", m: "القائم بنفسه والمقيم والمُدبر لغيره" },
+    { n: "الْوَاجِدُ", m: "الغني الذي لا يعوزه شيء" },
+    { n: "الْمَاجِدُ", m: "صاحب الكمال المتناهي والشرف الواسع" },
+    { n: "الْوَاحِدُ", m: "المتفرد في ذاته وصفاته، لا شريك له" },
     { n: "الصَّمَدُ", m: "الذي يقصده الخلائق في حوائجهم" },
-    { n: "الْقَادِرُ الْمُقْتَدِرُ", m: "صاحب القدرة التامة والمطلقة" },
-    { n: "الْمُقَدِّمُ الْمُؤَخِّرُ", m: "الذي ينزل الأشياء منازلها" },
-    { n: "الْأَوَّلُ الْآخِرُ", m: "ليس قبله شيء ولا بعده شيء" },
-    { n: "الظَّاهِرُ الْبَاطِنُ", m: "ليس فوقه شيء ولا دونه شيء" },
-    { n: "الْوَالِي", m: "المالك للأشياء المتصرف فيها" },
-    { n: "الْمُتَعَالِي", m: "المنزه عن صفات المخلوقين" },
-    { n: "الْبَرُّ", m: "كثير الإحسان واللطف" },
-    { n: "التَّوَّابُ", m: "الذي يقبل التوبة عن عباده" },
-    { n: "الْمُنْتَقِمُ", m: "الذي يقصم ظهور الطغاة" },
+    { n: "الْقَادِرُ", m: "الذي لا يعجزه شيء في السماوات ولا في الأرض" },
+    { n: "الْمُقْتَدِرُ", m: "صاحب القدرة التامة المطلقة على كل شيء" },
+    { n: "الْمُقَدِّمُ", m: "الذي يقدم الأشياء ويضعها في مواضعها" },
+    { n: "الْمُؤَخِّرُ", m: "الذي يؤخر الأشياء لحكمة يعلمها" },
+    { n: "الْأَوَّلُ", m: "الذي ليس قبله شيء" },
+    { n: "الْآخِرُ", m: "الذي ليس بعده شيء" },
+    { n: "الظَّاهِرُ", m: "الذي ليس فوقه شيء، المتجلي بآياته" },
+    { n: "الْبَاطِنُ", m: "الذي ليس دونه شيء، المحتجب عن الأبصار" },
+    { n: "الْوَالِي", m: "المالك للأشياء المتصرف فيها بمشيئته" },
+    { n: "الْمُتَعَالِي", m: "المنزه عن صفات المخلوقين ونقائصهم" },
+    { n: "الْبَرُّ", m: "كثير الإحسان واللطف بعباده" },
+    { n: "التَّوَّابُ", m: "الذي يقبل التوبة عن عباده ويعفو عن السيئات" },
+    { n: "الْمُنْتَقِمُ", m: "الذي يقصم ظهور الطغاة والظالمين" },
     { n: "الْعَفُوُّ", m: "الذي يمحو السيئات ويتجاوز عنها" },
     { n: "الرَّؤُوفُ", m: "شديد الرحمة واللطف بعباده" },
-    { n: "مَالِكُ الْمُلْكِ", m: "الذي ينفذ مشيئته في ملكه" },
-    { n: "ذُو الْجَلَالِ وَالْإِكْرَامِ", m: "المستحق للتعظيم والتكريم" },
-    { n: "الْمُقْسِطُ", m: "العادل في حكمه" },
-    { n: "الْجَامِعُ", m: "الذي يجمع الخلائق ليوم الحساب" },
-    { n: "الْغَنِيُّ", m: "المستغني عن كل ما سواه" },
-    { n: "الْمُغْنِي", m: "الذي يغني بفضله من يشاء" },
-    { n: "الْمَانِعُ", m: "الذي يدفع أسباب الهلاك عن خلقه" },
-    { n: "الضَّارُّ النَّافِعُ", m: "مقدر الضر والنفع" },
-    { n: "النُّورُ", m: "الذي بنوره اهتدى المتقون" },
-    { n: "الْهَادِي", m: "الذي يهدي القلوب للإيمان" },
+    { n: "مَالِكُ الْمُلْكِ", m: "الذي ينفذ مشيئته في ملكه كيف يشاء" },
+    { n: "ذُو الْجَلَالِ وَالْإِكْرَامِ", m: "المستحق للتعظيم والتكريم، صاحب الفضل" },
+    { n: "الْمُقْسِطُ", m: "العادل في حكمه وفعله" },
+    { n: "الْجَامِعُ", m: "الذي يجمع الخلائق ليوم لا ريب فيه" },
+    { n: "الْغَنِيُّ", m: "المستغني عن كل ما سواه، وكل شيء مفتقر إليه" },
+    { n: "الْمُغْنِي", m: "الذي يغني بفضله من يشاء من عباده" },
+    { n: "الْمَانِعُ", m: "الذي يدفع أسباب الهلاك عن خلقه، ويمنع العطاء عمن يشاء" },
+    { n: "الضَّارُّ", m: "مقدر الضر على من يشاء بحكمته" },
+    { n: "النَّافِعُ", m: "مقدر النفع والخير لمن يشاء" },
+    { n: "النُّورُ", m: "الذي بنوره اهتدى المتقون، ومنور السماوات والأرض" },
+    { n: "الْهَادِي", m: "الذي يهدي القلوب للإيمان ويرشد الخلائق" },
     { n: "الْبَدِيعُ", m: "خالق الأشياء على غير مثال سابق" },
-    { n: "الْبَاقِي", m: "الدائم الذي لا يزول" },
+    { n: "الْبَاقِي", m: "الدائم الذي لا يزول ولا يفنى" },
     { n: "الْوَارِثُ", m: "الذي تعود إليه الأملاك بعد فناء الخلق" },
-    { n: "الرَّشِيدُ", m: "الذي يرشد العباد لمصالحهم" },
-    { n: "الصَّبُورُ", m: "الذي لا يعاجل العصاة بالعقوبة" }
+    { n: "الرَّشِيدُ", m: "الذي يرشد العباد لمصالحهم، الحكيم في أفعاله" },
+    { n: "الصَّبُورُ", m: "الذي لا يعاجل العصاة بالعقوبة، ويحلم عنهم" }
 ];
 
 window.loadNamesOfAllah = function() {
@@ -2706,6 +2736,89 @@ window.stopAzkarAudio = function() {
         icon.style.marginLeft = '3px';
         if (btn) btn.classList.replace('btn-danger', 'btn-success');
     }
+};
+
+window.openAyahInsights = function(surahNum, ayahNum) {
+    const modal = new bootstrap.Modal(document.getElementById('insightsModal'));
+    const contentDiv = document.getElementById('insight-content');
+    const subtitle = document.getElementById('insight-subtitle');
+    const modalContent = document.querySelector('#insightsModal .modal-content');
+
+    // ─── Dark Mode Detection ──────────────────────────────────────────────────
+    const isDark = document.body.getAttribute('data-theme') === 'dark';
+
+    const colors = {
+        cardBg: {
+            red:    isDark ? '#2a1a1a' : '#fff5f5',
+            green:  isDark ? '#0f2318' : '#f0fdf4',
+            blue:   isDark ? '#0d1f2d' : '#f0f7ff',
+            yellow: isDark ? '#2a2000' : '#fff9e6',
+        },
+        text:       isDark ? '#e8e8e8' : '#212529',
+        modalBg:    isDark ? '#1a2e1f' : '#fafafa',
+        titleColor: isDark ? '#ffffff' : '#212529',
+    };
+
+    if (modalContent) modalContent.style.background = colors.modalBg;
+
+    // 2. البحث عن البيانات
+    const key = `${surahNum}_${ayahNum}`;
+    const verseData = window.quranInsights.verses[key];
+
+    const surahData = window.quranInsights.surahs[surahNum] || {
+        name: `السورة رقم ${surahNum}`,
+        theme: "هذه السورة تتضمن توجيهات إلهية ومقاصد عظيمة تدعو للتفكر في آيات الله والعمل بمنهجه.",
+        fadl: ""
+    };
+
+    // 3. تحديث العنوان
+    subtitle.innerText = `سورة ${surahData.name} - آية ${ayahNum}`;
+
+    // ─── Helper: بناء كارت موحد ──────────────────────────────────────────────
+    const card = (bgKey, borderColor, iconClass, titleLabel, bodyText) => `
+        <div class="mb-3 p-3 rounded-4" style="background-color:${colors.cardBg[bgKey]}; border-right:4px solid ${borderColor};">
+            <h6 class="fw-bold mb-2" style="color:${borderColor};">
+                <i class="${iconClass} me-2"></i>${titleLabel}
+            </h6>
+            <p class="mb-0 small fw-medium" style="line-height:1.8; color:${colors.text};">${bodyText}</p>
+        </div>`;
+
+    let html = '';
+
+    // 4. البناء الذكي للمحتوى - دايمًا نعرض محتوى قيّم ومفيد
+    if (verseData) {
+        html += `<h5 class="fw-bold text-center mb-4" style="font-family:'Amiri',serif; line-height:1.6; color:${colors.titleColor};">${verseData.title}</h5>`;
+
+        if (verseData.sabab)
+            html += card('red',    '#dc3545', 'fas fa-scroll',             'سبب النزول',             verseData.sabab);
+        if (verseData.fadl)
+            html += card('green',  '#198754', 'fas fa-star',               'فضل الآية',              verseData.fadl);
+        if (verseData.action)
+            html += card('blue',   '#0dcaf0', 'fas fa-hand-holding-heart', 'رسالة لك (تطبيق عملي)', verseData.action);
+
+        // ─── بطاقة السورة دايمًا في الأسفل ───────────────────
+        html += card('green', '#198754', 'fas fa-compass', 'مقصد السورة', surahData.theme);
+
+        if (surahData.fadl)
+            html += card('yellow', '#ffc107', 'fas fa-medal', 'فضل السورة', surahData.fadl);
+
+    } else {
+        // ─── لا يوجد بيانات مخصصة للآية → بطاقة السورة كاملة ─
+        html += card('green', '#198754', 'fas fa-compass', 'مقصد السورة', surahData.theme);
+
+        if (surahData.fadl)
+            html += card('yellow', '#ffc107', 'fas fa-medal', 'فضل السورة', surahData.fadl);
+
+        // ─── رسالة تدبر عامة دايمًا موجودة ──────────────────
+        if (surahData.action)
+            html += card('blue', '#0dcaf0', 'fas fa-hand-holding-heart', 'رسالة لك (تطبيق عملي)', surahData.action);
+        else
+            html += card('blue', '#0dcaf0', 'fas fa-hand-holding-heart', 'وقفة تدبر',
+                'تأمل في هذه الآية وتفكر في معناها، فإن التدبر في القرآن باب عظيم لتنوير القلب وتقريبه من الله. اسأل نفسك: ماذا يريد الله أن يُعلمني من هذه الآية؟');
+    }
+
+    contentDiv.innerHTML = html;
+    modal.show();
 };
 
 
@@ -3118,11 +3231,14 @@ if (resultContainer) {
 }
 
 setupIosInstallPrompt();
+scheduleWebFridayReminder();
+
+
+
 
 
 
   console.log(Capacitor.isNativePlatform() ? '📱 Mobile Mode Active' : '🌐 Web Mode Active');
-  scheduleWebFridayReminder();
 
 
     

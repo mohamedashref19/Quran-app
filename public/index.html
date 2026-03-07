@@ -1915,6 +1915,9 @@ const analytics = getAnalytics(app);
           <button class="btn btn-light text-start p-3 fs-6 rounded-3 action-btn-tafseer border-0 shadow-sm d-flex align-items-center" data-bs-dismiss="offcanvas">
             <div class="bg-success bg-opacity-10 p-2 rounded-circle me-3"><i class="fas fa-book-open text-success fa-fw"></i></div> <span class="fw-bold text-dark">عرض التفسير</span>
           </button>
+          <button class="btn btn-light text-start p-3 fs-6 rounded-3 action-btn-nuzul border-0 shadow-sm d-flex align-items-center" data-bs-dismiss="offcanvas">
+            <div class="bg-warning bg-opacity-10 p-2 rounded-circle me-3"><i class="fas fa-lightbulb text-warning fa-fw"></i></div> <span class="fw-bold text-dark">إضاءات وتأملات</span>
+          </button>
           <button class="btn btn-light text-start p-3 fs-6 rounded-3 action-btn-khatmah border-0 shadow-sm d-flex align-items-center" data-bs-dismiss="offcanvas">
             <div class="bg-primary bg-opacity-10 p-2 rounded-circle me-3"><i class="fas fa-flag text-primary fa-fw"></i></div> <span class="fw-bold text-dark">تحديث موضع الختمة</span>
           </button>
@@ -1930,6 +1933,24 @@ const analytics = getAnalytics(app);
         </div>
       </div>
     </div>
+    <div class="modal fade" id="insightsModal" tabindex="-1" aria-hidden="true" dir="rtl">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content shadow-lg" style="border-radius: 24px; border: none; background: #fafafa;">
+            <div class="modal-header border-0 pb-0 justify-content-center position-relative mt-2">
+                <button type="button" class="btn-close position-absolute top-0 end-0 m-3 shadow-none" data-bs-dismiss="modal"></button>
+                <div class="text-center mt-2">
+                    <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-2 shadow-sm" style="width: 65px; height: 65px; background: linear-gradient(135deg, #198754, #20c997) !important;">
+                        <i class="fas fa-lightbulb fs-2"></i>
+                    </div>
+                    <h4 class="fw-bold text-success mb-1" style="font-family: 'Amiri', serif;">إضاءات وتأملات</h4>
+                    <span class="badge bg-light text-success border border-success px-3 py-2 rounded-pill mt-1" id="insight-subtitle"></span>
+                </div>
+            </div>
+            <div class="modal-body px-4 pt-4 pb-5" id="insight-content" style="font-family: 'Tajawal', sans-serif;">
+                </div>
+        </div>
+    </div>
+</div>
 
     <script>
         // ─── Bottom Nav Active State ──────────────────
