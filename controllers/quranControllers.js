@@ -7,7 +7,47 @@ const Recitation = require("../models/recitationModel");
 const Ayah = require("../models/Ayah");
 const catchAsync = require("../utils/catchAsync");
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+// 🌟 1. إعداد مصفوفة مفاتيح Groq 🌟
+const groqClients = [
+    process.env.GROQ_API_KEY,
+    process.env.GROQ_API_KEY02,
+    process.env.GROQ_API_KEY03
+].filter(Boolean).map(key => new Groq({ apiKey: key }));
+
+let currentGroqIndex = 0; 
+async function executeGroqWithFallback(filePath, options) {
+    for (let attempts = 0; attempts < groqClients.length; attempts++) {
+        const currentClient = groqClients[currentGroqIndex];
+        
+        try {
+            // ملاحظة هامة: يجب إنشاء الـ Stream داخل الـ Try عشان لو فشل نفتح واحد جديد للمحاولة اللي بعدها
+            const fileStream = fs.createReadStream(filePath);
+            
+            const response = await currentClient.audio.transcriptions.create({
+                file: fileStream,
+                ...options
+            });
+            
+            return response; // لو نجح، رجع النتيجة واخرج من اللوب
+
+        } catch (error) {
+            // قراءة كود الخطأ (سواء جاء من SDK أو من الشبكة)
+            const statusCode = error?.status || error?.response?.status;
+            
+            if (statusCode === 429) {
+                console.warn(`⚠️ Groq Key ${currentGroqIndex + 1} Rate Limited. Switching to next key...`);
+                // تبديل للمفتاح التالي في المصفوفة
+                currentGroqIndex = (currentGroqIndex + 1) % groqClients.length;
+            } else {
+                // لو الخطأ مش 429 (يعني مثلاً الملف الصوتي بايظ)، ارمي الخطأ فوراً
+                throw error;
+            }
+        }
+    }
+    
+    // لو اللوب خلص وكل المفاتيح جابت 429
+    throw new Error('عذراً، يوجد ضغط عالي جداً على خوادم التصحيح حالياً. يرجى المحاولة بعد دقيقة.');
+}
 
 const surahAyahCounts = {
     1: 7, 2: 286, 3: 200, 4: 176, 5: 120, 6: 165, 7: 206, 8: 75, 9: 129, 10: 109,
@@ -53,7 +93,6 @@ function normalization(text) {
         .replace(/ئ/g, 'ي').replace(/ؤ/g, 'و')
         .replace(/\s+/g, ' ')
         .trim();
-
 
     return text.split(" ").map(word => {
         if (standardMapping[word]) return standardMapping[word];
@@ -112,10 +151,8 @@ exports.check_recitation = catchAsync(async (req, res, next) => {
 
         const fullReferenceText = comparisonWords.join(" ");
 
-        const fileStream = fs.createReadStream(req.file.path); 
-
-        const transcription = await groq.audio.transcriptions.create({
-            file: fileStream,
+        // 🌟 استدعاء الدالة السحرية بدلاً من الاستدعاء المباشر
+        const transcription = await executeGroqWithFallback(req.file.path, {
             model: "whisper-large-v3", 
             language: "ar",
             temperature: 0, 
@@ -132,13 +169,11 @@ exports.check_recitation = catchAsync(async (req, res, next) => {
             );
 
             if (foundBasmalaStart) {
-               
                 let cutIndex = 4;
                 if (userWordsArr.length < 4) cutIndex = userWordsArr.length;
-                
                 const restOfText = userWordsArr.slice(cutIndex).join(" ");
                 rawUserText = basmalaStandard + " " + restOfText;
-            }else{
+            } else {
                  rawUserText = basmalaStandard + " " + rawUserText;
             }
         }
@@ -183,7 +218,6 @@ exports.check_recitation = catchAsync(async (req, res, next) => {
                     oIdx++;
                 });
             } else if (!part.added) {
-                //Correct Word
                 part.value.forEach(() => {
                     const wordToDisplay = displayWords[oIdx];
                     const marker = ayahEndIndices.find(m => m.index === oIdx);
@@ -220,14 +254,15 @@ exports.check_recitation = catchAsync(async (req, res, next) => {
     } catch (error) {
         if (req.file && req.file.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
         console.error("💥 Error:", error);
+        
+        // لو الخطأ بسبب إن كل المفاتيح خلصت (نبعت 429 للفرونت عشان يطلع الـ Alert اللي إنت عامله)
+        if (error.message.includes('ضغط عالي')) {
+            return res.status(429).json({ status: 'fail', message: error.message });
+        }
+        
         res.status(500).json({ error: error.message });
     }
 });
-
-
-
-
-
 
 
 exports.stream_check = catchAsync(async (req, res, next) => {
@@ -237,16 +272,12 @@ exports.stream_check = catchAsync(async (req, res, next) => {
 
     try {
         const startTime = Date.now();
-        const fileStream = fs.createReadStream(req.file.path);
-        
         const expectedContext = req.body.expectedContext || ""; 
         const surahName = req.body.surahName || "";
-
-        
         const promptText = `تلاوة قرآنية للشيخ محمود خليل الحصري سورة ${surahName}. النص: ${expectedContext}`;
 
-        const transcription = await groq.audio.transcriptions.create({
-            file: fileStream,
+        // 🌟 استدعاء الدالة السحرية هنا أيضاً
+        const transcription = await executeGroqWithFallback(req.file.path, {
             model: "whisper-large-v3",
             language: "ar",
             temperature: 0,
@@ -275,8 +306,12 @@ exports.stream_check = catchAsync(async (req, res, next) => {
         });
 
     } catch (error) {
-        if (req.file.path) fs.unlink(req.file.path, () => {});
+        if (req.file.path && fs.existsSync(req.file.path)) fs.unlink(req.file.path, () => {});
         console.error("Stream Error:", error);
+        
+        if (error.message.includes('ضغط عالي')) {
+            return res.status(429).json({ message: error.message });
+        }
         res.status(500).json({ error: "Processing failed" });
     }
 });
