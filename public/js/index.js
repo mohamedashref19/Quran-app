@@ -1698,14 +1698,14 @@ let _scrollSpeedLevel = 2;
 const SCROLL_SPEEDS = [
   null,
   0.5, 
-  1,   
-  1.5, 
-  2,   
-  3,   
-  5,   
-  7,   
-  10,  
-  15   
+  0.8,   
+  1, 
+  1.5,   
+  2.5,   
+  4,   
+  6,   
+  9,  
+  12   
 ];
 
 function _isOnQuranPage() {
