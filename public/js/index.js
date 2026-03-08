@@ -1839,6 +1839,8 @@ document.body.addEventListener('click', (e) => {
     '/surah-index':   'surah-index',
     '/admin':         'admin',
     '/radio':         'radio',
+    '/stories':       'stories',
+    '/surah-details': 'surah-details'
   };
 
   // التعامل مع روابط المصحف الديناميكية (/quran أو /quran/50)
@@ -2864,6 +2866,173 @@ window.openAyahInsights = function(surahNum, ayahNum) {
     contentDiv.innerHTML = html;
     modal.show();
 };
+
+// ─── دوال أسباب النزول والقصص 
+
+// 1. دالة عرض كروت السور
+window.renderAsbabAlNuzul = function() {
+    const container = document.getElementById('nuzul-container');
+    if (!container) return;
+
+    let verses = window.quranInsights?.verses || {};
+    if (Object.keys(verses).length === 0) {
+        for (const key in window.quranInsights) {
+            if (key !== 'surahs' && key.includes('_')) verses[key] = window.quranInsights[key];
+        }
+    }
+
+    let html = '';
+    
+    for (let i = 1; i <= 114; i++) {
+        const surahData = window.quranInsights?.surahs?.[i];
+        let storiesCount = 0;
+        for (const key in verses) {
+            if (key.startsWith(i + '_') && verses[key].sabab && verses[key].sabab.trim() !== '') storiesCount++;
+        }
+
+        if (surahData || storiesCount > 0) {
+            const surahName = surahData?.name || (window.surahNames ? window.surahNames[i-1] : `سورة ${i}`);
+            const badgeHtml = storiesCount > 0 
+                ? `<span class="badge bg-success text-white rounded-pill px-2 py-1 mt-2"><i class="fas fa-book-open me-1"></i> ${storiesCount} قصة</span>` 
+                : `<span class="badge bg-light text-secondary border rounded-pill px-2 py-1 mt-2">مقاصد وفضائل</span>`;
+
+            html += `
+            <div class="col-6 col-md-4 col-lg-3 mb-3 story-card-item">
+                <div class="card shadow-sm border-0 h-100 text-center" style="cursor: pointer; border-bottom: 4px solid #198754; border-radius: 12px; transition: transform 0.2s;" onclick="openSurahDetails(${i})">
+                    <div class="card-body p-3 d-flex flex-column align-items-center justify-content-center">
+                        <div class="text-success mb-2 fw-bold" style="font-size: 1.5rem; opacity: 0.8;"><i class="fas fa-quran"></i></div>
+                        <h6 class="fw-bold text-dark mb-1" style="font-family: 'Amiri Quran', serif; font-size: 1.1rem;">سورة ${surahName}</h6>
+                        ${badgeHtml}
+                    </div>
+                </div>
+            </div>
+            `;
+        }
+    }
+    container.innerHTML = html;
+};
+
+// 1. دالة البحث الرئيسية الذكية (تبحث في أسماء السور وفي عمق الآيات)
+window.searchStories = function() {
+    const input = document.getElementById('stories-search-input').value.toLowerCase();
+    const activeTab = document.querySelector('.tab-pane.active');
+    if (!activeTab) return;
+    
+    const items = activeTab.querySelectorAll('.story-card-item');
+
+    // جلب قاعدة البيانات للبحث بداخلها
+    let verses = window.quranInsights?.verses || {};
+    if (Object.keys(verses).length === 0) {
+        for (const key in window.quranInsights) {
+            if (key !== 'surahs' && key.includes('_')) verses[key] = window.quranInsights[key];
+        }
+    }
+
+    items.forEach(item => {
+        let isMatch = item.textContent.toLowerCase().includes(input);
+
+        // 💡 البحث العميق: إذا لم تتطابق السورة، نبحث بداخل قصصها وآياتها
+        if (!isMatch && input.trim() !== '' && activeTab.id === 'nuzul-pane') {
+            const card = item.querySelector('.card');
+            if (card && card.hasAttribute('onclick')) {
+                const match = card.getAttribute('onclick').match(/\d+/); // استخراج رقم السورة
+                if (match) {
+                    const surahNum = match[0];
+                    for (const key in verses) {
+                        if (key.startsWith(surahNum + '_')) {
+                            const verse = verses[key];
+                            if (
+                                (verse.title && verse.title.toLowerCase().includes(input)) ||
+                                (verse.sabab && verse.sabab.toLowerCase().includes(input))
+                            ) {
+                                isMatch = true;
+                                break; // السورة بها القصة، نظهر الكارت فوراً
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        item.style.display = isMatch ? '' : 'none';
+    });
+};
+
+// 2. دالة البحث الجديدة لداخل السورة نفسها
+window.searchInnerSurah = function() {
+    const input = document.getElementById('inner-surah-search').value.toLowerCase();
+    const items = document.querySelectorAll('#surah-details-content .inner-story-item');
+    
+    items.forEach(item => {
+        const text = item.textContent.toLowerCase();
+        item.style.display = text.includes(input) ? '' : 'none';
+    });
+};
+
+// 3. دالة فتح السورة (تم تحديثها لدعم كلاسات البحث الداخلي)
+window.openSurahDetails = function(surahNum) {
+    const surahData = window.quranInsights?.surahs?.[surahNum];
+    const surahName = surahData?.name || (window.surahNames ? window.surahNames[surahNum-1] : `سورة ${surahNum}`);
+
+    let verses = window.quranInsights?.verses || {};
+    if (Object.keys(verses).length === 0) {
+        for (const k in window.quranInsights) {
+            if (k !== 'surahs' && k.includes('_')) verses[k] = window.quranInsights[k];
+        }
+    }
+
+    const surahVerses = [];
+    for (const key in verses) {
+        if (key.startsWith(surahNum + '_') && verses[key].sabab && verses[key].sabab.trim() !== '') {
+            surahVerses.push({...verses[key], id: key});
+        }
+    }
+
+    document.getElementById('surah-details-title').innerText = `سورة ${surahName}`;
+    
+    // تفريغ حقل البحث الداخلي عند فتح سورة جديدة
+    const innerSearchInput = document.getElementById('inner-surah-search');
+    if (innerSearchInput) innerSearchInput.value = '';
+
+    let contentHtml = '';
+
+    // القسم الأول: بين يدي السورة
+    if (surahData) {
+        contentHtml += `
+        <div class="mb-4 inner-story-item">
+            <h6 class="fw-bold text-success border-bottom border-success pb-2 mb-3"><i class="fas fa-info-circle me-1"></i> بين يدي السورة</h6>`;
+        if (surahData.theme) contentHtml += `<p class="text-dark small lh-lg mb-2"><strong class="badge bg-success me-1">المقصد العام:</strong> <br> <span class="d-block mt-1">${surahData.theme}</span></p>`;
+        if (surahData.fadl) contentHtml += `<p class="text-dark small lh-lg mb-2"><strong class="badge bg-warning text-dark me-1">فضلها:</strong> <br> <span class="d-block mt-1">${surahData.fadl}</span></p>`;
+        if (surahData.action) contentHtml += `<p class="text-dark small lh-lg mb-0"><strong class="badge bg-info text-dark me-1">تأمل وعمل:</strong> <br> <span class="d-block mt-1">${surahData.action}</span></p>`;
+        contentHtml += `</div>`;
+    }
+
+    // القسم الثاني: أسباب النزول
+    if (surahVerses.length > 0) {
+        contentHtml += `
+        <div>
+            <h6 class="fw-bold text-success border-bottom border-success pb-2 mb-3"><i class="fas fa-scroll me-1"></i> أسباب النزول وقصص الآيات</h6>`;
+
+        surahVerses.sort((a, b) => parseInt(a.id.split('_')[1]) - parseInt(b.id.split('_')[1]));
+
+        surahVerses.forEach(verse => {
+            const ayahNum = verse.id.split('_')[1];
+            contentHtml += `
+            <div class="inner-story-item p-3 mb-4 bg-light rounded border-start border-success border-3 shadow-sm">
+                <h6 class="fw-bold text-success mb-2 pb-2 border-bottom" style="font-family: 'Amiri Quran', serif; font-size: 1.1rem; line-height: 1.6;">
+                    <span class="badge bg-success me-1 opacity-75">${ayahNum}</span> ${verse.title}
+                </h6>
+                <p class="text-muted small lh-lg mb-0" style="white-space: pre-wrap; font-size: 0.95rem;">${verse.sabab}</p>
+            </div>`;
+        });
+        contentHtml += `</div>`;
+    }
+
+    document.getElementById('surah-details-content').innerHTML = contentHtml;
+    
+    window.showSection('surah-details');
+    setTimeout(() => { window.scrollTo(0, 0); }, 50);
+};
+
 
 
 // ─── 18. DOMContentLoaded 
