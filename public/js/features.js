@@ -672,7 +672,7 @@ export async function loadQuranPage(pageNumber, targetSurah = null, targetAyah =
         <span class="verse-wrapper" data-surah="${surahNum}" data-ayah="${ayahNum}" data-surahname="${surahName}" data-bookmarked="${isBookmarked}" style="cursor: pointer; display: inline; border-radius: 5px; padding: 2px; transition: background 0.2s;">
           <span id="ayah-${surahNum}-${ayahNum}" class="ayah-text">${ayahText}${sajdahSymbolHTML}</span>
           <span class="ayah-end-wrapper" style="white-space: nowrap; display: inline-block;">
-            <span class="ayah-end-symbol" style="color: #d4af37; font-family: sans-serif; margin: 0 5px; border: 1px solid #d4af37; border-radius: 50%; padding: 0 5px; font-size: 0.8em;">${ayahNum}</span>
+            <span class="ayah-end-symbol" style="color: #d4af37; font-family: sans-serif; margin: 0 5px; border: 1px solid #d4af37; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; min-width: 1.6em; height: 1.6em; font-size: 0.75em; line-height: 1;">${ayahNum}</span>
             ${bookmarkIcon}
             ${khatmahIcon}
           </span>
@@ -778,7 +778,7 @@ export async function loadSurahs() {
 
 
 
-// ─── toggleBookmark ────────────────────────────────────────────────────────────
+// ─── toggleBookmark 
 
 export async function toggleBookmark(surah, ayah, iconElement) {
     if (!isUserLoggedIn()) {
@@ -1508,7 +1508,7 @@ function resetRecitationUI() {
 }
 
 
-// ─── loadReciters ─────────────────────────────────────────────────────────────
+// ─── loadReciters 
 
 export async function loadReciters() {
   try {
@@ -2384,7 +2384,7 @@ window.initQibla = async () => {
 };
 
 
-// ─── ✅ الأذكار - Azkar Data & Loader ─────────────────────────────────────────
+// ─── ✅ الأذكار - Azkar Data & Loader 
 
 
 const AZKAR_DATA = {
