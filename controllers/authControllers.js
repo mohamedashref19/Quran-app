@@ -72,7 +72,7 @@ exports.verifyOTP = catchAsync(async (req, res, next) => {
     otpExpires: { $gt: Date.now() },
   });
   if (!user) {
-    return next(new AppError("Invalid OTP or Token has expired!", 400));
+    return next(new AppError("رمز التحقق لمرة واحدة أو الرمز المميز غير صالح وقد انتهت صلاحيته!", 400));
   }
   user.verified = true;
   user.otp = undefined;
@@ -86,17 +86,17 @@ exports.verifyOTP = catchAsync(async (req, res, next) => {
 exports.login = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
   if (!email || !password) {
-    return next(new AppError("provide email or password", 400));
+    return next(new AppError("يرجى تقديم البريد الإلكتروني أو كلمة المرور", 400));
   }
   const user = await User.findOne({ email }).select("+password");
   if (!user) {
-    return next(new AppError("email or password is worng", 401));
+    return next(new AppError("البريد الإلكتروني أو كلمة المرور خاطئة", 401));
   }
   if (!(await user.correctPassword(password, user.password))) {
-    return next(new AppError("email or password is worng", 401));
+    return next(new AppError("البريد الإلكتروني أو كلمة المرور خاطئة", 401));
   }
   if (!user.verified) {
-    return next(new AppError("Please verify your email first", 401));
+    return next(new AppError("يرجى التحقق من بريدك الإلكتروني أولاً", 401));
   }
 
   createandsentToken(user, 200, res);
@@ -187,7 +187,7 @@ exports.restrictTO =
 exports.updatePassword = catchAsync(async (req, res, next) => {
   const user = await User.findById(req.user.id).select("+password");
   if (!(await user.correctPassword(req.body.passwordCurrent, user.password))) {
-    return next(new AppError("Your current password is incorrect", 401));
+    return next(new AppError("كلمة مرورك الحالية غير صحيحة", 401));
   }
   user.password = req.body.password;
   user.passwordConfirm = req.body.passwordConfirm;
@@ -198,7 +198,7 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
 exports.forgetPassword = catchAsync(async (req, res, next) => {
   const user = await User.findOne({ email: req.body.email });
   if (!user) {
-    return next(new AppError("there is no user with email user enter", 404));
+    return next(new AppError("عنوان البريد الإلكتروني المُدخل غير مسجل.", 404));
   }
 
   // توليد OTP مكون من 6 أرقام
@@ -233,7 +233,7 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   });
 
   if (!user) {
-    return next(new AppError("OTP is invalid or has expired", 400));
+    return next(new AppError("رمز التحقق لمرة واحدة غير صالح أو منتهي الصلاحية", 400));
   }
 
   user.password = password;

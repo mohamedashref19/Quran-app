@@ -646,7 +646,7 @@ window.loadSurahIndex = () => {
       <div class="col-6 col-md-4 col-lg-3">
         <div class="card shadow-sm h-100 p-2 text-center hover-shadow border-success"
           style="cursor:pointer;transition:transform .2s"
-          onclick="window.showSection('quran');window.loadQuranPage(${pageNum});">
+         onclick="window.showSection('quran'); window.loadQuranPage(${pageNum}, ${i + 1}, 1);">
           <div class="card-body p-2">
             <span class="badge bg-light text-dark mb-1 border rounded-circle">${i + 1}</span>
             <h6 class="card-title fw-bold text-success mb-0" style="font-family:'Amiri'">${name}</h6>
@@ -1690,23 +1690,22 @@ if (_origLoadForZoom) {
   }
 })();
 
-// ══════════════════════════════════════════════════════════════════════════════
-// ─── Auto Scroll (Pro Version) ────────────────────────────────────────────────
-// ══════════════════════════════════════════════════════════════════════════════
-let _autoScrollReq = null; // هنستخدم Request بدل Timer
-let _scrollSpeedLevel = 2; // المستوى الافتراضي (بطيء)
 
-// السرعات هنا بتمثل: كام بيكسل هيتحرك في الفريم الواحد (الشاشة بتعرض 60 فريم في الثانية)
-// زودتلك المستويات لـ 7 عشان المستخدم يلاقي السرعة اللي تريحه بالظبط
+// ─── Auto Scroll (Pro Version) 
+let _autoScrollReq = null; 
+let _scrollSpeedLevel = 2; 
+
 const SCROLL_SPEEDS = [
   null,
-  0.5, // 1 - بطيء جداً (نص بيكسل في الفريم للمبتدئين)
-  1,   // 2 - بطيء (بيكسل واحد للمتأملين)
-  1.5, // 3 - بطيء لمتوسط
-  2,   // 4 - متوسط
-  3,   // 5 - سريع 
-  4,   // 6 - سريع جداً
-  6    // 7 - طلقة (للمراجعة السريعة)
+  0.5, 
+  1,   
+  1.5, 
+  2,   
+  3,   
+  5,   
+  7,   
+  10,  
+  15   
 ];
 
 function _isOnQuranPage() {
@@ -1728,7 +1727,6 @@ function _startAutoScroll() {
   if (ctl) ctl.classList.replace('d-none', 'd-flex');
   if (fab) fab.classList.add('visible');
   
-  // تحديث رقم السرعة
   const lbl = document.getElementById('scroll-speed-label');
   if (lbl) lbl.textContent = _scrollSpeedLevel;
 
@@ -1749,10 +1747,9 @@ function _stopAutoScroll() {
 function _runScrollLoop() {
   if (!_isOnQuranPage()) { _stopAutoScroll(); return; }
 
-  const step = SCROLL_SPEEDS[_scrollSpeedLevel] || 1;
+  const step = SCROLL_SPEEDS[_scrollSpeedLevel] || 2;
   const maxY = document.body.scrollHeight - window.innerHeight;
 
-  // لو وصل لآخر الصفحة
   if (window.scrollY >= maxY - 2) {
     _stopAutoScroll();
     if (window.currentPage < 604) {
@@ -1762,25 +1759,23 @@ function _runScrollLoop() {
           window.scrollTo({ top: 0, behavior: 'instant' });
           _startAutoScroll();
         }
-      }, 700); // استراحة صغيرة عشان الصفحة الجديدة تحمل براحتها
+      }, 700); 
     }
   } else {
-    window.scrollBy(0, step);
-    // استدعاء الدالة مع الفريم الجاي للشاشة (بيخلي الحركة ناعمة جداً)
+    window.scrollBy({ top: step, left: 0, behavior: 'instant' });
+    
     _autoScrollReq = requestAnimationFrame(_runScrollLoop);
   }
 }
 
 window.changeScrollSpeed = function(dir) {
-  // خليناهم 7 مستويات بدل 5 عشان التدرج يكون أنعم
-  _scrollSpeedLevel = Math.max(1, Math.min(7, _scrollSpeedLevel + dir));
+  _scrollSpeedLevel = Math.max(1, Math.min(9, _scrollSpeedLevel + dir));
   const lbl = document.getElementById('scroll-speed-label');
   if (lbl) lbl.textContent = _scrollSpeedLevel;
 };
 
 function _pauseAutoScrollOnManualNav() { if (_autoScrollReq) _stopAutoScroll(); }
-
-// ─── 15. Nav Buttons ──────────────────────────────────────────────────────────
+// ─── 15. Nav Buttons 
 document.getElementById('btn-prev-page')?.addEventListener('click', () => {
   _pauseAutoScrollOnManualNav();
   if (window.currentPage < 604) {
@@ -1918,6 +1913,30 @@ const initNativeFeatures = async () => {
     await LocalNotifications.cancel({ notifications: [{ id: 101 }] });
     await App.removeAllListeners();
     await App.addListener('backButton', ({ canGoBack }) => {
+      
+      // 1. هل في رسالة تنبيه (SweetAlert) مفتوحة؟ نقفلها
+      if (typeof Swal !== 'undefined' && Swal.isVisible()) {
+        Swal.close();
+        return; 
+      }
+
+      // 2. هل في نافذة (Modal) زي "الإضاءات" أو التحديثات مفتوحة؟ نقفلها
+      const openModal = document.querySelector('.modal.show');
+      if (openModal) {
+        const modalInstance = bootstrap.Modal.getInstance(openModal);
+        if (modalInstance) modalInstance.hide();
+        return;
+      }
+
+      // 3. هل في القائمة السفلية (Bottom Sheet) بتاعة الآيات مفتوحة؟ نقفلها
+      const openOffcanvas = document.querySelector('.offcanvas.show');
+      if (openOffcanvas) {
+        const offcanvasInstance = bootstrap.Offcanvas.getInstance(openOffcanvas);
+        if (offcanvasInstance) offcanvasInstance.hide();
+        return;
+      }
+
+      // 4. لو مفيش أي نوافذ مفتوحة، نفذ سلوك الرجوع الطبيعي
       const home = document.getElementById('home-section');
       if (home && !home.classList.contains('d-none')) {
         stopAllMedia();
@@ -2145,7 +2164,9 @@ const dailyAhadith = [
     { text: "« بَشِّرِ الْمَشَّائِينَ فِي الظُّلَمِ إِلَى الْمَسَاجِدِ بِالنُّورِ التَّامِّ يَوْمَ الْقِيَامَةِ »", source: "رواه أبو داود وصححه الألباني" }
 ];
 function loadDailyContent() {
-    const dayOfEpoch = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+    const now = new Date();
+    const localTimestamp = now.getTime() - (now.getTimezoneOffset() * 60000);
+    const dayOfEpoch = Math.floor(localTimestamp / (1000 * 60 * 60 * 24));
     
     // تحميل الآية
     const ayahIndex = dayOfEpoch % dailyAyahs.length;
@@ -2480,28 +2501,35 @@ window.allahNamesData = [
 
 window.loadNamesOfAllah = function() {
     const container = document.getElementById('names-carousel-inner');
+    const myCarouselEl = document.getElementById('namesCarousel');
+    
     if (!container || container.dataset.loaded === 'true') return;
 
     window.renderAllahNames(window.allahNamesData);
     container.dataset.loaded = 'true';
 
-    // الاستماع لتغيير الكارت لتحديث العداد
-    const myCarouselEl = document.getElementById('namesCarousel');
-    if (myCarouselEl) {
-        myCarouselEl.addEventListener('slide.bs.carousel', function (e) {
-            const total = document.querySelectorAll('.carousel-item').length;
-            document.getElementById('names-counter').innerText = `${e.to + 1} / ${total}`;
-        });
-    }
+    new bootstrap.Carousel(myCarouselEl, {
+        interval: false,
+        touch: true
+    });
+
+    myCarouselEl.addEventListener('slide.bs.carousel', function (e) {
+        const total = document.querySelectorAll('#names-carousel-inner .carousel-item').length;
+        const counterEl = document.getElementById('names-counter');
+        if (counterEl) {
+            counterEl.innerText = `${e.to + 1} / ${total}`;
+        }
+    });
 };
 
 window.renderAllahNames = function(data) {
     const container = document.getElementById('names-carousel-inner');
+    const counterEl = document.getElementById('names-counter');
     let html = '';
     
-    if(data.length === 0) {
+    if(!data || data.length === 0) {
         container.innerHTML = '<div class="text-center text-danger p-4 fw-bold mt-4"><i class="fas fa-search-minus fa-3x mb-3"></i><br>لم يتم العثور على هذا الاسم</div>';
-        document.getElementById('names-counter').innerText = '0 / 0';
+        if (counterEl) counterEl.innerText = '0 / 0';
         return;
     }
 
@@ -2520,7 +2548,7 @@ window.renderAllahNames = function(data) {
     });
     
     container.innerHTML = html;
-    document.getElementById('names-counter').innerText = `1 / ${data.length}`;
+    if (counterEl) counterEl.innerText = `1 / ${data.length}`;
 };
 
 window.filterAllahNames = function() {
@@ -2535,6 +2563,10 @@ window.filterAllahNames = function() {
 
     if (!query) {
         window.renderAllahNames(window.allahNamesData);
+        new bootstrap.Carousel(document.getElementById('namesCarousel'), {
+            interval: false,
+            touch: true
+        });
         return;
     }
 
@@ -2544,6 +2576,11 @@ window.filterAllahNames = function() {
     });
 
     window.renderAllahNames(filtered);
+
+    new bootstrap.Carousel(document.getElementById('namesCarousel'), {
+        interval: false,
+        touch: true
+    });
 };
 
 window.initIslamicCountdown = function() {
