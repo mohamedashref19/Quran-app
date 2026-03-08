@@ -37,6 +37,9 @@
             text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
             transition: all 0.3s ease;
         }
+        #storyModalTitle {
+            color: #145a28 !important; /* أخضر قرآني داكن */
+        }
         .live-ayah-item {
             border-bottom: 1px solid #eee;
             padding: 15px 0;
@@ -235,6 +238,97 @@
             color: #aaa !important;
             border-color: #444 !important;
         }
+
+        /* ===================================================
+           ─── تصميم قسم القصص والسير (عادي + ليلي) ───
+        =================================================== */
+        
+        /* 1. تلوين التابات (الـ Nav) باللون الأخضر المميز للتطبيق */
+        #stories-tabs .nav-link {
+            color: #198754; 
+            transition: all 0.3s ease;
+        }
+        #stories-tabs .nav-link:hover {
+            color: #145a28;
+            background-color: rgba(25, 135, 84, 0.1);
+        }
+        #stories-tabs .nav-link.active {
+            background-color: #198754 !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 10px rgba(25, 135, 84, 0.3);
+        }
+
+        /* 2. تضبيط ألوان قسم القصص في الوضع الليلي (Dark Mode) */
+        [data-theme="dark"] #stories-section .bg-light,
+        [data-theme="dark"] #stories-tabs {
+            background-color: #1a1a1a !important;
+        }
+        [data-theme="dark"] #stories-tabs .nav-link {
+            color: #a5d6a7;
+        }
+        [data-theme="dark"] #stories-tabs .nav-link.active {
+            background-color: #198754 !important;
+            color: #ffffff !important;
+        }
+        
+        /* تضبيط حقل البحث في الوضع الليلي */
+       /* تضبيط حقول البحث في الوضع الليلي (الرئيسي والداخلي) */
+        [data-theme="dark"] #stories-search-input,
+        [data-theme="dark"] #inner-surah-search {
+            background-color: #1a1a1a !important;
+            color: #ffffff !important;
+        }
+        
+        [data-theme="dark"] #stories-search-input::placeholder,
+        [data-theme="dark"] #inner-surah-search::placeholder {
+            color: #888888 !important;
+        }
+        
+        [data-theme="dark"] #stories-section .input-group-text,
+        [data-theme="dark"] #surah-details-section .input-group-text {
+            background-color: #1a1a1a !important;
+        }
+
+        /* تضبيط كروت القصص في الوضع الليلي */
+        [data-theme="dark"] .story-card-item .card {
+            background-color: #1a1a1a !important;
+            border-color: #2d2d2d !important;
+        }
+        [data-theme="dark"] .story-card-item .card h6 {
+            color: #4ade80 !important; /* لون السورة أخضر فاتح */
+        }
+        [data-theme="dark"] .story-card-item .card p {
+            color: #bbbbbb !important; /* لون النص رمادي مريح */
+        }
+        [data-theme="dark"] .story-card-item .badge.bg-light {
+            background-color: #2d2d2d !important;
+            color: #4ade80 !important;
+            border-color: #198754 !important;
+        }
+
+        /* 3. تضبيط نافذة القراءة المنبثقة (Modal) في الوضع الليلي */
+        [data-theme="dark"] #storyModal .modal-content {
+            background-color: #121212 !important;
+            border: 1px solid #2d2d2d;
+        }
+        [data-theme="dark"] #storyModal .modal-header {
+            background-color: #1a1a1a !important;
+        }
+        [data-theme="dark"] #storyModal .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
+        [data-theme="dark"] #storyModalTitle {
+            color: #4ade80 !important;
+        }
+        [data-theme="dark"] #storyModalSabab {
+            color: #e0e0e0 !important;
+        }
+        [data-theme="dark"] #storyModal .text-dark {
+            color: #e0e0e0 !important; /* تحويل أي نص غامق لفاتح */
+        }
+        [data-theme="dark"] #storyModal .bg-light {
+            background-color: #1a1a1a !important; /* خلفية الفوائد والتدبرات */
+        }
         /* ══════════════════════════════════════════════
    ─── وضع القراءة الليلية 🌙 ─────────────────
 ══════════════════════════════════════════════ */
@@ -337,7 +431,19 @@
             background: var(--nav-bg, #ffffff);
             z-index: -1;
         } */
-
+/* الوضع الليلي لصفحة تفاصيل السورة */
+        [data-theme="dark"] #surah-details-section .bg-white {
+            background-color: #121212 !important;
+        }
+        [data-theme="dark"] #surah-details-section .bg-light {
+            background-color: #1a1a1a !important;
+        }
+        [data-theme="dark"] #surah-details-section .text-dark {
+            color: #e0e0e0 !important;
+        }
+        [data-theme="dark"] #surah-details-title {
+            color: #4ade80 !important;
+        }
         [data-theme="dark"] .bottom-nav {
             background: #121212;
             border-top-color: rgba(25, 135, 84, 0.25);
@@ -754,8 +860,96 @@ nav#main-navbar {
                         <h6 class="fw-bold">إذاعة القرآن</h6>
                     </div>
                 </div>
+           <div class="col-12 col-md-4">
+    <div class="card border-0 shadow-sm h-100 text-center p-3 hover-shadow" onclick="showSection('stories'); renderAsbabAlNuzul();" style="cursor: pointer;">
+        <div class="mb-2"><i class="fas fa-book-reader fa-2x text-warning"></i></div>
+        <h6 class="fw-bold">القصص والسير</h6>
+    </div>
+</div>
             </div>
             </div>
+
+
+            <div id="stories-section" class="section d-none">
+    <div class="d-flex align-items-center mb-4">
+        <button class="btn btn-light rounded-circle shadow-sm me-3" onclick="showSection('home')">
+            <i class="fas fa-arrow-right"></i>
+        </button>
+        <h2 class="h4 mb-0 fw-bold">القصص والسير</h2>
+    </div>
+
+    <ul class="nav nav-pills nav-fill mb-4 bg-light rounded p-1 shadow-sm" id="stories-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-bold" id="nuzul-tab" data-bs-toggle="pill" data-bs-target="#nuzul-pane" type="button" role="tab">أسباب النزول</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold" id="prophets-tab" data-bs-toggle="pill" data-bs-target="#prophets-pane" type="button" role="tab">الأنبياء</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold" id="sahaba-tab" data-bs-toggle="pill" data-bs-target="#sahaba-pane" type="button" role="tab">الصحابة</button>
+        </li>
+    </ul>
+
+    <div class="input-group mb-4 shadow-sm">
+        <span class="input-group-text bg-white border-0"><i class="fas fa-search text-muted"></i></span>
+        <input type="text" id="stories-search-input" class="form-control border-0" placeholder="ابحث هنا..." onkeyup="searchStories()">
+    </div>
+
+    <div class="tab-content" id="stories-tabContent">
+        
+        <div class="tab-pane fade show active" id="nuzul-pane" role="tabpanel">
+            <div id="nuzul-container" class="row">
+                </div>
+        </div>
+
+        <div class="tab-pane fade" id="prophets-pane" role="tabpanel">
+            <div class="text-center mt-5">
+                <i class="fas fa-star-and-crescent fa-3x text-warning mb-3"></i>
+                <h5 class="fw-bold">قصص الأنبياء</h5>
+                <p class="text-muted">قريباً.. جاري تجهيز قاعدة البيانات الخاصة بقصص الأنبياء والمرسلين.</p>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="sahaba-pane" role="tabpanel">
+            <div class="text-center mt-5">
+                <i class="fas fa-users fa-3x text-success mb-3"></i>
+                <h5 class="fw-bold">سير الصحابة</h5>
+                <p class="text-muted">قريباً.. جاري تجهيز قاعدة البيانات الخاصة بسير الصحابة الكرام.</p>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- <div class="modal fade" id="storyModal" tabindex="-1" aria-labelledby="storyModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="border-radius: 15px;">
+            <div class="modal-header border-0 bg-light">
+                <h5 class="modal-title fw-bold text-success" id="storyModalTitle" style="font-family: 'Amiri Quran', serif; line-height: 1.6;"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="storyModalBody">
+            </div>
+        </div>
+    </div>
+</div> -->
+    <div id="surah-details-section" class="section d-none">
+            <div class="d-flex align-items-center mb-3 sticky-top bg-white p-3 shadow-sm" style="z-index: 10; margin: -15px -15px 15px -15px;">
+                <button class="btn btn-light rounded-circle shadow-sm me-3" onclick="showSection('stories')">
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+                <h2 class="h4 mb-0 fw-bold text-success w-100" id="surah-details-title" style="font-family: 'Amiri Quran', serif;"></h2>
+            </div>
+
+            <div class="input-group mb-4 shadow-sm">
+                <span class="input-group-text bg-white border-0"><i class="fas fa-search text-muted"></i></span>
+                <input type="text" id="inner-surah-search" class="form-control border-0" placeholder="ابحث عن آية أو قصة داخل هذه السورة..." onkeyup="searchInnerSurah()">
+            </div>
+
+            <div id="surah-details-content" class="pb-5">
+                </div>
+        </div>
 
         <div id="radio-section" class="d-none animate-fade-in">
             <div class="container d-flex flex-column justify-content-center" style="min-height: 80vh; padding-bottom: 80px;">
@@ -1993,7 +2187,9 @@ const analytics = getAnalytics(app);
                 'qibla':           'bnav-home',
                 'azkar':           'bnav-azkar',
                 'azkar-detail':    'bnav-azkar',
-                'reading-stats':   'bnav-home'
+                'reading-stats':   'bnav-home',
+                'stories':         'bnav-home',
+                'surah-details':   'bnav-home'
             };
 
             // ══════════════════════════════════════════
