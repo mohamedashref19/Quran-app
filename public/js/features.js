@@ -562,25 +562,25 @@ export async function loadQuranPage(pageNumber, targetSurah = null, targetAyah =
     let userBookmarks = [];
     const loggedIn = isUserLoggedIn();
     if (loggedIn) {
-  userBookmarks = await localforage.getItem('offline_bookmarks') || [];
+      userBookmarks = await localforage.getItem('offline_bookmarks') || [];
 
-  if (navigator.onLine && localStorage.getItem('auth_token')) {
-    axios.get('/api/v1/bookmarks').then(async (res) => {
-      const freshBookmarks = res.data.data.bookmarks;
-      await localforage.setItem('offline_bookmarks', freshBookmarks);
-      console.log(`🔄 [BOOKMARKS] تم تحديث الكاش (${freshBookmarks.length} علامة)`);
-    }).catch((err) => {
-      console.warn('⚠️ [BOOKMARKS] فشل تحديث الكاش:', err.message);
-    });
-  }
-}
+      if (navigator.onLine && localStorage.getItem('auth_token')) {
+        axios.get('/api/v1/bookmarks').then(async (res) => {
+          const freshBookmarks = res.data.data.bookmarks;
+          await localforage.setItem('offline_bookmarks', freshBookmarks);
+          console.log(`🔄 [BOOKMARKS] تم تحديث الكاش (${freshBookmarks.length} علامة)`);
+        }).catch((err) => {
+          console.warn('⚠️ [BOOKMARKS] فشل تحديث الكاش:', err.message);
+        });
+      }
+    }
 
     const container = document.getElementById('ayahs-container');
     if (!container) return;
     container.innerHTML = '';
 
-    // let fullTextHTML = '<div class="quran-page-content" style="text-align: justify; text-align-last: center; line-height: 2.8; font-family: \'Amiri\'; font-size: 22px; direction: rtl;">';
-let fullTextHTML = '<div class="quran-page-content" style="text-align: justify; text-align-last: center; line-height: 2.4; font-family: \'Amiri Quran\', \'Amiri\', serif; font-size: 28px; direction: rtl;">';
+    let fullTextHTML = '<div class="quran-page-content" style="text-align: justify; text-align-last: center; line-height: 2.4; font-family: \'Amiri Quran\', \'Amiri\', serif; font-size: 28px; direction: rtl;">';
+    
     if (ayahs.length > 0) {
       const firstAyah = ayahs[0];
       let sNameAr = firstAyah.surahNameAr || (firstAyah.surah && firstAyah.surah.name) || '...';
@@ -619,26 +619,9 @@ let fullTextHTML = '<div class="quran-page-content" style="text-align: justify; 
       }, 500);
     }
 
-    // 2. الانتقال للآية وتظليلها (سواء من البحث، العلامات، أو الختمة)
-    const scrollSurah = targetSurah || (khatmah ? khatmah.currentSurah : null);
-    const scrollAyah  = targetAyah  || (khatmah ? khatmah.currentAyah : null);
-
-    if (scrollSurah && scrollAyah) {
-      setTimeout(() => {
-        const scrollTarget = document.getElementById(`ayah-${scrollSurah}-${scrollAyah}`);
-        if (scrollTarget) {
-          scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          scrollTarget.style.transition      = 'background 0.5s';
-          scrollTarget.style.backgroundColor = '#d1e7dd';
-          setTimeout(() => { scrollTarget.style.backgroundColor = ''; }, 3000);
-        }
-      }, 600);
-    }
-
     ayahs.forEach(ayah => {
       let ayahText = ayah.text;
 
-      // 1. إصلاحات الرسم العثماني
       Object.keys(UTHMANI_FIXES).forEach(wrongWord => {
         ayahText = ayahText.split(wrongWord).join(UTHMANI_FIXES[wrongWord]);
       });
@@ -647,29 +630,25 @@ let fullTextHTML = '<div class="quran-page-content" style="text-align: justify; 
       const surahNum = ayah.surahNumber || (ayah.surah && ayah.surah.number);
       const sajdahKey = `${surahNum}_${ayahNum}`;
 
-      // 2. إزالة أي رمز سجدة قادم من الـ API لمنع التكرار (لأننا سنضعه يدوياً بدقة)
       ayahText = ayahText.replace(/۩/g, '').trim();
 
-      // 3. وضع الخط (فوق) كلمة السجدة حصراً
       const sajdahWord = SAJDAH_WORDS[sajdahKey];
       if (sajdahWord) {
-        // البحث عن الكلمة الدقيقة وإحاطتها بـ span يحتوي على خط علوي (كما في المصحف)
         const regex = new RegExp(`(${sajdahWord})`, 'g');
         ayahText = ayahText.replace(regex, `<span class="sajdah-word" style="border-top: 2px solid #198754; padding-top: 2px;">$1</span>`);
       }
 
-      // 4. تجهيز رمز السجدة ۩ (يوضع في نهاية الآية فقط للآيات المحددة)
       const hasSajdahSymbol = SAJDAH_AYAH_END.includes(sajdahKey);
       const sajdahSymbolHTML = hasSajdahSymbol ? ' <span class="sajdah-icon text-success ms-1 fs-5" title="موضع سجود">۩</span>' : '';
 
-      // 5. رؤوس السور والبسملة
       let surahName = ayah.surahNameAr || (ayah.surah && ayah.surah.name) || "";
       if (surahName.startsWith("سُورَةُ ")) surahName = surahName.replace("سُورَةُ ", "سورة ");
 
+      // إضافة الـ IDs لرؤوس السور
       if (ayahNum === 1) {
         if (surahNum !== 1 && surahNum !== 9) {
           fullTextHTML += `
-            <div class="surah-separator text-center my-4 p-2" style="background: #f4f4f4; border: 1px solid #ddd; border-radius: 5px;">
+            <div id="surah-header-${surahNum}" class="surah-separator text-center my-4 p-2" style="background: #f4f4f4; border: 1px solid #ddd; border-radius: 5px;">
               <h3 class="text-success m-0" style="font-family: 'Amiri';"> ${surahName}</h3>
             </div>
             <div class="bismillah text-center mb-3" style="font-family: 'Amiri'; font-size: 1.5rem;">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
@@ -677,24 +656,15 @@ let fullTextHTML = '<div class="quran-page-content" style="text-align: justify; 
           const bismillahRegex = /^\s*ب[\u064B-\u065F\u0670]*س[\u064B-\u065F\u0670]*م[\u064B-\u065F\u0670]*\s*[ٱا]لل[\u064B-\u065F\u0670]*ه[\u064B-\u065F\u0670]*\s*[ٱا]لر[\u064B-\u065F\u0670]*ح[\u064B-\u065F\u0670]*م[\u064B-\u065F\u0670]*ٰ?ن[\u064B-\u065F\u0670]*\s*[ٱا]لر[\u064B-\u065F\u0670]*ح[\u064B-\u065F\u0670]*ي[\u064B-\u065F\u0670]*م[\u064B-\u065F\u0670]*/;
           ayahText = ayahText.replace(bismillahRegex, '').trim();
         } else if (surahNum === 1) {
-          fullTextHTML += `<div class="surah-separator text-center my-4"><h3 class="text-success m-0" style="font-family: 'Amiri';">سورة الفاتحة</h3></div>`;
+          fullTextHTML += `<div id="surah-header-1" class="surah-separator text-center my-4"><h3 class="text-success m-0" style="font-family: 'Amiri';">سورة الفاتحة</h3></div>`;
         } else if (surahNum === 9) {
-          fullTextHTML += `<div class="surah-separator text-center my-4 p-2" style="background: #f4f4f4; border: 1px solid #ddd; border-radius: 5px;"><h3 class="text-success m-0" style="font-family: 'Amiri';">سورة التوبة</h3></div>`;
+          fullTextHTML += `<div id="surah-header-9" class="surah-separator text-center my-4 p-2" style="background: #f4f4f4; border: 1px solid #ddd; border-radius: 5px;"><h3 class="text-success m-0" style="font-family: 'Amiri';">سورة التوبة</h3></div>`;
         }
       }
 
-      // 6. العلامات المرجعية والختمة
       const isBookmarked = userBookmarks.some(b => parseInt(b.surah) === surahNum && parseInt(b.ayah) === ayahNum);
-      const iconClass    = isBookmarked ? 'fas' : 'far';
-      const iconColor    = isBookmarked ? '#d4af37' : '#ccc';
+      const isKhatmahActive = khatmah && parseInt(khatmah.currentSurah) == surahNum && parseInt(khatmah.currentAyah) == ayahNum;
 
-      const isKhatmahActive = khatmah &&
-        parseInt(khatmah.currentSurah) == surahNum &&
-        parseInt(khatmah.currentAyah)  == ayahNum;
-      const khatmahClass = isKhatmahActive ? 'fas' : 'far';
-      const khatmahColor = isKhatmahActive ? '#198754' : '#198754';
-
-    // 7. دمج الآية (النص + رقم الآية + أيقونات حالة صغيرة جداً لعدم الزحام)
       const bookmarkIcon = isBookmarked ? `<i class="fas fa-bookmark mx-1" style="color: #d4af37; font-size: 0.7em;"></i>` : '';
       const khatmahIcon = isKhatmahActive ? `<i class="fas fa-flag mx-1" style="color: #198754; font-size: 0.8em;"></i>` : '';
 
@@ -711,6 +681,8 @@ let fullTextHTML = '<div class="quran-page-content" style="text-align: justify; 
     });
 
     fullTextHTML += '</div><div class="text-center mt-3 text-muted small">- ' + pageNum + ' -</div>';
+    
+    // رسم الآيات في الشاشة أولاً
     container.innerHTML = fullTextHTML;
 
     const duaBtnContainer = document.getElementById('khatmah-dua-btn-container');
@@ -722,13 +694,42 @@ let fullTextHTML = '<div class="quran-page-content" style="text-align: justify; 
     document.querySelectorAll('.nav-prev, .nav-next, #prev-surah-mobile, #next-surah-mobile').forEach(btn => btn.classList.remove('d-none'));
     if (typeof updateNavButtons === 'function') updateNavButtons();
 
-    if (!targetSurah || !targetAyah) {
-      const hash = window.location.hash;
-      if (hash && hash.startsWith('#ayah-')) {
-        const parts = hash.split('-');
-        if (parts.length >= 3) { targetSurah = parts[1]; targetAyah = parts[2]; }
+   // =========================================================
+    // 🚀 كود النزول الذكي الموحد (بدون Hash وبدعم الهيدر الثابت)
+    // =========================================================
+    setTimeout(() => {
+      const scrollSurah = targetSurah || (khatmah ? khatmah.currentSurah : null);
+      const scrollAyah  = targetAyah  || (khatmah ? khatmah.currentAyah : null);
+
+      if (scrollSurah && scrollAyah) {
+        
+        // 1. لو كانت الآية رقم 1 (يعني جاي من الفهرس أو بداية سورة)
+        if (parseInt(scrollAyah) === 1) {
+          const headerTarget = document.getElementById(`surah-header-${scrollSurah}`);
+          if (headerTarget) {
+            // حساب المسافة لترك مساحة للهيدر الأخضر العلوي (حوالي 100 بيكسل)
+            const offset = 100; 
+            const elementPosition = headerTarget.getBoundingClientRect().top;
+            const offsetPosition = elementPosition + window.scrollY - offset;
+            
+            window.scrollTo({
+              top: offsetPosition,
+              behavior: 'smooth'
+            });
+            return; // خروج لعدم تظليل الآية
+          }
+        }
+
+        // 2. لو آية عادية في النص (جاي من الختمة أو البحث أو العلامات)
+        const scrollTarget = document.getElementById(`ayah-${scrollSurah}-${scrollAyah}`);
+        if (scrollTarget) {
+          scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          scrollTarget.style.transition      = 'background 0.5s';
+          scrollTarget.style.backgroundColor = '#d1e7dd';
+          setTimeout(() => { scrollTarget.style.backgroundColor = ''; }, 3000);
+        }
       }
-    }
+    }, 600);
 
   } catch (err) {
     console.error(err);
@@ -754,9 +755,11 @@ export async function loadSurahs() {
     surahsList.forEach(surah => {
       const surahNum  = surah.number || surah.surahNumber || (surahsList.indexOf(surah) + 1);
       const startPage = surahStartPages[surahNum] || 1;
+      
       const html = `
         <div class="col-md-3 mb-3">
-          <a href="/quran/${startPage}" class="text-decoration-none">
+          <div onclick="window.showSection('quran'); window.loadQuranPage(${startPage}, ${surahNum}, 1);"
+               class="text-decoration-none" style="cursor: pointer; display: block;">
             <div class="card h-100 hover-shadow border-0 shadow-sm">
               <div class="card-body text-center">
                 <div class="d-flex justify-content-center align-items-center mb-2">
@@ -766,7 +769,7 @@ export async function loadSurahs() {
                 <p class="text-muted small mb-0">عدد الآيات: ${surah.ayahCount}</p>
               </div>
             </div>
-          </a>
+          </div>
         </div>`;
       container.insertAdjacentHTML('beforeend', html);
     });

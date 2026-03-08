@@ -1683,3 +1683,45 @@ p.zikr-text {
 } */
 
 #qibla-dial { transition: transform 0.2s ease-out; }
+
+/* الحاوية الأساسية */
+.autoscroll-container {
+    padding: 4px 12px;
+    gap: 10px;
+}
+
+/* زر التفعيل الرئيسي */
+.btn-autoscroll-toggle {
+    font-size: 0.85rem;
+    border: none !important;
+    background: transparent !important;
+    padding: 5px 10px;
+}
+
+/* زراير السلحفاة والأرنب - هنا السر! */
+.btn-speed-control {
+    font-size: 1.5rem !important; /* تكبير الإيموجي */
+    border: none !important;
+    background: transparent !important;
+    padding: 8px 12px !important; /* مساحة ضغط واسعة جداً للصباع */
+    line-height: 1;
+    transition: transform 0.1s ease;
+    display: flex;
+    align-items: center;
+}
+
+/* تأثير عند الضغط بالصباع */
+.btn-speed-control:active {
+    transform: scale(0.85); /* صغره شوية لما يتضغط عشان المستخدم يحس إنه استجاب */
+    background-color: rgba(0,0,0,0.05) !important; /* ظل خفيف مكان الضغط */
+    border-radius: 50%;
+}
+
+/* ملصق رقم السرعة */
+.speed-label {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #6c757d;
+    min-width: 24px;
+    text-align: center;
+}
