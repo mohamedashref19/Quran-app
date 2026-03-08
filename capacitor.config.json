@@ -1,32 +1,32 @@
 {
-  "appId": "com.aqra.app",
-  "appName": "Aqra",
-  "webDir": "public",
-  "bundledWebRuntime": false,
-  "server": {
-    "androidScheme": "https",
-    "cleartext": true,
-    "allowNavigation": [
-      "aqra-app.serveftp.com",
-      "api.alquran.cloud",
-      "everyayah.com"
-    ]
-  },
-  "plugins": {
-    "CapacitorHttp": {
-      "enabled": true
+    "appId": "com.aqra.app",
+    "appName": "Aqra",
+    "webDir": "public",
+    "bundledWebRuntime": false,
+    "server": {
+        "androidScheme": "http", 
+        "cleartext": true,
+        "allowNavigation": [
+            "aqraapp.com",
+            "api.alquran.cloud",
+            "everyayah.com",
+            "*.radiojar.com",
+            "*.qurango.net"
+        ]
+    },
+    "plugins": {
+        "CapacitorHttp": {
+            "enabled": true
+        },
+       "SplashScreen": {
+            "launchShowDuration": 3000,
+            "launchAutoHide": true,
+            "backgroundColor": "#FFFFFF", 
+            "androidSplashResourceName": "splash",
+            "androidScaleType": "CENTER_CROP",
+            "showSpinner": false,
+            "splashFullScreen": true,
+            "splashImmersive": true
+        }
     }
-    ,
-     "SplashScreen": {
-      "launchShowDuration": 3000,
-      "launchAutoHide": true,
-      "backgroundColor": "#1e5f31",
-      "androidSplashResourceName": "splash",
-      "androidScaleType": "CENTER_CROP",
-      "showSpinner": false,
-      "splashFullScreen": true,
-      "splashImmersive": true
-    }
-    
-  }
 }

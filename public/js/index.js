@@ -15,7 +15,7 @@ import { login, logout, signup, verifyOTP, updateSettings, forgotPassword, reset
 import { 
   loadSurahs, startSurahReading, manageKhatmah, createKhatmah, updateKhatmahProgress,
   checkRecitation, loadReciters, loadPrayers, loadBookmarks, loadQuranPage,
-  toggleBookmark, deleteBookmark, deleteKhatmah, initSearch, initBookmarksSearch,scheduleFridayKahfNotification,scheduleDuhaNotification,
+  toggleBookmark, deleteBookmark, deleteKhatmah, initSearch, initBookmarksSearch,scheduleFridayKahfNotification,scheduleDuhaNotification,scheduleAllPrayers,
   shareAyah,
 } from './features';
 import './insights';
@@ -1964,15 +1964,22 @@ const initNativeFeatures = async () => {
       }
     });
 
-    const notifs = await LocalNotifications.requestPermissions();
+   const notifs = await LocalNotifications.requestPermissions();
     if (notifs.display === 'granted') {
       await LocalNotifications.createChannel({ id: 'azan-channel', name: 'تنبيهات الصلاة', importance: 5, sound: 'azan_short.mp3', visibility: 1, vibration: true });
       await LocalNotifications.createChannel({ id: 'khatmah-channel', name: 'تنبيهات الورد', importance: 4, visibility: 1, vibration: true });
       
-      // ✅ الحفاظ على تنبيه سورة الكهف
+      // ✅ الحفاظ على تنبيه سورة الكهف وصلاة الضحى
       await scheduleFridayKahfNotification();
-        await scheduleDuhaNotification();
-     console.log('✅ [NOTIFICATIONS] تم جدولة تنبيهات سورة الكهف وصلاة الضحى بنجاح');
+      await scheduleDuhaNotification();
+      const savedPrayers = await localforage.getItem('offline_prayers');
+      if (savedPrayers && savedPrayers.timings) {
+          await scheduleAllPrayers(savedPrayers.timings);
+      } else {
+          console.log('⚠️ [PRAYERS] لا توجد مواقيت محفوظة، سيتم الجدولة عند فتح صفحة الصلاة');
+      }
+
+      console.log('✅ [NOTIFICATIONS] تم جدولة تنبيهات الكهف والضحى والصلوات بنجاح');
     }
     try { await Geolocation.requestPermissions(); } catch (e) { console.log('Geo permission:', e); }
   } catch (err) { console.error('Native Init Error:', err); }
