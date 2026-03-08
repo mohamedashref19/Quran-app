@@ -1736,11 +1736,15 @@ async function renderReciters(recitersList, container) {
             <h5 class="card-title fw-bold text-dark mb-1">${displayName}</h5>
             <p class="small text-muted mb-3">رواية حفص عن عاصم</p>
 
-            <div class="form-group mb-3">
+            <div class="form-group mb-2">
               <select class="form-select surah-select" style="font-family: 'Amiri'; border-radius: 10px;" data-server="${serverUrl}">${optionsHTML}</select>
             </div>
 
-            <audio controls class="w-100 mt-2 quran-player" preload="metadata"
+            <div class="audio-loading-indicator d-none text-success small fw-bold mb-1" style="transition: opacity 0.3s;">
+              <i class="fas fa-circle-notch fa-spin me-1"></i> جاري التحميل...
+            </div>
+
+            <audio controls class="w-100 mt-1 quran-player" preload="metadata"
               src="${audioSrc}"  
               data-url="${defaultUrl}"
               data-reciter="${displayName}"
@@ -1748,7 +1752,7 @@ async function renderReciters(recitersList, container) {
             </audio>
 
             <button class="btn btn-sm mt-2 download-audio-btn w-100 ${isDefaultCached ? 'btn-outline-success' : 'btn-outline-secondary'}"
-              style="border-radius: 10px;"
+              style="border-radius: 10px; transition: all 0.3s;"
               onclick="window.downloadAudioOffline('${defaultUrl}', this)">
               ${isDefaultCached
                 ? '<i class="fas fa-check-circle text-success"></i> محفوظة أوفلاين ✓'
@@ -1770,8 +1774,11 @@ async function renderReciters(recitersList, container) {
       const newUrl = `${this.dataset.server}/${paddedSurah}.mp3`;
       const audioPlayer = cardBody.querySelector('audio');
       const downloadBtn = cardBody.querySelector('.download-audio-btn');
+      const loadingIndicator = cardBody.querySelector('.audio-loading-indicator');
 
       if (audioPlayer) {
+        // إظهار التحميل فوراً عند تغيير السورة من القائمة
+        loadingIndicator.classList.remove('d-none');
         audioPlayer.dataset.url = newUrl;
         audioPlayer.src = newUrl;
       }
@@ -1781,7 +1788,6 @@ async function renderReciters(recitersList, container) {
         if (isCached) {
           downloadBtn.innerHTML = '<i class="fas fa-check-circle text-success"></i> محفوظة أوفلاين ✓';
           downloadBtn.className = 'btn btn-sm mt-2 download-audio-btn w-100 btn-outline-success';
-          downloadBtn.style.borderRadius = '10px';
           
           try {
             const cache = await caches.open('quran-audio-cache-v1');
@@ -1795,7 +1801,6 @@ async function renderReciters(recitersList, container) {
         } else {
           downloadBtn.innerHTML = '<i class="fas fa-download me-1"></i> حفظ للاستماع أوفلاين';
           downloadBtn.className = 'btn btn-sm mt-2 download-audio-btn w-100 btn-outline-secondary';
-          downloadBtn.style.borderRadius = '10px';
         }
         downloadBtn.disabled = false;
         downloadBtn.setAttribute('onclick', `window.downloadAudioOffline('${newUrl}', this)`);
@@ -1804,6 +1809,29 @@ async function renderReciters(recitersList, container) {
   });
 
   document.querySelectorAll('.quran-player').forEach(player => {
+    const cardBody = player.closest('.card-body');
+    const loadingIndicator = cardBody.querySelector('.audio-loading-indicator');
+
+    player.addEventListener('loadstart', () => loadingIndicator.classList.remove('d-none'));
+    player.addEventListener('waiting',   () => loadingIndicator.classList.remove('d-none')); 
+    player.addEventListener('playing',   () => loadingIndicator.classList.add('d-none'));
+    player.addEventListener('canplay',   () => loadingIndicator.classList.add('d-none')); 
+    player.addEventListener('pause',     () => loadingIndicator.classList.add('d-none'));
+    player.addEventListener('error',     () => {
+        loadingIndicator.classList.add('d-none');
+        
+        if (navigator.onLine && player.offsetParent !== null) {
+            Swal.fire({ 
+              toast: true, 
+              position: 'top', 
+              icon: 'error', 
+              title: 'عذراً، فشل تحميل المقطع الصوتي', 
+              showConfirmButton: false, 
+              timer: 3000 
+            });
+        }
+    });
+
     player.addEventListener('play', function(e) {
       // إيقاف باقي المشغلات
       document.querySelectorAll('audio').forEach(a => { if (a !== this) a.pause(); });
@@ -1811,11 +1839,10 @@ async function renderReciters(recitersList, container) {
       if (!navigator.onLine && !this.src.startsWith('blob:')) {
         e.preventDefault();
         this.pause();
+        loadingIndicator.classList.add('d-none'); // إخفاء التحميل لو مفيش نت
         
-        const cardBody = this.closest('.card-body');
         const select = cardBody?.querySelector('.surah-select');
         const surahName = select ? select.options[select.selectedIndex]?.text.replace(/^\d+\.\s*/, '') : '';
-        
         showOfflineAudioMessage(surahName || this.dataset.reciter);
       }
     });
@@ -1838,14 +1865,19 @@ export const scheduleAllPrayers = async (prayerTimes) => {
       const isAM      = cleanTime.toUpperCase().includes('AM');
       const parts     = cleanTime.split(' ')[0].split(':');
       if (parts.length < 2) return;
+      
       let hours   = parseInt(parts[0], 10);
       let minutes = parseInt(parts[1], 10);
       if (isNaN(hours) || isNaN(minutes)) return;
+      
       if (isPM && hours !== 12) hours += 12;
       if (isAM && hours === 12) hours  = 0;
+      
       const nowRef     = new Date();
       const prayerDate = new Date(nowRef.getFullYear(), nowRef.getMonth(), nowRef.getDate(), hours, minutes, 0, 0);
+      
       if (prayerDate <= nowRef) prayerDate.setDate(prayerDate.getDate() + 1);
+      
       notifications.push({
         title: `حان موعد صلاة ${prayerNamesAr[key]} 🕌`,
         body: `أرحنا بها يا بلال.. حان وقت صلاة ${prayerNamesAr[key]}`,
@@ -1856,12 +1888,17 @@ export const scheduleAllPrayers = async (prayerTimes) => {
         sound: 'azan_short.mp3',
         actionTypeId: 'OPEN_PRAYERS',
       });
+
+      console.log(`⏰ تم جدولة ${prayerNamesAr[key]} على الساعة: ${prayerDate.toLocaleTimeString('ar-EG')}`);
     });
 
     if (notifications.length > 0) {
       await LocalNotifications.schedule({ notifications });
+      console.log('✅ [PRAYERS] تم جدولة جميع الصلوات الخمس بنجاح!');
     }
-  } catch (error) { console.error('❌ خطأ في جدولة إشعارات الصلاة:', error); }
+  } catch (error) { 
+      console.error('❌ خطأ في جدولة إشعارات الصلاة:', error); 
+  }
 };
 
 export function loadPrayers() {
@@ -1953,6 +1990,7 @@ export function loadPrayers() {
               await scheduleAllPrayers(timings);
               await localforage.setItem('prayers_last_scheduled', today);
           }
+         
         }
       } catch (err) {
         console.error('فشل جلب مواقيت الصلاة:', err);
