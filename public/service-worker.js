@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aqra-cache-v18';
+const CACHE_NAME = 'aqra-cache-v19';
 
 const ASSETS_TO_CACHE = [
   '/',                
@@ -50,8 +50,10 @@ self.addEventListener('fetch', (event) => {
     requestUrl.pathname.startsWith('/api/') ||
     requestUrl.pathname.endsWith('.mp3') ||
     requestUrl.pathname.endsWith('.mp4') ||
+    requestUrl.hostname.includes('radiojar.com') || 
+    requestUrl.hostname.includes('qurango.net') ||  
     event.request.method !== 'GET'
-  ) {
+  ){
     return;
   }
 

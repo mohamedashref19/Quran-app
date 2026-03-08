@@ -96,7 +96,11 @@ app.use(
           "https://*.mp3quran.net",
           "https://everyayah.com",        
           "https://archive.org",          
-          "https://*.archive.org"
+          "https://*.archive.org",
+          "https://stream.radiojar.com",
+          "https://*.radiojar.com",
+          "https://qurango.net",
+          "https://*.qurango.net"
         ], 
         
         connectSrc: [
