@@ -1554,14 +1554,12 @@ export async function loadReciters() {
       return;
     }
 
-    // ─── أونلاين: جلب من API ───────────────────────────────────────────────────
     const res = await axios.get('/api/v1/audio/reciters');
     const container = document.getElementById('reciters-container');
     if (!container) return;
 
     const recitersList = res.data.data.reciters || [];
 
-    // 🌟 إضافة الشيخ عبد الرحمن الزواوي يدوياً إلى القائمة القادمة من الـ API
     recitersList.push({
       name: "Abdelrahman Elzwawy",
       server: "https://archive.org/download/Abdelrahman-Elzwawy-Quran-App-2026" 
@@ -1572,7 +1570,6 @@ export async function loadReciters() {
       return;
     }
 
-    // حفظ بيانات القراء (بما فيهم الزواوي) للاستخدام أوفلاين لاحقاً
     await localforage.setItem('cached_reciters', recitersList);
 
     container.innerHTML = '';
@@ -1584,7 +1581,6 @@ export async function loadReciters() {
         </button>
       </div>`);
 
-    // إضافة الدالة لـ window عشان تشتغل من الـ HTML
     if (!window.showRecitersTip) {
         window.showRecitersTip = function() {
             Swal.fire({
