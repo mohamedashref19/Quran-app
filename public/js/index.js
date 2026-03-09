@@ -2910,6 +2910,8 @@ window.renderAsbabAlNuzul = function() {
         }
     }
     container.innerHTML = html;
+    if (window.renderProphets) window.renderProphets();
+    if (window.renderSahaba) window.renderSahaba();
 };
 
 // 1. دالة البحث الرئيسية الذكية (تبحث في أسماء السور وفي عمق الآيات)
@@ -2987,11 +2989,16 @@ window.openSurahDetails = function(surahNum) {
         }
     }
 
-    document.getElementById('surah-details-title').innerText = `سورة ${surahName}`;
+   const titleEl = document.getElementById('surah-details-title');
+    titleEl.innerText = `سورة ${surahName}`;
+    titleEl.className = 'h4 mb-0 fw-bold text-success w-100'; 
     
     // تفريغ حقل البحث الداخلي عند فتح سورة جديدة
     const innerSearchInput = document.getElementById('inner-surah-search');
-    if (innerSearchInput) innerSearchInput.value = '';
+    if (innerSearchInput) {
+        innerSearchInput.value = '';
+        innerSearchInput.parentElement.style.display = 'flex'; // لإظهاره مجدداً
+    }
 
     let contentHtml = '';
 
@@ -3026,6 +3033,130 @@ window.openSurahDetails = function(surahNum) {
         });
         contentHtml += `</div>`;
     }
+
+    document.getElementById('surah-details-content').innerHTML = contentHtml;
+    
+    window.showSection('surah-details');
+    setTimeout(() => { window.scrollTo(0, 0); }, 50);
+};
+
+// === 1. دالة عرض كروت الأنبياء ===
+window.renderProphets = function() {
+    const container = document.getElementById('prophets-pane');
+    if (!container) return;
+
+    const prophets = window.quranInsights?.prophets || [];
+    if (prophets.length === 0) return;
+
+    let html = '<div class="row g-3">';
+    prophets.forEach((prophet, index) => {
+        html += `
+        <div class="col-6 col-md-4 col-lg-3 story-card-item">
+            <div class="card shadow-sm border-0 h-100 text-center hover-shadow" style="cursor: pointer; border-bottom: 4px solid #ffc107; border-radius: 12px; transition: transform 0.2s;" onclick="openPersonDetails('prophet', ${index})">
+                <div class="card-body p-3 d-flex flex-column align-items-center justify-content-center">
+                    <div class="text-warning mb-2 fw-bold" style="font-size: 1.5rem;"><i class="fas fa-star-and-crescent"></i></div>
+                    <h6 class="fw-bold text-dark mb-1" style="font-family: 'Amiri Quran', serif; font-size: 1.1rem;">${prophet.name}</h6>
+                    <span class="badge bg-light text-secondary border rounded-pill px-2 py-1 mt-2">${prophet.title}</span>
+                </div>
+            </div>
+        </div>
+        `;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+};
+
+// === 2. دالة عرض كروت الصحابة ===
+window.renderSahaba = function() {
+    const container = document.getElementById('sahaba-pane');
+    if (!container) return;
+
+    const sahaba = window.quranInsights?.sahaba || [];
+    if (sahaba.length === 0) return;
+
+    // 💡 تجميع الصحابة حسب الـ category_tag أو category
+    const groupedSahaba = {};
+    sahaba.forEach((person, index) => {
+        const tag = person.category_tag || person.category || "صحابة أجلاء";
+        if (!groupedSahaba[tag]) {
+            groupedSahaba[tag] = [];
+        }
+        // نحتفظ بالـ index الأصلي لكي تفتح القصة الصحيحة عند الضغط
+        groupedSahaba[tag].push({ ...person, originalIndex: index });
+    });
+
+    let html = '';
+    
+    // بناء الواجهة لكل مجموعة
+    for (const [tag, group] of Object.entries(groupedSahaba)) {
+        // إضافة عنوان التصنيف (مثال: الخلفاء الراشدون)
+        html += `
+        <div class="col-12 mt-4 mb-3 inner-story-item">
+            <h5 class="fw-bold text-success border-bottom border-success pb-2" style="font-family: 'Amiri Quran', serif;">
+                <i class="fas fa-layer-group me-2 opacity-75"></i> ${tag}
+            </h5>
+        </div>
+        <div class="row g-3 mb-4">
+        `;
+
+        // إضافة كروت الصحابة داخل هذا التصنيف
+        group.forEach((person) => {
+            html += `
+            <div class="col-6 col-md-4 col-lg-3 story-card-item">
+                <div class="card shadow-sm border-0 h-100 text-center hover-shadow" style="cursor: pointer; border-bottom: 4px solid #198754; border-radius: 12px; transition: transform 0.2s;" onclick="openPersonDetails('sahabi', ${person.originalIndex})">
+                    <div class="card-body p-3 d-flex flex-column align-items-center justify-content-center">
+                        <div class="text-success mb-2 fw-bold" style="font-size: 1.5rem;"><i class="fas fa-user-check"></i></div>
+                        <h6 class="fw-bold text-dark mb-1" style="font-family: 'Amiri Quran', serif; font-size: 1.1rem;">${person.name}</h6>
+                        <span class="badge bg-light text-secondary border rounded-pill px-2 py-1 mt-2 text-wrap lh-base" style="font-size: 0.75rem;">${person.title}</span>
+                    </div>
+                </div>
+            </div>
+            `;
+        });
+        
+        html += `</div>`; // إغلاق صف الـ row للمجموعة
+    }
+
+    container.innerHTML = html;
+};
+
+// === 3. دالة فتح تفاصيل القصة (للنبي أو الصحابي) ===
+window.openPersonDetails = function(type, index) {
+    let data = type === 'prophet' ? window.quranInsights?.prophets?.[index] : window.quranInsights?.sahaba?.[index];
+    if (!data) return;
+
+    let icon = type === 'prophet' ? '<i class="fas fa-star-and-crescent me-2"></i>' : '<i class="fas fa-user-check me-2"></i>';
+    let colorClass = type === 'prophet' ? 'text-warning' : 'text-success';
+    let borderColor = type === 'prophet' ? 'warning' : 'success';
+    
+    // 💡 جلب التصنيف إن وُجد لعرضه أعلى القصة
+    let categoryTag = data.category_tag || data.category;
+    let categoryBadgeHtml = categoryTag ? `<span class="badge bg-secondary mb-3 shadow-sm"><i class="fas fa-bookmark me-1"></i> ${categoryTag}</span><br>` : '';
+
+    // تغيير عنوان الصفحة ولونها حسب نوع الشخصية
+    const titleEl = document.getElementById('surah-details-title');
+    titleEl.innerHTML = `${icon} ${data.name}`;
+    titleEl.className = `h4 mb-0 fw-bold ${colorClass} w-100`;
+    
+    // إخفاء شريط البحث الداخلي لأنه غير مطلوب هنا
+    const innerSearch = document.getElementById('inner-surah-search');
+    if(innerSearch) innerSearch.parentElement.style.display = 'none';
+
+    // حقن المحتوى (القصة والدروس)
+    let contentHtml = `
+    <div class="p-4 mb-4 bg-light rounded border-start border-${borderColor} border-4 shadow-sm inner-story-item text-center">
+        ${categoryBadgeHtml}
+        <span class="badge bg-${borderColor} ${type==='prophet'?'text-dark':''} fs-6 px-3 py-2 rounded-pill shadow-sm mb-4">${data.title}</span>
+        
+        <div class="text-start">
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="fas fa-book-open me-2 text-muted"></i> القصة والسيرة</h6>
+            <p class="text-muted lh-lg mb-4" style="font-size: 1.05rem; white-space: pre-wrap;">${data.story}</p>
+            
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="fas fa-lightbulb me-2 text-warning"></i> الدروس المستفادة</h6>
+            <p class="text-dark lh-lg mb-0" style="font-size: 0.95rem;">${data.lessons}</p>
+        </div>
+    </div>
+    `;
 
     document.getElementById('surah-details-content').innerHTML = contentHtml;
     

@@ -1577,6 +1577,30 @@ export async function loadReciters() {
 
     container.innerHTML = '';
     await renderReciters(recitersList, container);
+    container.insertAdjacentHTML('afterbegin', `
+      <div class="col-12 mb-3 text-end">
+        <button onclick="window.showRecitersTip()" class="btn btn-sm btn-outline-warning rounded-pill px-3 shadow-sm" style="font-family: 'Amiri', serif; font-weight: bold; border-color: #ffc107; color: #d39e00;">
+          <i class="fas fa-lightbulb me-1"></i> نصيحة هامة للاستماع
+        </button>
+      </div>`);
+
+    // إضافة الدالة لـ window عشان تشتغل من الـ HTML
+    if (!window.showRecitersTip) {
+        window.showRecitersTip = function() {
+            Swal.fire({
+                title: '<span style="color:#d39e00; font-family:\'Amiri\';"><i class="fas fa-lightbulb fa-lg mb-2"></i><br>نصيحة لاستقرار التلاوة</span>',
+                html: `
+                    <div style="font-family:'Amiri'; font-size: 1.1rem; line-height: 1.8; color: #555; text-align: center; direction: rtl;">
+                        لضمان عدم انقطاع الصوت أثناء الاستماع للسور الطويلة (مثل سورة البقرة)، يُفضل دائماً استخدام زر <br>
+                        <span class="badge bg-success mt-2 p-2 fs-6"><i class="fas fa-download me-1"></i> حفظ للاستماع أوفلاين</span>
+                    </div>
+                `,
+                confirmButtonText: 'حسناً، شكراً لك',
+                confirmButtonColor: '#198754',
+                customClass: { popup: 'rounded-4' }
+            });
+        };
+    }
 
   } catch (err) {
     console.error("Error loading reciters:", err);
@@ -1817,18 +1841,32 @@ async function renderReciters(recitersList, container) {
     player.addEventListener('playing',   () => loadingIndicator.classList.add('d-none'));
     player.addEventListener('canplay',   () => loadingIndicator.classList.add('d-none')); 
     player.addEventListener('pause',     () => loadingIndicator.classList.add('d-none'));
-    player.addEventListener('error',     () => {
+    player.addEventListener('error', () => {
         loadingIndicator.classList.add('d-none');
         
         if (navigator.onLine && player.offsetParent !== null) {
-            Swal.fire({ 
-              toast: true, 
-              position: 'top', 
-              icon: 'error', 
-              title: 'عذراً، فشل تحميل المقطع الصوتي', 
-              showConfirmButton: false, 
-              timer: 3000 
-            });
+            if (player.currentTime > 0 && !player.src.startsWith('blob:')) {
+                const savedTime = player.currentTime; 
+                const originalUrl = player.dataset.url; 
+                
+                player.src = originalUrl + '?retry=' + Date.now();
+                player.load();
+                
+                player.onloadedmetadata = () => {
+                    player.currentTime = savedTime;
+                    player.play().catch(e => console.warn('Auto-resume failed', e));
+                    player.onloadedmetadata = null; // مسح الحدث عشان ميتكررش
+                };
+            } else {
+                Swal.fire({ 
+                  toast: true, 
+                  position: 'top', 
+                  icon: 'error', 
+                  title: 'عذراً، انقطع الاتصال بالسيرفر', 
+                  showConfirmButton: false, 
+                  timer: 3000 
+                });
+            }
         }
     });
 
