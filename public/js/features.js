@@ -4,6 +4,7 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import {  Capacitor } from '@capacitor/core';
+import { StatusBar } from '@capacitor/status-bar';
 import axios from 'axios';
 import { showAlert } from './auth';
 import { surahNames, surahStartPages, juzData, getJuzByPage, getHizbByPage, getSurahNameByPage ,SAJDAH_WORDS_COUNT, SAJDAH_WORDS, SAJDAH_AYAH_END, UTHMANI_FIXES} from './constants';
@@ -579,19 +580,27 @@ export async function loadQuranPage(pageNumber, targetSurah = null, targetAyah =
     if (!container) return;
     container.innerHTML = '';
 
-    let fullTextHTML = '<div class="quran-page-content" style="text-align: justify; text-align-last: center; line-height: 2.4; font-family: \'Amiri Quran\', \'Amiri\', serif; font-size: 28px; direction: rtl;">';
-    
+    let fullTextHTML = '<div class="quran-page-content" style="direction: rtl;">';
+    let currentSurahName = 'سورة ...'; // عرفنا المتغير بره عشان يكون متاح للكل
+
     if (ayahs.length > 0) {
       const firstAyah = ayahs[0];
-      let sNameAr = firstAyah.surahNameAr || (firstAyah.surah && firstAyah.surah.name) || '...';
-      if (sNameAr.startsWith("سُورَةُ ")) sNameAr = sNameAr.replace("سُورَةُ ", "سورة ");
-      document.title = `${sNameAr} - صفحة ${pageNum}`;
+      currentSurahName = firstAyah.surahNameAr || (firstAyah.surah && firstAyah.surah.name) || '...';
+      if (currentSurahName.startsWith("سُورَةُ ")) currentSurahName = currentSurahName.replace("سُورَةُ ", "سورة ");
+      document.title = `${currentSurahName} - صفحة ${pageNum}`;
       const titleElem = document.getElementById('surah-name');
-      if (titleElem) titleElem.innerText = sNameAr;
+      if (titleElem) titleElem.innerText = currentSurahName;
     }
 
     const juzNum    = getJuzByPage(pageNum);
     const hizbNum   = getHizbByPage(pageNum);
+    
+    // 🌟 تحديث بيانات ترويسة المصحف (الشاشة الكاملة) 🌟
+    const mhSurah = document.getElementById('mh-surah');
+    const mhJuz = document.getElementById('mh-juz');
+    if (mhSurah) mhSurah.innerText = currentSurahName;
+    if (mhJuz) mhJuz.innerText = `الجزء ${juzNum}`;
+
     const juzInfoEl = document.getElementById('quran-juz-info');
     if (juzInfoEl) {
       juzInfoEl.innerHTML = `
@@ -632,11 +641,26 @@ export async function loadQuranPage(pageNumber, targetSurah = null, targetAyah =
 
       ayahText = ayahText.replace(/۩/g, '').trim();
 
-      const sajdahWord = SAJDAH_WORDS[sajdahKey];
-      if (sajdahWord) {
-        const regex = new RegExp(`(${sajdahWord})`, 'g');
-        ayahText = ayahText.replace(regex, `<span class="sajdah-word" style="border-top: 2px solid #198754; padding-top: 2px;">$1</span>`);
-      }
+  const sajdahWord = SAJDAH_WORDS[sajdahKey];
+if (sajdahWord) {
+  const diacritics = /[\u064B-\u065F\u0670\u06D6-\u06ED]/g;
+  const strippedWord = sajdahWord.replace(diacritics, '');
+  const flexiblePattern = strippedWord
+    .split('')
+    .map(char => {
+      if (['ا','أ','إ','آ','ء','ؤ','ئ','ـٔ','ٱ'].includes(char)) return '[اأإآءؤئـٔٱ]';
+      if (['ي','ى','ۦ'].includes(char)) return '[يىۦ]';
+      if (['و','ۥ'].includes(char)) return '[وۥ]';
+      return char;
+    })
+    .join('[\u064B-\u065F\u0670\u06D6-\u06ED]*');
+  try {
+    const regex = new RegExp(`(^|\\s)(${flexiblePattern}[\u064B-\u065F\u0670\u06D6-\u06ED]*)(?=\\s|$)`, 'g');
+    ayahText = ayahText.replace(regex, `$1<span class="sajdah-word" style="text-decoration: overline; text-decoration-color: #198754; text-decoration-thickness: 2px;">$2</span>`);
+  } catch(e) {
+    console.warn('[SAJDAH] regex error:', sajdahKey, e);
+  }
+}
 
       const hasSajdahSymbol = SAJDAH_AYAH_END.includes(sajdahKey);
       const sajdahSymbolHTML = hasSajdahSymbol ? ' <span class="sajdah-icon text-success ms-1 fs-5" title="موضع سجود">۩</span>' : '';
@@ -684,6 +708,10 @@ export async function loadQuranPage(pageNumber, targetSurah = null, targetAyah =
     
     // رسم الآيات في الشاشة أولاً
     container.innerHTML = fullTextHTML;
+    // 🌟 إرجاع السكرول لأعلى الصفحة فوراً عند التقليب 🌟
+    window.scrollTo({ top: 0, behavior: 'instant' }); // للوضع العادي
+    const quranBookView = document.getElementById('quran-book');
+    if (quranBookView) quranBookView.scrollTop = 0; // لوضع الشاشة الكاملة
 
     const duaBtnContainer = document.getElementById('khatmah-dua-btn-container');
     if (duaBtnContainer) {
@@ -781,12 +809,58 @@ export async function loadSurahs() {
 // ─── toggleBookmark 
 
 export async function toggleBookmark(surah, ayah, iconElement) {
-    if (!isUserLoggedIn()) {
+  if (!isUserLoggedIn()) {
     requireLogin('حفظ العلامات المرجعية في المصحف الشريف');
     return;
   }
   const isCurrentlyBookmarked = iconElement.classList.contains('fas');
 
+  let userNote = "";
+
+  // 🔥 التعديل هنا: نسأل عن الملاحظة الأول (أونلاين أو أوفلاين) طالما إحنا بنضيف علامة جديدة 🔥
+  if (!isCurrentlyBookmarked) {
+    const { value: note, isConfirmed } = await Swal.fire({
+      title: '🔖 حفظ علامة مرجعية',
+      html: `
+        <p class="text-muted small mb-3">يمكنك إضافة ملاحظة لهذه العلامة (اختياري)</p>
+        <textarea
+          id="swal-bookmark-note"
+          class="swal2-textarea"
+          placeholder="اكتب ملاحظتك هنا... (مثال: راجع هذه الآية للتدبر)"
+          rows="3"
+          maxlength="300"
+          style="width:100%;font-family:'Amiri',serif;font-size:1rem;direction:rtl;text-align:right;resize:none;border:1px solid #dee2e6;border-radius:8px;padding:10px;outline:none;"
+        ></textarea>
+        <div class="text-muted small text-start mt-1" id="swal-note-counter">0 / 300</div>
+      `,
+      confirmButtonText: 'حفظ العلامة 🔖',
+      cancelButtonText: 'إلغاء',
+      showCancelButton: true,
+      confirmButtonColor: '#198754',
+      cancelButtonColor: '#6c757d',
+      focusConfirm: false,
+      didOpen: () => {
+        const textarea = document.getElementById('swal-bookmark-note');
+        const counter  = document.getElementById('swal-note-counter');
+        if (textarea && counter) {
+          textarea.addEventListener('input', () => { counter.textContent = `${textarea.value.length} / 300`; });
+          textarea.focus();
+        }
+      },
+      preConfirm: () => {
+        const textarea = document.getElementById('swal-bookmark-note');
+        return textarea ? textarea.value.trim() : '';
+      }
+    });
+
+    // لو المستخدم ضغط إلغاء، نوقف العملية
+    if (!isConfirmed) return;
+    
+    // حفظ الملاحظة اللي المستخدم كتبها
+    userNote = note || "";
+  }
+
+  // 📴 1. حالة الأوفلاين 📴
   if (!navigator.onLine) {
     if (isCurrentlyBookmarked) {
       await addToOfflineQueue('DELETE_BOOKMARK', { surah, ayah });
@@ -799,11 +873,18 @@ export async function toggleBookmark(surah, ayah, iconElement) {
       iconElement.classList.replace('fas', 'far');
       iconElement.style.color = '#ccc';
     } else {
-      await addToOfflineQueue('ADD_BOOKMARK', { surahNumber: surah, ayahNumber: ayah });
+      // 🔥 دمج الملاحظة مع طابور الأوفلاين والمحفوظات المحلية 🔥
+      await addToOfflineQueue('ADD_BOOKMARK', { surahNumber: surah, ayahNumber: ayah, note: userNote });
       let offlineBookmarks = await localforage.getItem('offline_bookmarks') || [];
       const ayahEl = document.getElementById(`ayah-${surah}-${ayah}`);
       const ayahText = ayahEl ? ayahEl.textContent.trim() : '';
-      offlineBookmarks.push({ surah, ayah, surahName: surahNames[parseInt(surah) - 1] || '', ayahText });
+      offlineBookmarks.push({ 
+        surah, 
+        ayah, 
+        surahName: surahNames[parseInt(surah) - 1] || '', 
+        ayahText,
+        note: userNote // حفظ الملاحظة في الكاش
+      });
       await localforage.setItem('offline_bookmarks', offlineBookmarks);
       invalidateBookmarksCache();
       iconElement.classList.replace('far', 'fas');
@@ -820,6 +901,7 @@ export async function toggleBookmark(surah, ayah, iconElement) {
     return;
   }
 
+  // 🌐 2. حالة الأونلاين 🌐
   try {
     if (isCurrentlyBookmarked) {
       const res = await axios.post('/api/v1/bookmarks', { surahNumber: surah, ayahNumber: ayah });
@@ -835,44 +917,8 @@ export async function toggleBookmark(surah, ayah, iconElement) {
         showAlert('success', 'تم إزالة العلامة المرجعية');
       }
     } else {
-      const { value: note, isConfirmed } = await Swal.fire({
-        title: '🔖 حفظ علامة مرجعية',
-        html: `
-          <p class="text-muted small mb-3">يمكنك إضافة ملاحظة لهذه العلامة (اختياري)</p>
-          <textarea
-            id="swal-bookmark-note"
-            class="swal2-textarea"
-            placeholder="اكتب ملاحظتك هنا... (مثال: راجع هذه الآية للتدبر)"
-            rows="3"
-            maxlength="300"
-            style="width:100%;font-family:'Amiri',serif;font-size:1rem;direction:rtl;text-align:right;resize:none;border:1px solid #dee2e6;border-radius:8px;padding:10px;outline:none;"
-          ></textarea>
-          <div class="text-muted small text-start mt-1" id="swal-note-counter">0 / 300</div>
-        `,
-        confirmButtonText: 'حفظ العلامة 🔖',
-        cancelButtonText: 'إلغاء',
-        showCancelButton: true,
-        confirmButtonColor: '#198754',
-        cancelButtonColor: '#6c757d',
-        focusConfirm: false,
-        didOpen: () => {
-          const textarea = document.getElementById('swal-bookmark-note');
-          const counter  = document.getElementById('swal-note-counter');
-          if (textarea && counter) {
-            textarea.addEventListener('input', () => { counter.textContent = `${textarea.value.length} / 300`; });
-            textarea.focus();
-          }
-        },
-        preConfirm: () => {
-          const textarea = document.getElementById('swal-bookmark-note');
-          return textarea ? textarea.value.trim() : '';
-        }
-      });
-
-      if (!isConfirmed) return;
-
       const payload = { surahNumber: surah, ayahNumber: ayah };
-      if (note) payload.note = note;
+      if (userNote) payload.note = userNote; // إرسال الملاحظة للباك إند
 
       const res = await axios.post('/api/v1/bookmarks', payload);
       if (res.data.message === 'added') {
@@ -886,16 +932,17 @@ export async function toggleBookmark(surah, ayah, iconElement) {
           ayah,
           surahName: surahNames[parseInt(surah) - 1] || '',
           ayahText: ayahTextOnline,
-          note: note || ''
+          note: userNote || ''
         });
         await localforage.setItem('offline_bookmarks', offlineBookmarks);
         invalidateBookmarksCache();
-        const msg = note ? 'تم حفظ العلامة مع ملاحظتك 🔖✨' : 'تم حفظ العلامة المرجعية 🔖';
+        const msg = userNote ? 'تم حفظ العلامة مع ملاحظتك 🔖✨' : 'تم حفظ العلامة المرجعية 🔖';
         showAlert('success', msg);
       }
     }
   } catch (err) {
     console.error("Bookmark Error:", err);
+    // لو النت فصل أثناء الطلب (Network Error)، نحولها لعملية أوفلاين مع الملاحظة
     if (!navigator.onLine || err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
       if (isCurrentlyBookmarked) {
         await addToOfflineQueue('DELETE_BOOKMARK', { surah, ayah });
@@ -907,11 +954,18 @@ export async function toggleBookmark(surah, ayah, iconElement) {
         iconElement.classList.replace('fas', 'far');
         iconElement.style.color = '#ccc';
       } else {
-        await addToOfflineQueue('ADD_BOOKMARK', { surahNumber: surah, ayahNumber: ayah });
+        // 🔥 إضافة الملاحظة في حالة خطأ الاتصال 🔥
+        await addToOfflineQueue('ADD_BOOKMARK', { surahNumber: surah, ayahNumber: ayah, note: userNote });
         let offlineBookmarks = await localforage.getItem('offline_bookmarks') || [];
         const ayahElCatch = document.getElementById(`ayah-${surah}-${ayah}`);
         const ayahTextCatch = ayahElCatch ? ayahElCatch.textContent.trim() : '';
-        offlineBookmarks.push({ surah, ayah, surahName: surahNames[parseInt(surah) - 1] || '', ayahText: ayahTextCatch });
+        offlineBookmarks.push({ 
+          surah, 
+          ayah, 
+          surahName: surahNames[parseInt(surah) - 1] || '', 
+          ayahText: ayahTextCatch,
+          note: userNote 
+        });
         await localforage.setItem('offline_bookmarks', offlineBookmarks);
         iconElement.classList.replace('far', 'fas');
         iconElement.style.color = '#d4af37';
@@ -1088,6 +1142,13 @@ export async function updateKhatmahProgress(surah, ayah) {
       });
     } else if (err.response && err.response.status === 401) {
       requireLogin('تتبع الختمة وحفظ التقدم');
+    } else if (err.response && err.response.status === 404) {
+      // 🔥 التعديل الجديد: معالجة حالة 404 (لا توجد ختمة) 🔥
+      if (typeof window.showAlert === 'function') {
+        window.showAlert('info', 'ليس لديك ختمة نشطة حالياً. يمكنك البدء بإنشاء ختمة جديدة من قسم "ختمتي" 📖');
+      } else {
+        alert('ليس لديك ختمة نشطة حالياً. يرجى إنشاء ختمة أولاً.');
+      }
     } else {
       showAlert('error', 'حدث خطأ، يرجى المحاولة مرة أخرى.');
     }
@@ -1764,12 +1825,12 @@ async function renderReciters(recitersList, container) {
               <i class="fas fa-circle-notch fa-spin me-1"></i> جاري التحميل...
             </div>
 
-            <audio controls class="w-100 mt-1 quran-player" preload="metadata"
-              src="${audioSrc}"  
-              data-url="${defaultUrl}"
-              data-reciter="${displayName}"
-              style="border-radius: 30px;">
-            </audio>
+            <audio controls class="w-100 mt-1 quran-player" preload="none" crossorigin="anonymous"
+  src="${audioSrc}"  
+  data-url="${defaultUrl}"
+  data-reciter="${displayName}"
+  style="border-radius: 30px;">
+</audio>
 
             <button class="btn btn-sm mt-2 download-audio-btn w-100 ${isDefaultCached ? 'btn-outline-success' : 'btn-outline-secondary'}"
               style="border-radius: 10px; transition: all 0.3s;"
@@ -1797,11 +1858,26 @@ async function renderReciters(recitersList, container) {
       const loadingIndicator = cardBody.querySelector('.audio-loading-indicator');
 
       if (audioPlayer) {
-        // إظهار التحميل فوراً عند تغيير السورة من القائمة
-        loadingIndicator.classList.remove('d-none');
-        audioPlayer.dataset.url = newUrl;
-        audioPlayer.src = newUrl;
-      }
+  // 1. إظهار التحميل
+  loadingIndicator.classList.remove('d-none');
+  
+  // 2. تنظيف عميق لمنع التهنيج والتداخل
+  audioPlayer.pause();
+  audioPlayer.src = '';
+  audioPlayer.load();
+
+  // 3. تجهيز الرابط الجديد
+  audioPlayer.dataset.url = newUrl;
+  
+  // 4. إجبار البافر لو الرابط من أرشيف
+  if (newUrl.includes('archive.org')) {
+    audioPlayer.preload = 'auto';
+  }
+  
+  // 5. التشغيل
+  audioPlayer.src = newUrl;
+  audioPlayer.load();
+}
 
       const isCached = await isAudioCached(newUrl);
       if (downloadBtn) {
@@ -1916,14 +1992,19 @@ export const scheduleAllPrayers = async (prayerTimes) => {
         title: `حان موعد صلاة ${prayerNamesAr[key]} 🕌`,
         body: `أرحنا بها يا بلال.. حان وقت صلاة ${prayerNamesAr[key]}`,
         id: prayerIds[key],
-        schedule: { at: prayerDate, allowWhileIdle: true },
+        // 🔥 التعديل السحري هنا: إضافة every: 'day' عشان الإشعار يشتغل يومياً حتى بدون نت 🔥
+        schedule: { 
+            at: prayerDate, 
+            every: 'day', 
+            allowWhileIdle: true 
+        },
         channelId: 'azan-channel',
         smallIcon: 'ic_notification',
         sound: 'azan_short.mp3',
         actionTypeId: 'OPEN_PRAYERS',
       });
 
-      console.log(`⏰ تم جدولة ${prayerNamesAr[key]} على الساعة: ${prayerDate.toLocaleTimeString('ar-EG')}`);
+      console.log(`⏰ تم جدولة ${prayerNamesAr[key]} على الساعة: ${prayerDate.toLocaleTimeString('ar-EG')} (يومياً)`);
     });
 
     if (notifications.length > 0) {
@@ -1964,6 +2045,17 @@ export function loadPrayers() {
             </div>
           `);
         }
+        
+        // 🔥 التعديل الثاني: جدولة الإشعارات من المواقيت المحفوظة (الكاش) لو الموبايل أوفلاين 🔥
+        if (Capacitor.isNativePlatform()) {
+          const lastScheduled = await localforage.getItem('prayers_last_scheduled');
+          const today = new Date().toDateString();
+          if (lastScheduled !== today) {
+              await scheduleAllPrayers(cachedData.timings);
+              await localforage.setItem('prayers_last_scheduled', today);
+          }
+        }
+
         return true;
       }
     } catch (e) { console.warn("خطأ في جلب المواقيت من الكاش", e); }
@@ -2017,6 +2109,8 @@ export function loadPrayers() {
             </div>`);
         }
         await localforage.setItem('offline_prayers', { timings, hijri, cityName, savedAt: Date.now() });
+        
+        // الجدولة العادية لما يكون فيه نت
         if (Capacitor.isNativePlatform()) {
           const lastScheduled = await localforage.getItem('prayers_last_scheduled');
           const today = new Date().toDateString();
@@ -2024,7 +2118,6 @@ export function loadPrayers() {
               await scheduleAllPrayers(timings);
               await localforage.setItem('prayers_last_scheduled', today);
           }
-         
         }
       } catch (err) {
         console.error('فشل جلب مواقيت الصلاة:', err);
@@ -2055,7 +2148,6 @@ export function loadPrayers() {
           confirmButtonText: 'حسناً', confirmButtonColor: '#198754',
         });
       } else {
-        // لو مشكلة تانية (مثلاً الـ GPS مقفول في الموبايل أو تايم أوت)
         await showOfflineMessage();
       }
     },
@@ -3083,36 +3175,42 @@ window.changeTasbeehType = async (type) => {
  */
 export const scheduleFridayKahfNotification = async () => {
   try {
-    // إلغاء أي تنبيه قديم بنفس الـ ID
-    try { await LocalNotifications.cancel({ notifications: [{ id: 777 }] }); } catch (e) {}
+    try { 
+      const pending = await LocalNotifications.getPending();
+      const oldNotifications = pending.notifications.filter(n => n.id >= 777 && n.id <= 780);
+      if (oldNotifications.length > 0) {
+        await LocalNotifications.cancel({ notifications: oldNotifications }); 
+      }
+    } catch (e) {}
 
     const now = new Date();
+    const daysUntilFriday = (5 - now.getDay() + 7) % 7;
+    let notificationsToSchedule = [];
 
-    // إيجاد الجمعة القادمة
-    const daysUntilFriday = (5 - now.getDay() + 7) % 7; // 5 = الجمعة
-    const nextFriday = new Date(now);
-    nextFriday.setDate(now.getDate() + (daysUntilFriday === 0 ? 7 : daysUntilFriday));
-    nextFriday.setHours(10, 0, 0, 0); // الساعة 10 صباحاً
+    for (let i = 0; i < 4; i++) {
+      const nextFriday = new Date(now);
+      
+      if (daysUntilFriday === 0 && now.getHours() < 10 && i === 0) {
+        nextFriday.setHours(10, 0, 0, 0);
+      } else {
+        let baseDays = (daysUntilFriday === 0 && i === 0) ? 7 : daysUntilFriday;
+        nextFriday.setDate(now.getDate() + baseDays + (i * 7));
+        nextFriday.setHours(10, 0, 0, 0);
+      }
 
-    await LocalNotifications.schedule({
-      notifications: [
-        {
-          id:    777,
-          title: 'سورة الكهف 📖 - يوم الجمعة',
-          body:  'من قرأ سورة الكهف يوم الجمعة أضاء له النور ما بين الجمعتين',
-          schedule: {
-            at:              nextFriday,
-            every:           'week',   // يتكرر كل أسبوع
-            allowWhileIdle:  true,
-          },
-          channelId:    'khatmah-channel',
-          smallIcon:    'ic_notification',
-          actionTypeId: 'OPEN_KAHF',  // سيُعالج في index.js
-        }
-      ]
-    });
+      notificationsToSchedule.push({
+        id: 777 + i,
+        title: 'سورة الكهف 📖 - يوم الجمعة',
+        body: 'من قرأ سورة الكهف يوم الجمعة أضاء له النور ما بين الجمعتين',
+        schedule: { at: nextFriday, allowWhileIdle: true },
+        channelId: 'khatmah-channel',
+        smallIcon: 'ic_notification',
+        actionTypeId: 'OPEN_KAHF',
+      });
+    }
 
-    console.log(`✅ [FRIDAY] تنبيه سورة الكهف مجدول: ${nextFriday.toLocaleString('ar-EG')}`);
+    await LocalNotifications.schedule({ notifications: notificationsToSchedule });
+    console.log(`✅ [FRIDAY] تم تأمين إشعارات سورة الكهف لـ 4 أسابيع قادمة`);
   } catch (err) {
     console.error('❌ [FRIDAY] خطأ في جدولة تنبيه الكهف:', err);
   }
@@ -3155,3 +3253,155 @@ export const scheduleDuhaNotification = async () => {
     console.error('❌ [NOTIFICATIONS] خطأ في جدولة تنبيه الضحى:', error);
   }
 };
+
+// ─── دالة مساعدة لغلق الشاشة الكاملة فقط ──────────────────────────────
+const closeFullScreenUI = async () => {
+  const body = document.body;
+  const quranBook = document.getElementById('quran-book');
+  const btn = document.getElementById('btn-fullscreen');
+
+  if (quranBook) quranBook.classList.add('no-transition');
+  body.classList.remove('fullscreen-reading');
+  
+  if (btn) {
+    btn.classList.remove('active');
+    btn.innerHTML = '<i class="fas fa-expand"></i> <span class="d-none d-sm-inline">شاشة كاملة</span>';
+  }
+  
+  if (window.Capacitor && window.Capacitor.isNativePlatform() && window.StatusBar) {
+      try { await window.StatusBar.show(); } catch(e){}
+  }
+  
+  setTimeout(() => { if (quranBook) quranBook.classList.remove('no-transition'); }, 50);
+};
+
+// ─── وضع القراءة بملء الشاشة (Full Screen) السريع ──────────────────────────────
+window.toggleQuranFullScreen = async () => {
+  const body = document.body;
+  const isFullScreen = body.classList.contains('fullscreen-reading');
+  const btn = document.getElementById('btn-fullscreen');
+
+  if (isFullScreen) {
+    // 🔙 الخروج عبر الضغط على الزر (X أو زرار الشاشة الكاملة)
+    if (window.history.state && window.history.state.isFullscreen) {
+        // لو ضغط على الزرار، نرجع خطوة لورا في الهيستوري عشان نمسح الخطوة الوهمية (ده هيشغل الـ popstate تلقائياً)
+        window.history.back();
+    } else {
+        // لو لسبب ما مفيش خطوة وهمية، نقفل الشاشة مباشرة
+        closeFullScreenUI();
+    }
+  } else {
+    // 🔲 الدخول في الشاشة الكاملة
+    // 🔥 السر هنا: إضافة خطوة "وهمية" في سجل المتصفح 🔥
+    window.history.pushState({ isFullscreen: true }, '', window.location.pathname);
+
+    body.classList.add('fullscreen-reading');
+    if (btn) {
+      btn.classList.add('active');
+      btn.innerHTML = '<i class="fas fa-compress"></i> <span class="d-none d-sm-inline">خروج</span>';
+    }
+    if (window.Capacitor && window.Capacitor.isNativePlatform() && window.StatusBar) {
+        try { await window.StatusBar.hide(); } catch(e){}
+    }
+  }
+};
+
+// 🌟 التقاط حركة السحب للرجوع (Swipe Back) أو زر الرجوع في الموبايل 🌟
+window.addEventListener('popstate', (event) => {
+  const body = document.body;
+  // لو هو جوه الشاشة الكاملة وعمل رجوع، نقفل الشاشة الكاملة فقط (ولا نخرج من المصحف)
+  if (body.classList.contains('fullscreen-reading')) {
+      closeFullScreenUI();
+  }
+});
+
+
+// ─── ميزة الضغطة المطولة لفتح التفسير (Long Press) ───
+document.addEventListener('DOMContentLoaded', () => {
+    let pressTimer;
+    let isScrolling = false;
+    window.isLongPress = false; // علم (Flag) عشان نفرق بين الضغطة العادية والمطولة
+
+    const ayahsContainer = document.getElementById('ayahs-container');
+
+    if (ayahsContainer) {
+        // 1. بداية اللمس
+        ayahsContainer.addEventListener('touchstart', function(e) {
+            const ayahElement = e.target.closest('.ayah-text'); 
+            if (!ayahElement) return;
+
+            isScrolling = false; 
+            window.isLongPress = false; 
+
+            // استخراج رقم السورة والآية بمرونة
+            let surahNum, ayahNum;
+            if (ayahElement.id && ayahElement.id.includes('-')) {
+                const idParts = ayahElement.id.split('-');
+                surahNum = idParts[1];
+                ayahNum = idParts[2];
+            } else {
+                surahNum = ayahElement.getAttribute('data-surah');
+                ayahNum = ayahElement.getAttribute('data-ayah');
+            }
+
+            if (!surahNum || !ayahNum) return;
+
+            // نبدأ العداد (600 مللي ثانية)
+            pressTimer = setTimeout(() => {
+                if (!isScrolling) {
+                    window.isLongPress = true; // 🔥 تفعيل وضع الضغطة المطولة 🔥
+                    
+                    // 🌟 الإضافة الجديدة: مسح أي تحديد للنص (الهايلايت الأزرق) عمله المتصفح بالغلط 🌟
+                    if (window.getSelection) {
+                        window.getSelection().removeAllRanges();
+                    }
+                    
+                    if (navigator.vibrate) navigator.vibrate(50); // هزة خفيفة للموبايل
+                    
+                    // استدعاء دالة التفسير 
+                    if (typeof window.showTafseerModal === 'function') {
+                        window.showTafseerModal(surahNum, ayahNum);
+                    } else if (typeof window.showTafseer === 'function') {
+                        window.showTafseer(surahNum, ayahNum);
+                    } else if (typeof window.openTafseer === 'function') {
+                        window.openTafseer(surahNum, ayahNum);
+                    } else {
+                        alert(`الضغطة المطولة نجحت للآية ${ayahNum}! راجع اسم دالة التفسير.`);
+                    }
+                }
+            }, 600); 
+
+        }, { passive: true });
+
+        // 2. إلغاء الضغطة لو المستخدم بيعمل سكرول
+        ayahsContainer.addEventListener('touchmove', function() {
+            isScrolling = true;
+            clearTimeout(pressTimer);
+        }, { passive: true });
+
+        // 3. إلغاء الضغطة لو شال صباعه بسرعة
+        ayahsContainer.addEventListener('touchend', function() {
+            clearTimeout(pressTimer);
+        });
+
+        ayahsContainer.addEventListener('touchcancel', function() {
+            clearTimeout(pressTimer);
+        });
+
+        // 🔥 السطر السحري: منع القائمة العادية من الظهور لو المستخدم عمل ضغطة مطولة 🔥
+        ayahsContainer.addEventListener('click', function(e) {
+            if (window.isLongPress) {
+                e.preventDefault();
+                e.stopPropagation(); // بيوقف ظهور القائمة اللي في الصورة تماماً
+                window.isLongPress = false; // تصفير للضغطة اللي بعدها
+            }
+        }, { capture: true }); // capture: true بتصطاد الكليك قبل ما توصل للقائمة
+        
+        // منع قائمة المتصفح الافتراضية للنسخ
+        ayahsContainer.addEventListener('contextmenu', function(e) {
+            if (e.target.closest('.ayah-text')) {
+                e.preventDefault();
+            }
+        });
+    }
+});

@@ -15,9 +15,8 @@
     <link rel="stylesheet" href="/css/style.css">
     <link rel="shortcut icon" type="image/png" href="/img/title.png">
     <meta name="theme-color" content="#1e5f31">
-    <style>
-
-@font-face {
+<style>
+        @font-face {
             font-family: 'Uthmani';
             src: url('/fonts/UthmanicHafs.otf') format('opentype'),
                  url('/fonts/al-qalam-quran-majeed-2.woff2') format('woff2');
@@ -26,20 +25,401 @@
             font-display: swap;
         }
 
-        /* تعديل شكل صفحة القرآن لتناسب الخط الجديد */
-       .quran-page-content {
-            font-family: 'Amiri Quran', 'Amiri', serif !important; /* استخدام خط جوجل */
-            font-size: 28px !important; 
-            line-height: 2.4 !important; 
+        /* ===================================================
+           ─── 1. تنسيق نص المصحف (الوضع العادي) ─── 
+        =================================================== */
+        /* 🔥 تحويل الحاوية لـ block يجبر المربع الأبيض إنه يتمدد مع الآيات للنهاية 🔥 */
+        #quran-book {
+            display: block !important; 
+            width: 100% !important;
+            background-color: var(--light-bg, white) !important;
+            border-radius: 15px !important;
+            padding: 25px 15px !important; 
+            margin-bottom: 30px !important;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05) !important;
+            height: auto !important;
+            min-height: 60vh;
         }
+
+        /* 🔥 إجبار الوضع الليلي على العمل في الوضع العادي 🔥 */
+        [data-theme="dark"] #quran-book { 
+            background-color: #121212 !important; 
+            border: 1px solid #2d2d2d !important;
+        }
+
+        #ayahs-container {
+            display: block !important;
+            width: 100% !important; 
+            margin: 0 !important; 
+        }
+
+        .quran-page-content {
+            display: block !important;
+            font-family: 'Amiri Quran', 'Amiri', serif !important;
+            font-size: 28px !important; 
+            line-height: 2.3 !important; 
+            text-align: justify !important; 
+            text-align-last: center !important; 
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important; 
+        }
+
+        /* 🔥 منع متصفح الموبايل من تحديد النص أو إظهار الهايلايت الأزرق وقائمة النسخ 🔥 */
+        .ayah-text, .quran-page-content {
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+            user-select: none !important;
+            -webkit-touch-callout: none !important;
+        }
+
+        /* ترويسة المصحف (مخفية تماماً في الوضع العادي) */
+        #mushaf-header { 
+            display: none !important; 
+        }
+
+        /* ===================================================
+           ─── 2. وضع القراءة بملء الشاشة ─── 
+        =================================================== */
+
+        body.fullscreen-reading .app-header,
+        body.fullscreen-reading nav#main-navbar,
+        body.fullscreen-reading .bottom-nav,
+        body.fullscreen-reading #quran-juz-info,
+        body.fullscreen-reading #khatmah-dua-btn-container,
+        body.fullscreen-reading .khatmah-floating-btn {
+            display: none !important;
+        }
+
+        /* 🌟 ترويسة ثابتة وصلبة بخلفية بيضاء ومثبتة في السقف 🌟 */
+        body.fullscreen-reading #mushaf-header {
+            display: flex !important;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed !important; 
+            top: 0 !important;
+            left: 0;
+            right: 0;
+            background-color: white !important; 
+            border-bottom: 2px solid rgba(25, 135, 84, 0.8) !important; 
+            padding-top: calc(15px + env(safe-area-inset-top, 0px)) !important;
+            padding-bottom: 10px !important;
+            padding-left: 20px !important;
+            padding-right: 20px !important;
+            font-family: 'Amiri', serif;
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #1e5f31;
+            z-index: 9999 !important;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05) !important; 
+        }
+
+        /* 🌟 حاوية المصحف العامة للشاشة الكاملة 🌟 */
+        body.fullscreen-reading #quran-book {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important; 
+            height: 100dvh !important;
+            z-index: 9990 !important;
+            margin: 0 !important;
+            padding-top: calc(70px + env(safe-area-inset-top, 0px)) !important;
+            padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+            padding-left: 4px !important;
+            padding-right: 4px !important;
+            background: white !important;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow-x: hidden !important; 
+            overflow-y: auto !important; 
+        }
+
+        /* 🌟 التوسيط الآمن للصفحات القصيرة 🌟 */
+        body.fullscreen-reading #ayahs-container {
+            display: block !important;
+            width: 100% !important;
+            margin: auto 0 !important;
+        }
+
+        /* 🌟 مسافة أسطر ثابتة تمنع أي تداخل 🌟 */
+        body.fullscreen-reading .quran-page-content {
+            font-size: clamp(24px, 7vw, 34px) !important; 
+            line-height: 2.3 !important; 
+            padding: 0 4px !important;
+            display: block !important;
+        }
+        /* 🔥 إصلاح تعارض التكبير (الفوكس) مع الشاشة الكاملة 🔥 */
+        /* تصفير أي تكبير أو تصغير يدوي في الحاويات */
+        body.fullscreen-reading #quran-book,
+        body.fullscreen-reading #ayahs-container {
+            zoom: 1 !important;
+            transform: none !important;
+        }
+
+        /* إجبار الآيات على تجاهل التكبير اليدوي وأخذ حجم الشاشة الكاملة التلقائي */
+        body.fullscreen-reading .quran-page-content,
+        body.fullscreen-reading .ayah-text {
+            zoom: 1 !important;
+            transform: none !important;
+            font-size: clamp(22px, 6.5vw, 36px) !important; 
+            line-height: 2.2 !important; 
+        }
+
+        /* 🌟 تجميل عناوين السور (الإطار الإسلامي للمصحف) 🌟 */
+        .surah-separator {
+            text-align: center !important;
+            margin: 35px 0 25px 0 !important;
+            padding: 0 !important;
+            width: 100%;
+            /* 🔥 السطرين دول بيمسحوا الخلفية الرمادية والإطار اللي بييجوا من الجافاسكريبت 🔥 */
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .surah-separator h3 {
+            position: relative;
+            display: inline-block;
+            font-family: 'Amiri Quran', 'Amiri', serif !important;
+            font-size: 2.2rem !important;
+            font-weight: bold;
+            color: #1e5f31 !important; 
+            padding: 12px 60px 18px 60px !important;
+            margin: 0 !important;
+            /* 🔥 جعل الخلفية شفافة بالكامل 🔥 */
+            background-color: transparent !important; 
+            border: 2px solid #1e5f31 !important;
+            border-radius: 6px !important;
+            box-shadow: 
+                inset 0 0 0 3px var(--light-bg, #ffffff), /* مسافة عازلة بلون الصفحة الأساسي */
+                inset 0 0 0 5px #d4af37, /* الإطار الذهبي الداخلي */
+                0 4px 10px rgba(0,0,0,0.05) !important; 
+        }
+
+        /* 🌟 الزخارف الجانبية 🌟 */
+        .surah-separator h3::before {
+            content: "﴾";
+            position: absolute;
+            right: 18px;
+            top: 50%;
+            transform: translateY(-55%); 
+            color: #d4af37; 
+            font-size: 2.2rem;
+            font-weight: normal;
+        }
+
+        .surah-separator h3::after {
+            content: "﴿";
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-55%);
+            color: #d4af37;
+            font-size: 2.2rem;
+            font-weight: normal;
+        }
+
+        .bismillah {
+            color: #1e5f31 !important;
+            font-size: 1.8rem !important;
+            margin-top: 5px !important;
+            margin-bottom: 25px !important;
+            text-align: center !important;
+            font-family: 'Amiri Quran', 'Amiri', serif !important;
+        }
+
+        /* شريط التحكم (الكبسولة) */
+        body.fullscreen-reading #quran-controls {
+            position: fixed !important;
+            bottom: 25px !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            border-radius: 50px !important;
+            background-color: rgba(241, 248, 233, 0.95) !important;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2) !important;
+            z-index: 10005 !important;
+            padding: 8px 20px !important;
+            width: max-content !important;
+            border: 1px solid #c8e6c9 !important;
+            display: flex !important;
+            gap: 10px;
+        }
+
+        #btn-fullscreen.active {
+            background: #198754 !important;
+            color: white !important;
+            border-color: #198754 !important;
+        }
+
+        /* 🌟 زر الخروج - جزء من ترويسة المصحف 🌟 */
+        #fullscreen-exit-btn {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            height: 30px;
+            padding: 0 10px;
+            border-radius: 16px;
+            border: 1.5px solid rgba(25, 135, 84, 0.3);
+            background: rgba(25, 135, 84, 0.08);
+            color: #1e5f31;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body.fullscreen-reading #fullscreen-exit-btn { display: flex !important; }
+
+        #fullscreen-exit-btn:active {
+            background: rgba(25, 135, 84, 0.18);
+            transform: scale(0.93);
+        }
+
+        [data-reading="night"] body.fullscreen-reading #fullscreen-exit-btn,
+        [data-theme="dark"] body.fullscreen-reading #fullscreen-exit-btn {
+            background: rgba(74, 222, 128, 0.1);
+            color: #81c784;
+            border-color: rgba(74, 222, 128, 0.3);
+        }
+
+        .modal-backdrop, .offcanvas-backdrop { z-index: 10010 !important; }
+        .offcanvas, .modal, .swal2-container { z-index: 10020 !important; }
+        #quran-book.no-transition { transition: none !important; }
+
+        /* ===================================================
+           ─── 3. الألوان والوضع الليلي 🌙 ─── 
+        =================================================== */
+        
+        [data-theme="dark"] body.fullscreen-reading #quran-book { background-color: #121212 !important; }
+        [data-reading="night"] body.fullscreen-reading #quran-book { background-color: #111d13 !important; }
+
+        [data-theme="dark"] body.fullscreen-reading #quran-controls,
+        [data-reading="night"] body.fullscreen-reading #quran-controls {
+            background-color: rgba(30, 30, 30, 0.95) !important;
+            border-color: #333 !important;
+        }
+
+        [data-theme="dark"] body.fullscreen-reading #mushaf-header {
+            background-color: #121212 !important;
+            border-bottom-color: rgba(74, 222, 128, 0.5) !important;
+            color: #a5d6a7 !important;
+        }
+        [data-reading="night"] body.fullscreen-reading #mushaf-header {
+            background-color: #111d13 !important;
+            border-bottom-color: rgba(45, 90, 50, 0.8) !important;
+            color: #81c784 !important;
+        }
+
+        [data-reading="night"] body,
+        [data-reading="night"] { background-color: #0d1b0f !important; }
+
+        [data-reading="night"] #quran-book {
+            background-color: #111d13 !important;
+            background-image: none !important; 
+            border-color: #1e3a22 !important;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8) !important;
+        }
+
+        [data-reading="night"] #ayahs-container {
+            background-color: transparent !important;
+            background-image: none !important; 
+            border-color: #1e3a22 !important;
+        }
+
+        [data-reading="night"] .quran-page-content,
+        [data-reading="night"] .ayah-text,
+        [data-reading="night"] .quran-page-content span:not(.ayah-end-symbol) {
+            color: #a5d6a7 !important;
+            text-shadow: none !important;
+        }
+
+       
+
+     /* 🌟 الإطار في الوضع الليلي 🌟 */
+        [data-reading="night"] .surah-separator,
+        [data-theme="dark"] .surah-separator {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        /* لو مفعل الثيم الليلي العام للتطبيق */
+        [data-theme="dark"] .surah-separator h3 {
+            background-color: transparent !important; /* 🔥 خلفية شفافة تماماً 🔥 */
+            color: #81c784 !important; 
+            border-color: #2d5a32 !important;
+            box-shadow: 
+                inset 0 0 0 3px #121212, /* مسافة عازلة بلون الصفحة */
+                inset 0 0 0 5px #4a7a4d, 
+                0 4px 10px rgba(0,0,0,0.3) !important;
+        }
+
+        /* لو مفعل وضع القراءة الليلي (من الكبسولة) */
+        [data-reading="night"] .surah-separator h3 {
+            background-color: transparent !important; /* 🔥 خلفية شفافة تماماً 🔥 */
+            color: #81c784 !important; 
+            border-color: #2d5a32 !important;
+            box-shadow: 
+                inset 0 0 0 3px #111d13, /* مسافة عازلة بلون الصفحة */
+                inset 0 0 0 5px #4a7a4d, 
+                0 4px 10px rgba(0,0,0,0.3) !important;
+        }
+
+        [data-reading="night"] .surah-separator h3::before,
+        [data-reading="night"] .surah-separator h3::after,
+        [data-theme="dark"] .surah-separator h3::before,
+        [data-theme="dark"] .surah-separator h3::after {
+            color: #4a7a4d !important; 
+        }
+
+        [data-reading="night"] .bismillah,
+        [data-theme="dark"] .bismillah { color: #81c784 !important; }
+        
+        [data-reading="night"] .ayah-end-symbol {
+            color: #7bc67e !important;
+            border-color: #7bc67e !important;
+        }
+        [data-reading="night"] #surah-title-display { color: #81c784 !important; }
+
+        [data-reading="night"] .bottom-nav {
+            background: #0d1b0f !important;
+            border-top-color: #1e3a22 !important;
+            box-shadow: 0 -4px 24px rgba(0,0,0,0.6) !important;
+            --nav-bg: #0d1b0f;
+        }
+        [data-reading="night"] .bottom-nav-item { color: #4a7a4d !important; }
+        [data-reading="night"] .bottom-nav-item.active {
+            color: #81c784 !important;
+            background: rgba(129,199,132,0.1) !important;
+        }
+        [data-reading="night"] nav#main-navbar {
+            background-color: #0a2e0f !important;
+            border-bottom-color: #0d1b0f !important;
+        }
+        #btn-night-mode.active {
+            background: #1a3a1e !important;
+            color: #81c784 !important;
+            border-color: #2d5a32 !important;
+        }
+        #btn-night-mode.active i { color: #ffd54f !important; }
+
+        /* ===================================================
+           ─── 4. باقي تنسيقات التطبيق ─── 
+        =================================================== */
+        
         .blurred-text {
             color: transparent !important;
             text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
             transition: all 0.3s ease;
         }
-        #storyModalTitle {
-            color: #145a28 !important; /* أخضر قرآني داكن */
-        }
+        #storyModalTitle { color: #145a28 !important; }
+        
         .live-ayah-item {
             border-bottom: 1px solid #eee;
             padding: 15px 0;
@@ -47,8 +427,8 @@
             align-items: center;
             justify-content: space-between;
         }
-       .live-ayah-text {
-            font-family: 'Amiri Quran', 'Amiri', serif; /* استخدام خط جوجل */
+        .live-ayah-text {
+            font-family: 'Amiri Quran', 'Amiri', serif;
             font-size: 1.6rem;
             line-height: 2.4;
             padding: 15px;
@@ -60,600 +440,590 @@
             margin-left: 15px;
         }
         .live-play-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid #198754;
-            color: #198754;
-            background: white;
-            transition: all 0.2s;
+            width: 40px; height: 40px; border-radius: 50%; display: flex;
+            align-items: center; justify-content: center; border: 2px solid #198754;
+            color: #198754; background: white; transition: all 0.2s;
         }
-        .live-play-btn:active, .live-play-btn.playing {
-            background: #198754;
-            color: white;
-        }
+        .live-play-btn:active, .live-play-btn.playing { background: #198754; color: white; }
         .ayah-active {
-            background-color: #e8f5e9;
-            border-right-color: #198754;
-            color: #0f5132;
-            transform: scale(1.02);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            background-color: #e8f5e9; border-right-color: #198754; color: #0f5132;
+            transform: scale(1.02); box-shadow: 0 4px 15px rgba(0,0,0,0.05);
         }
         .word-highlight {
-            color: #198754;
-            font-weight: bold;
-            text-shadow: 0 0 1px rgba(25, 135, 84, 0.3);
+            color: #198754; font-weight: bold; text-shadow: 0 0 1px rgba(25, 135, 84, 0.3);
         }
-        .blurred-text {
-            filter: blur(4px);
-            transition: filter 0.3s;
-        }
-        .ayah-active .blurred-text {
-            filter: blur(0);
-        }
+        .blurred-text { filter: blur(4px); transition: filter 0.3s; }
+        .ayah-active .blurred-text { filter: blur(0); }
 
-        /* ─── فهرس المصحف بالأجزاء ──────────────────── */
         .juz-header {
-            background: linear-gradient(135deg, #1e5f31, #198754);
-            color: white;
-            border-radius: 12px;
-            padding: 12px 20px;
-            margin: 20px 0 10px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            background: linear-gradient(135deg, #1e5f31, #198754); color: white;
+            border-radius: 12px; padding: 12px 20px; margin: 20px 0 10px;
+            display: flex; align-items: center; justify-content: space-between;
             box-shadow: 0 3px 10px rgba(25, 135, 84, 0.3);
         }
         .juz-header h5 { margin: 0; font-size: 1rem; }
         .juz-badge {
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.4);
-            border-radius: 20px;
-            padding: 3px 12px;
-            font-size: 0.85rem;
+            background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);
+            border-radius: 20px; padding: 3px 12px; font-size: 0.85rem;
         }
-        .hizb-tabs {
-            display: flex;
-            gap: 5px;
-            flex-wrap: wrap;
-            margin-bottom: 10px;
-        }
+        .hizb-tabs { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
         .hizb-tab {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 4px 10px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: all 0.2s;
+            background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px;
+            padding: 4px 10px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s;
         }
         .hizb-tab:hover { background: #e8f5e9; border-color: #198754; color: #198754; }
 
-        /* ─── رأس صفحة القرآن ───────────────────────── */
         #quran-juz-info { margin-bottom: 8px; }
         #quran-juz-info .badge { font-size: 0.9rem; padding: 6px 12px; }
 
-        /* ─── تغيير كلمة المرور ─────────────────────── */
         .password-toggle {
-            cursor: pointer;
-            position: absolute;
-            left: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #6c757d;
+            cursor: pointer; position: absolute; left: 10px; top: 50%;
+            transform: translateY(-50%); color: #6c757d;
         }
         .password-field-wrapper { position: relative; }
         .blink-animation { animation: blinker 1.5s linear infinite; }
-@keyframes blinker { 50% { opacity: 0; } }
+        @keyframes blinker { 50% { opacity: 0; } }
 
-        /* ══════════════════════════════════════════════
-        /* ─── Zoom & AutoScroll toolbar ──────────────── */
-        #quran-book { transition: transform 0.2s ease; }
-        #btn-autoscroll.active {
-            background: #198754 !important;
-            color: white !important;
-        }
+        #btn-autoscroll.active { background: #198754 !important; color: white !important; }
         #btn-autoscroll.active i { color: white !important; }
 
-        /* ── زرار إيقاف التمرير العائم ── */
         #autoscroll-fab {
-            position: fixed;
-            right: 16px;
-            bottom: calc(80px + env(safe-area-inset-bottom));
-            z-index: 1049;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            border: none;
-            background: linear-gradient(135deg, #1e5f31, #198754);
-            color: white;
-            box-shadow: 0 4px 16px rgba(25,135,84,0.5);
-            font-size: 1.2rem;
-            cursor: pointer;
-            transition: transform 0.15s ease;
-            display: none;
-            align-items: center;
-            justify-content: center;
+            position: fixed; right: 16px; bottom: calc(80px + env(safe-area-inset-bottom));
+            z-index: 1049; width: 50px; height: 50px; border-radius: 50%; border: none;
+            background: linear-gradient(135deg, #1e5f31, #198754); color: white;
+            box-shadow: 0 4px 16px rgba(25,135,84,0.5); font-size: 1.2rem; cursor: pointer;
+            transition: transform 0.15s ease; display: none; align-items: center; justify-content: center;
         }
-        #autoscroll-fab.visible {
-            display: flex !important;
-        }
+        #autoscroll-fab.visible { display: flex !important; }
         #autoscroll-fab:active { transform: scale(0.92); }
-        .daily-ayah-card {
-            border-radius: 20px;
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-            border-bottom: 4px solid #198754 !important;
-            transition: transform 0.3s ease;
-        }
-        .daily-ayah-card:hover {
-            transform: translateY(-3px);
-        }
         
-        /* تظبيط الكارت في الوضع الليلي */
+        .daily-ayah-card {
+            border-radius: 20px; background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-bottom: 4px solid #198754 !important; transition: transform 0.3s ease;
+        }
+        .daily-ayah-card:hover { transform: translateY(-3px); }
+        
         [data-theme="dark"] .daily-ayah-card {
             background: linear-gradient(135deg, #1a1a1a 0%, #121212 100%);
             border-bottom-color: #4ade80 !important;
         }
-        [data-theme="dark"] #daily-ayah-text {
-            color: #a5d6a7 !important;
-        }
+        [data-theme="dark"] #daily-ayah-text { color: #a5d6a7 !important; }
         [data-theme="dark"] #daily-ayah-source {
-            background: #2d2d2d !important;
-            color: #aaa !important;
-            border-color: #444 !important;
+            background: #2d2d2d !important; color: #aaa !important; border-color: #444 !important;
         }
-
 
         .active-toggle-btn {
-            background-color: #198754 !important;
-            color: white !important;
-            box-shadow: 0 2px 8px rgba(25, 135, 84, 0.3);
-            transition: all 0.3s ease;
+            background-color: #198754 !important; color: white !important;
+            box-shadow: 0 2px 8px rgba(25, 135, 84, 0.3); transition: all 0.3s ease;
         }
-        .animate-fade-in {
-            animation: fadeIn 0.4s ease-in-out;
-        }
+        .animate-fade-in { animation: fadeIn 0.4s ease-in-out; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(5px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* تظبيط الوضع الليلي لأزرار التبديل والحديث */
-        [data-theme="dark"] .active-toggle-btn {
-            background-color: #4ade80 !important;
-            color: #121212 !important;
-        }
+        [data-theme="dark"] .active-toggle-btn { background-color: #4ade80 !important; color: #121212 !important; }
         [data-theme="dark"] .daily-ayah-card .bg-light.border {
-            background-color: #2d2d2d !important;
-            border-color: #444 !important;
+            background-color: #2d2d2d !important; border-color: #444 !important;
         }
-        [data-theme="dark"] #daily-hadith-text {
-            color: #a5d6a7 !important;
-        }
+        [data-theme="dark"] #daily-hadith-text { color: #a5d6a7 !important; }
         [data-theme="dark"] #daily-hadith-source {
-            background: #2d2d2d !important;
-            color: #aaa !important;
-            border-color: #444 !important;
+            background: #2d2d2d !important; color: #aaa !important; border-color: #444 !important;
         }
 
-        /* ===================================================
-           ─── تصميم قسم القصص والسير (عادي + ليلي) ───
-        =================================================== */
-        
-        /* 1. تلوين التابات (الـ Nav) باللون الأخضر المميز للتطبيق */
-        #stories-tabs .nav-link {
-            color: #198754; 
-            transition: all 0.3s ease;
-        }
-        #stories-tabs .nav-link:hover {
-            color: #145a28;
-            background-color: rgba(25, 135, 84, 0.1);
-        }
+        #stories-tabs .nav-link { color: #198754; transition: all 0.3s ease; }
+        #stories-tabs .nav-link:hover { color: #145a28; background-color: rgba(25, 135, 84, 0.1); }
         #stories-tabs .nav-link.active {
-            background-color: #198754 !important;
-            color: #ffffff !important;
+            background-color: #198754 !important; color: #ffffff !important;
             box-shadow: 0 4px 10px rgba(25, 135, 84, 0.3);
         }
 
-        /* 2. تضبيط ألوان قسم القصص في الوضع الليلي (Dark Mode) */
         [data-theme="dark"] #stories-section .bg-light,
-        [data-theme="dark"] #stories-tabs {
-            background-color: #1a1a1a !important;
-        }
-        [data-theme="dark"] #stories-tabs .nav-link {
-            color: #a5d6a7;
-        }
+        [data-theme="dark"] #stories-tabs { background-color: #1a1a1a !important; }
+        [data-theme="dark"] #stories-tabs .nav-link { color: #a5d6a7; }
         [data-theme="dark"] #stories-tabs .nav-link.active {
-            background-color: #198754 !important;
-            color: #ffffff !important;
+            background-color: #198754 !important; color: #ffffff !important;
         }
-        
-        /* تضبيط حقل البحث في الوضع الليلي */
-       /* تضبيط حقول البحث في الوضع الليلي (الرئيسي والداخلي) */
         [data-theme="dark"] #stories-search-input,
         [data-theme="dark"] #inner-surah-search {
-            background-color: #1a1a1a !important;
-            color: #ffffff !important;
+            background-color: #1a1a1a !important; color: #ffffff !important;
         }
-        
         [data-theme="dark"] #stories-search-input::placeholder,
-        [data-theme="dark"] #inner-surah-search::placeholder {
-            color: #888888 !important;
-        }
-        
+        [data-theme="dark"] #inner-surah-search::placeholder { color: #888888 !important; }
         [data-theme="dark"] #stories-section .input-group-text,
-        [data-theme="dark"] #surah-details-section .input-group-text {
-            background-color: #1a1a1a !important;
-        }
-
-        /* تضبيط كروت القصص في الوضع الليلي */
+        [data-theme="dark"] #surah-details-section .input-group-text { background-color: #1a1a1a !important; }
         [data-theme="dark"] .story-card-item .card {
-            background-color: #1a1a1a !important;
-            border-color: #2d2d2d !important;
+            background-color: #1a1a1a !important; border-color: #2d2d2d !important;
         }
-        [data-theme="dark"] .story-card-item .card h6 {
-            color: #4ade80 !important; /* لون السورة أخضر فاتح */
-        }
-        [data-theme="dark"] .story-card-item .card p {
-            color: #bbbbbb !important; /* لون النص رمادي مريح */
-        }
+        [data-theme="dark"] .story-card-item .card h6 { color: #4ade80 !important; }
+        [data-theme="dark"] .story-card-item .card p { color: #bbbbbb !important; }
         [data-theme="dark"] .story-card-item .badge.bg-light {
-            background-color: #2d2d2d !important;
-            color: #4ade80 !important;
-            border-color: #198754 !important;
+            background-color: #2d2d2d !important; color: #4ade80 !important; border-color: #198754 !important;
         }
-
-        /* 3. تضبيط نافذة القراءة المنبثقة (Modal) في الوضع الليلي */
-        [data-theme="dark"] #storyModal .modal-content {
-            background-color: #121212 !important;
-            border: 1px solid #2d2d2d;
-        }
-        [data-theme="dark"] #storyModal .modal-header {
-            background-color: #1a1a1a !important;
-        }
-        [data-theme="dark"] #storyModal .btn-close {
-            filter: invert(1) grayscale(100%) brightness(200%);
-        }
-        [data-theme="dark"] #storyModalTitle {
-            color: #4ade80 !important;
-        }
-        [data-theme="dark"] #storyModalSabab {
-            color: #e0e0e0 !important;
-        }
-        [data-theme="dark"] #storyModal .text-dark {
-            color: #e0e0e0 !important; /* تحويل أي نص غامق لفاتح */
-        }
-        [data-theme="dark"] #storyModal .bg-light {
-            background-color: #1a1a1a !important; /* خلفية الفوائد والتدبرات */
-        }
-        /* ══════════════════════════════════════════════
-   ─── وضع القراءة الليلية 🌙 ─────────────────
-══════════════════════════════════════════════ */
-[data-reading="night"] body,
-[data-reading="night"] {
-    background-color: #0d1b0f !important;
-}
-
-/* 1. إخفاء صورة الورقة الفاتحة وتطبيق لون داكن للمصحف */
-[data-reading="night"] #quran-book {
-    background-color: #111d13 !important;
-    background-image: none !important; /* مهم جداً لإخفاء الصورة */
-    border-color: #1e3a22 !important;
-    box-shadow: 0 0 30px rgba(0,0,0,0.8) !important;
-}
-
-/* 2. إخفاء النقشة الداخلية وتوحيد اللون */
-[data-reading="night"] #ayahs-container {
-    background-color: transparent !important;
-    background-image: none !important; /* مهم جداً */
-    border-color: #1e3a22 !important;
-}
-
-/* 3. تلوين الآيات والنصوص بلون أخضر فاتح مريح للعين */
-[data-reading="night"] .quran-page-content,
-[data-reading="night"] .ayah-text,
-[data-reading="night"] .quran-page-content span:not(.ayah-end-symbol) {
-    color: #a5d6a7 !important;
-    text-shadow: none !important;
-}
-
-/* 4. تظبيط ألوان فواصل السور والبسملة */
-[data-reading="night"] .surah-separator {
-    background: #1a2f1d !important;
-    border-color: #2d5a32 !important;
-}
-
-[data-reading="night"] .surah-separator h3,
-[data-reading="night"] .bismillah {
-    color: #81c784 !important;
-}
-
-[data-reading="night"] .ayah-end-symbol {
-    color: #7bc67e !important;
-    border-color: #7bc67e !important;
-}
-
-[data-reading="night"] #surah-title-display {
-    color: #81c784 !important;
-}
-
-/* 5. تظبيط النافبار والشريط السفلي */
-[data-reading="night"] .bottom-nav {
-    background: #0d1b0f !important;
-    border-top-color: #1e3a22 !important;
-    box-shadow: 0 -4px 24px rgba(0,0,0,0.6) !important;
-    --nav-bg: #0d1b0f;
-}
-[data-reading="night"] .bottom-nav-item { color: #4a7a4d !important; }
-[data-reading="night"] .bottom-nav-item.active {
-    color: #81c784 !important;
-    background: rgba(129,199,132,0.1) !important;
-}
-[data-reading="night"] nav#main-navbar {
-    background-color: #0a2e0f !important;
-    border-bottom-color: #0d1b0f !important;
-}
-#btn-night-mode.active {
-    background: #1a3a1e !important;
-    color: #81c784 !important;
-    border-color: #2d5a32 !important;
-}
-#btn-night-mode.active i { color: #ffd54f !important; }
+        [data-theme="dark"] #storyModal .modal-content { background-color: #121212 !important; border: 1px solid #2d2d2d; }
+        [data-theme="dark"] #storyModal .modal-header { background-color: #1a1a1a !important; }
+        [data-theme="dark"] #storyModal .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
+        [data-theme="dark"] #storyModalTitle { color: #4ade80 !important; }
+        [data-theme="dark"] #storyModalSabab { color: #e0e0e0 !important; }
+        [data-theme="dark"] #storyModal .text-dark { color: #e0e0e0 !important; }
+        [data-theme="dark"] #storyModal .bg-light { background-color: #1a1a1a !important; }
 
         .bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    margin: 0; /* لضمان عدم وجود أي مساحة أسفله */
-    z-index: 1050;
-    background: var(--nav-bg, #ffffff);
-    border-top: 1px solid rgba(25, 135, 84, 0.15);
-    box-shadow: 0 -4px 24px rgba(0,0,0,0.08);
-    display: flex;
-    align-items: center;
-    /* تمت إضافة 0px كقيمة بديلة */
-    height: calc(64px + env(safe-area-inset-bottom, 0px));
-    padding: 0 4px env(safe-area-inset-bottom, 0px);
-}
+            position: fixed; bottom: 0; left: 0; right: 0; margin: 0; 
+            z-index: 1050; background: var(--nav-bg, #ffffff);
+            border-top: 1px solid rgba(25, 135, 84, 0.15);
+            box-shadow: 0 -4px 24px rgba(0,0,0,0.08);
+            display: flex; align-items: center;
+            height: calc(64px + env(safe-area-inset-bottom, 0px));
+            padding: 0 4px env(safe-area-inset-bottom, 0px);
+        }
 
-        /* pseudo-element يغطي المساحة تحت الـ nav */
-        /* .bottom-nav::after {
-            content: '';
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: env(safe-area-inset-bottom, 0px);
-            background: var(--nav-bg, #ffffff);
-            z-index: -1;
-        } */
-/* الوضع الليلي لصفحة تفاصيل السورة */
-        [data-theme="dark"] #surah-details-section .bg-white {
-            background-color: #121212 !important;
-        }
-        [data-theme="dark"] #surah-details-section .bg-light {
-            background-color: #1a1a1a !important;
-        }
-        [data-theme="dark"] #surah-details-section .text-dark {
-            color: #e0e0e0 !important;
-        }
-        [data-theme="dark"] #surah-details-title {
-            color: #4ade80 !important;
-        }
+        [data-theme="dark"] #surah-details-section .bg-white { background-color: #121212 !important; }
+        [data-theme="dark"] #surah-details-section .bg-light { background-color: #1a1a1a !important; }
+        [data-theme="dark"] #surah-details-section .text-dark { color: #e0e0e0 !important; }
+        [data-theme="dark"] #surah-details-title { color: #4ade80 !important; }
         [data-theme="dark"] .bottom-nav {
-            background: #121212;
-            border-top-color: rgba(25, 135, 84, 0.25);
-            box-shadow: 0 -4px 24px rgba(0,0,0,0.4);
-            --nav-bg: #121212;
+            background: #121212; border-top-color: rgba(25, 135, 84, 0.25);
+            box-shadow: 0 -4px 24px rgba(0,0,0,0.4); --nav-bg: #121212;
         }
 
         .bottom-nav-item {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 3px;
-            cursor: pointer;
-            border: none;
-            background: transparent;
-            color: #9ca3af;
-            font-size: 0.65rem;
-            font-weight: 600;
-            padding: 6px 2px;
-            border-radius: 12px;
-            margin: 4px 2px;
-            height: 52px;
-            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-            position: relative;
-            text-decoration: none;
-            -webkit-tap-highlight-color: transparent;
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 3px; cursor: pointer; border: none; background: transparent; color: #9ca3af;
+            font-size: 0.65rem; font-weight: 600; padding: 6px 2px; border-radius: 12px;
+            margin: 4px 2px; height: 52px; transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative; text-decoration: none; -webkit-tap-highlight-color: transparent;
         }
 
-        [data-theme="dark"] .bottom-nav-item {
-            color: #6b7280;
-        }
+        [data-theme="dark"] .bottom-nav-item { color: #6b7280; }
+        .bottom-nav-item i { font-size: 1.15rem; transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .bottom-nav-item span { line-height: 1; letter-spacing: 0.02em; }
+        .bottom-nav-item.active { color: #198754; background: rgba(25, 135, 84, 0.08); }
+        [data-theme="dark"] .bottom-nav-item.active { color: #4ade80; background: rgba(74, 222, 128, 0.1); }
+        .bottom-nav-item.active i { transform: translateY(-2px) scale(1.1); }
 
-        .bottom-nav-item i {
-            font-size: 1.15rem;
-            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-
-        .bottom-nav-item span {
-            line-height: 1;
-            letter-spacing: 0.02em;
-        }
-
-        /* Active State */
-        .bottom-nav-item.active {
-            color: #198754;
-            background: rgba(25, 135, 84, 0.08);
-        }
-
-        [data-theme="dark"] .bottom-nav-item.active {
-            color: #4ade80;
-            background: rgba(74, 222, 128, 0.1);
-        }
-
-        .bottom-nav-item.active i {
-            transform: translateY(-2px) scale(1.1);
-        }
-
-        /* زر المصحف الوسطي (أكبر وأبرز) */
-        .bottom-nav-item.nav-center-btn {
-            flex: 1.2;
-        }
-
+        .bottom-nav-item.nav-center-btn { flex: 1.2; }
         .bottom-nav-item.nav-center-btn .nav-icon-wrap {
-            width: 44px;
-            height: 44px;
-            border-radius: 14px;
+            width: 44px; height: 44px; border-radius: 14px;
             background: linear-gradient(135deg, #1e5f31, #198754);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             box-shadow: 0 4px 12px rgba(25, 135, 84, 0.4);
-            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-            margin-bottom: 2px;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); margin-bottom: 2px;
         }
-
-        .bottom-nav-item.nav-center-btn i {
-            color: white;
-            font-size: 1.2rem;
-            transform: none !important;
-        }
-
+        .bottom-nav-item.nav-center-btn i { color: white; font-size: 1.2rem; transform: none !important; }
         .bottom-nav-item.nav-center-btn.active .nav-icon-wrap,
         .bottom-nav-item.nav-center-btn:active .nav-icon-wrap {
-            transform: scale(1.1);
-            box-shadow: 0 6px 18px rgba(25, 135, 84, 0.5);
+            transform: scale(1.1); box-shadow: 0 6px 18px rgba(25, 135, 84, 0.5);
         }
+        .bottom-nav-item.nav-center-btn.active { background: transparent; color: #198754; }
 
-        .bottom-nav-item.nav-center-btn.active {
-            background: transparent;
-            color: #198754;
-        }
-
-        /* Hover effect لـ desktop */
         @media (hover: hover) {
-            .bottom-nav-item:not(.nav-center-btn):hover {
-                color: #198754;
-                background: rgba(25, 135, 84, 0.06);
-            }
-            .bottom-nav-item:not(.nav-center-btn):hover i {
-                transform: translateY(-2px);
-            }
+            .bottom-nav-item:not(.nav-center-btn):hover { color: #198754; background: rgba(25, 135, 84, 0.06); }
+            .bottom-nav-item:not(.nav-center-btn):hover i { transform: translateY(-2px); }
         }
-        /* ─── تسريع حركة التقليب في كروت أسماء الله الحسنى ─── */
-        #namesCarousel .carousel-item {
-            transition: transform 0.25s ease-in-out !important;
-        }
-        /* Active press effect */
-        .bottom-nav-item:active:not(.nav-center-btn) {
-            transform: scale(0.92);
-        }
+        #namesCarousel .carousel-item { transition: transform 0.25s ease-in-out !important; }
+        .bottom-nav-item:active:not(.nav-center-btn) { transform: scale(0.92); }
 
-        /* نقطة الإشعار */
         .nav-badge {
-            position: absolute;
-            top: 4px;
-            left: 50%;
-            transform: translateX(6px);
-            width: 7px;
-            height: 7px;
-            background: #ef4444;
-            border-radius: 50%;
-            border: 1.5px solid #fff;
+            position: absolute; top: 4px; left: 50%; transform: translateX(6px);
+            width: 7px; height: 7px; background: #ef4444; border-radius: 50%; border: 1.5px solid #fff;
         }
-
-        [data-theme="dark"] .nav-badge {
-            border-color: #1a1a1a;
-        }
+        [data-theme="dark"] .nav-badge { border-color: #1a1a1a; }
 
         body {
-          
             background-color: #ffffff;
             padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
         }
+        body.fullscreen-reading {
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            overflow: hidden !important;
+        }
         [data-theme="dark"] body { background-color: #121212; }
-        [data-reading="night"] body,
-        [data-reading="night"]   { background-color: #0d1b0f !important; }
 
-        /* ستايل دعاء الختمة */
         .dua-container {
-            font-family: 'Amiri', serif;
-            font-size: 1.3rem;
-            line-height: 2.2;
-            text-align: justify;
-            text-align-last: center;
+            font-family: 'Amiri', serif; font-size: 1.3rem; line-height: 2.2;
+            text-align: justify; text-align-last: center;
         }
 
-        /* ─── 🕋 Qibla & Tasbeeh Styles ─── */
         .qibla-compass {
-            width: 250px;
-            height: 250px;
-            border-radius: 50%;
-            border: 8px solid #198754;
-            position: relative;
-            margin: 0 auto;
+            width: 250px; height: 250px; border-radius: 50%; border: 8px solid #198754;
+            position: relative; margin: 0 auto;
             background: url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="48" fill="none" stroke="%23ccc" stroke-width="1"/><line x1="50" y1="0" x2="50" y2="100" stroke="%23ccc" stroke-width="1"/><line x1="0" y1="50" x2="100" y2="50" stroke="%23ccc" stroke-width="1"/></svg>') center/cover;
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
         .qibla-dial {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            position: relative;
-            transition: transform 0.1s ease-out;
+            width: 100%; height: 100%; border-radius: 50%; position: relative; transition: transform 0.1s ease-out;
         }
         .qibla-kaaba {
-            position: absolute;
-            top: -20px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 2.5rem;
-            color: #1a1a1a;
-            z-index: 10;
+            position: absolute; top: -20px; left: 50%; transform: translateX(-50%);
+            font-size: 2.5rem; color: #1a1a1a; z-index: 10;
         }
         .qibla-needle {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            height: 100px;
-            width: 4px;
-            background: linear-gradient(to top, transparent 50%, #d33 50%);
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            height: 100px; width: 4px; background: linear-gradient(to top, transparent 50%, #d33 50%);
         }
 
         .tasbeeh-circle {
-            width: 200px;
-            height: 200px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #1e5f31, #198754);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 4rem;
-            font-weight: bold;
-            font-family: Arial, sans-serif;
-            margin: 0 auto;
-            box-shadow: 0 10px 20px rgba(25, 135, 84, 0.4);
-            cursor: pointer;
-            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
+            width: 200px; height: 200px; border-radius: 50%;
+            background: linear-gradient(135deg, #1e5f31, #198754); color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 4rem; font-weight: bold; font-family: Arial, sans-serif;
+            margin: 0 auto; box-shadow: 0 10px 20px rgba(25, 135, 84, 0.4);
+            cursor: pointer; transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none; -webkit-tap-highlight-color: transparent;
         }
         .tasbeeh-circle:active {
-            transform: scale(0.92);
-            box-shadow: 0 5px 10px rgba(25, 135, 84, 0.4);
+            transform: scale(0.92); box-shadow: 0 5px 10px rgba(25, 135, 84, 0.4);
             background: linear-gradient(135deg, #145a28, #145a28);
         }
-    </style> 
+
+        /* ===================================================
+           ─── 5. الانغماس التام أثناء التمرير التلقائي ─── 
+        =================================================== */
+        
+        /* تأثير النعومة (Fade) للقوائم */
+        body.fullscreen-reading #mushaf-header,
+        body.fullscreen-reading #quran-controls,
+        body.fullscreen-reading #fullscreen-exit-btn {
+            transition: all 0.4s ease-in-out !important;
+            opacity: 1 !important; /* تأكيد ظهورهم في الوضع الطبيعي */
+            pointer-events: auto !important;
+        }
+
+        /* 🔥 السحر: إخفاء القوائم تماماً أثناء التمرير 🔥 */
+        body.fullscreen-reading.is-autoscrolling #mushaf-header,
+        body.fullscreen-reading.is-autoscrolling #fullscreen-exit-btn {
+            opacity: 0 !important;
+            pointer-events: none !important;
+            transform: translateY(-15px) !important;
+        }
+
+        /* الكبسولة لازم تحافظ على توسيطها وهي بتختفي */
+        body.fullscreen-reading.is-autoscrolling #quran-controls {
+            opacity: 0 !important;
+            pointer-events: none !important;
+            transform: translateX(-50%) translateY(20px) !important; 
+        }
+
+        /* 🌟 تصميم زجاجي احترافي لأزرار التمرير (الإيقاف والسرعة) 🌟 */
+        /* 🔥 تم رفع الـ z-index لـ 10020 عشان تظهر فوق الصفحة البيضاء إجبارياً 🔥 */
+        body.fullscreen-reading #autoscroll-fab {
+            background: rgba(25, 135, 84, 0.6) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(25, 135, 84, 0.3) !important;
+            bottom: 30px !important;
+            right: 20px !important;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+            z-index: 10021 !important; 
+        }
+
+        body.fullscreen-reading #autoscroll-controls {
+            position: fixed !important;
+            bottom: 30px !important;
+            left: 20px !important;
+            background: rgba(255, 255, 255, 0.7) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(25, 135, 84, 0.2) !important;
+            border-radius: 30px !important;
+            padding: 5px 15px !important;
+            z-index: 10020 !important; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+            display: flex;
+            gap: 10px;
+        }
+
+        /* 🌙 الوضع الليلي للأزرار الزجاجية 🌙 */
+        [data-reading="night"] body.fullscreen-reading #autoscroll-controls,
+        [data-theme="dark"] body.fullscreen-reading #autoscroll-controls {
+            background: rgba(20, 20, 20, 0.6) !important;
+            border: 1px solid rgba(129, 199, 132, 0.15) !important;
+        }
+        [data-reading="night"] body.fullscreen-reading #autoscroll-controls button,
+        [data-theme="dark"] body.fullscreen-reading #autoscroll-controls button,
+        [data-reading="night"] body.fullscreen-reading #autoscroll-controls span,
+        [data-theme="dark"] body.fullscreen-reading #autoscroll-controls span {
+            color: #81c784 !important;
+        }
+
+
+    /* ===================================================
+           ─── 6. أنيميشن النقر المزدوج (الحفظ السريع) ─── 
+        =================================================== */
+        .double-tap-icon {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            font-size: 7rem;
+            color: rgba(212, 175, 55, 0.9); /* لون ذهبي فخم */
+            z-index: 10050;
+            pointer-events: none; /* عشان ميعطلش اللمس */
+            opacity: 0;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease-out;
+            text-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .double-tap-icon.animate-pop {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+
+    /* ===================================================
+           ─── 7. تنسيق أزرار التمرير (النسخة النهائية للأماكن) ─── 
+        =================================================== */
+
+        /* 🌟 الخصائص المشتركة (منع التداخل وإلغاء أي توسيط قديم) 🌟 */
+        body.fullscreen-reading #quran-controls,
+        body.fullscreen-reading #autoscroll-controls,
+        body.fullscreen-reading #autoscroll-fab {
+            position: fixed !important;
+            top: calc(55px + env(safe-area-inset-top, 0px)) !important; 
+            bottom: auto !important;
+            z-index: 10050 !important;
+            margin: 0 !important; 
+            /* 🔥 السطر السحري لقتل أي توسيط قديم معلق في المتصفح 🔥 */
+            transform: none !important; 
+            background: rgba(255, 255, 255, 0.7) !important; 
+            backdrop-filter: none !important; 
+            border: 1px solid rgba(25, 135, 84, 0.2) !important; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+            box-sizing: border-box !important;
+        }
+
+        /* 1. كبسولة السرعة (+ و -) (أقصى اليسار) */
+        body.fullscreen-reading #autoscroll-controls {
+            left: max(10px, env(safe-area-inset-left)) !important; 
+            right: auto !important; 
+            border-radius: 30px !important;
+            padding: 0 12px !important;
+            height: 36px !important;
+            color: #1e5f31 !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+
+        /* 2. كبسولة "تمرير / وضع ليلي" (بجوار كبسولة السرعة) */
+        body.fullscreen-reading #quran-controls {
+            /* 🔥 115 بيكسل كافية جداً لتفادي كبسولة السرعة 🔥 */
+            left: calc(15px + env(safe-area-inset-left, 0px)) !important; 
+            right: auto !important;
+            border-radius: 30px !important; 
+            padding: 4px 14px !important; 
+            width: max-content !important;
+            height: 36px !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+
+        /* 3. زر الإيقاف الأحمر (على أقصى اليمين) */
+        body.fullscreen-reading #autoscroll-fab {
+            left: auto !important;
+            right: max(15px, env(safe-area-inset-right)) !important; 
+            width: 36px !important;
+            height: 36px !important;
+            border-radius: 50% !important;
+            padding: 0 !important;
+            background: rgba(220, 53, 69, 0.15) !important; 
+            border-color: rgba(220, 53, 69, 0.2) !important;
+            color: #dc3545 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 1rem !important;
+        }
+
+        /* تنسيقات المحتوى الداخلي للزراير */
+        #btn-autoscroll {
+            background: transparent !important;
+            border: none !important;
+            color: #1e5f31 !important;
+            font-weight: 700 !important;
+            font-size: 0.95rem !important;
+            padding: 0 4px !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 6px !important; 
+            white-space: nowrap !important;
+        }
+        
+        #autoscroll-controls button {
+            font-size: 1.15rem !important;
+            padding: 0 8px !important;
+            background: transparent !important;
+            border: none !important;
+            color: #1e5f31 !important;
+            font-weight: bold !important;
+        }
+        
+        #scroll-speed-label {
+            font-size: 1.05rem !important;
+            font-weight: bold !important;
+            margin: 0 6px !important;
+        }
+
+        /* 🌟 الوضع الليلي (Dark Mode) 🌟 */
+        [data-reading="night"] #header-night-icon::before,
+        [data-theme="dark"] #header-night-icon::before {
+            content: "\f185" !important; 
+            color: #ffd54f !important; 
+        }
+
+        [data-reading="night"] #quran-controls,
+        [data-theme="dark"] #quran-controls,
+        [data-reading="night"] #autoscroll-controls,
+        [data-theme="dark"] #autoscroll-controls {
+            background: rgba(18, 18, 18, 0.6) !important; 
+            border-color: rgba(129, 199, 132, 0.2) !important;
+            color: #81c784 !important;
+        }
+        
+        [data-reading="night"] #autoscroll-controls button,
+        [data-theme="dark"] #autoscroll-controls button {
+             color: #81c784 !important;
+        }
+
+        [data-reading="night"] #autoscroll-fab,
+        [data-theme="dark"] #autoscroll-fab {
+            background: rgba(220, 53, 69, 0.15) !important;
+            border-color: rgba(220, 53, 69, 0.3) !important;
+            color: #ff8a80 !important;
+        }
+
+        [data-reading="night"] #btn-autoscroll,
+        [data-theme="dark"] #btn-autoscroll {
+            color: #81c784 !important;
+        }
+        /* 🔍 زرار بحث السور */
+.surah-search-wrapper { padding: 0; }
+
+.surah-search-box {
+    display: flex; align-items: center;
+    background: #ffffff;
+    border: 2px solid #e8f5e9;
+    border-radius: 16px;
+    padding: 10px 16px; gap: 10px;
+    box-shadow: 0 4px 20px rgba(30,95,49,0.10), 0 1px 4px rgba(0,0,0,0.04);
+    transition: border-color 0.25s, box-shadow 0.25s;
+}
+.surah-search-box:focus-within {
+    border-color: #1e5f31;
+    box-shadow: 0 4px 24px rgba(30,95,49,0.18);
+}
+.surah-search-icon {
+    color: #1e5f31; font-size: 1rem; flex-shrink: 0;
+    transition: transform 0.2s;
+}
+.surah-search-box:focus-within .surah-search-icon { transform: scale(1.15); }
+.surah-search-input {
+    flex: 1; 
+    min-width: 0 !important; /* 🔥 السطر السحري اللي بيجبر مربع البحث يصغر وميمطش الشاشة 🔥 */
+    border: none; outline: none; background: transparent;
+    font-family: 'Amiri', serif; font-size: 1.05rem; color: #1a1a1a;
+    direction: rtl; text-align: right;
+}
+.surah-search-input::placeholder { color: #aaa; font-size: 0.95rem; }
+.surah-search-clear {
+    background: #f0f0f0; border: none; border-radius: 50%;
+    width: 26px; height: 26px; display: flex; align-items: center;
+    justify-content: center; cursor: pointer; color: #888;
+    font-size: 0.75rem; flex-shrink: 0; transition: background 0.2s, color 0.2s;
+    position: relative;   /* ← أضف */
+    z-index: 1;           /* ← أضف */
+    margin-left: auto;    /* ← أضف */
+}
+.surah-search-clear:hover { background: #1e5f31; color: white; }
+.surah-search-count {
+    text-align: right; font-size: 0.8rem; color: #1e5f31;
+    margin-top: 6px; padding-right: 6px; font-family: 'Amiri', serif;
+}
+[data-theme="dark"] .surah-search-box { background: #1a1a1a; border-color: #2a3a2a; }
+[data-theme="dark"] .surah-search-box:focus-within { border-color: #4ade80; }
+[data-theme="dark"] .surah-search-input { color: #e0e0e0; }
+[data-theme="dark"] .surah-search-clear { background: #2a2a2a; color: #aaa; }
+[data-theme="dark"] .surah-search-count { color: #4ade80; }
+.surah-card-hidden { display: none !important; }
+/* ===================================================
+           ─── 8. التجاوب الشامل (تابلت / آيباد / كمبيوتر) ─── 
+           نسخة كلاسيكية ومستقرة (بدون Flexbox) لمنع تشوه الصفحة
+        =================================================== */
+        
+        @media (min-width: 768px) {
+            /* 1. خلفية الشاشة الخارجية (الرمادي) */
+            body.fullscreen-reading {
+                background-color: #f0f2f5 !important;
+                padding-bottom: 0 !important; /* إلغاء مساحة النافبار */
+            }
+
+            /* 2. المصحف (البرواز والخلفية الذهبية) */
+            body.fullscreen-reading #quran-book {
+                width: 100% !important;
+                max-width: 850px !important;
+                margin: 0 auto !important;
+                
+                /* 🔥 السر هنا: عرض طبيعي جداً بس بيمتد لآخر الشاشة 🔥 */
+                min-height: 100vh !important;
+                display: block !important; /* إلغاء الـ flex اللي بوظ الشكل */
+                
+                /* استعادة الشكل الأصلي للورقة */
+                background-color: #ffffff !important;
+                /* background-image: var(--quran-bg-image) !important; */
+                background-repeat: repeat !important;
+                border-left: 2px solid var(--quran-border-color) !important;
+                border-right: 2px solid var(--quran-border-color) !important;
+                box-shadow: 0 0 50px rgba(0,0,0,0.15) !important;
+            }
+
+            /* 3. حاوية الآيات (شفافة بالكامل عشان البرواز يبان من تحتها) */
+            body.fullscreen-reading #ayahs-container {
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 40px 45px 80px 45px !important;
+                
+                background: transparent !important; /* إخفاء اللون الأبيض */
+                border: none !important;
+                box-shadow: none !important;
+                display: block !important; /* بدون flex */
+            }
+
+            /* 4. تكبير الخط */
+            body.fullscreen-reading .quran-page-content {
+                font-size: clamp(32px, 3.5vw, 42px) !important; 
+                line-height: 2.4 !important;
+                text-align: justify !important;
+            }
+
+            /* 5. الوضع الليلي */
+            [data-theme="dark"] body.fullscreen-reading,
+            [data-reading="night"] body.fullscreen-reading {
+                background-color: #050505 !important;
+            }
+
+            [data-theme="dark"] body.fullscreen-reading #quran-book,
+            [data-reading="night"] body.fullscreen-reading #quran-book {
+                border-left-color: rgba(129, 199, 132, 0.4) !important;
+                border-right-color: rgba(129, 199, 132, 0.4) !important;
+                box-shadow: 0 0 50px rgba(0,0,0,0.8) !important;
+                background-color: #121212 !important;
+                background-image: none !important;
+            }
+
+            /* 6. تثبيت الأزرار على الجوانب */
+            body.fullscreen-reading #quran-controls,
+            body.fullscreen-reading #autoscroll-controls,
+            body.fullscreen-reading #autoscroll-fab {
+                position: fixed !important;
+                z-index: 100000 !important; 
+            }
+            body.fullscreen-reading #quran-controls { left: 30px !important; }
+            body.fullscreen-reading #autoscroll-controls { left: 145px !important; }
+            body.fullscreen-reading #autoscroll-fab { right: 30px !important; }
+        }
+    </style>
 <style id="navbar-critical-fix">
 nav#main-navbar {
     background-color: #1e5f31 !important;
@@ -685,6 +1055,9 @@ nav#main-navbar {
     padding-top: env(safe-area-inset-top) !important;
     margin-top: 0 !important;
     background-color: #1e5f31 !important;
+}
+body.fullscreen-reading nav#main-navbar {
+    display: none !important;
 }
 </style>
     <script
@@ -739,7 +1112,7 @@ nav#main-navbar {
         <div id="home-section">
             <div class="row justify-content-center text-center mb-4">
                 <div class="col-lg-8">
-                    <h1 class="display-6 fw-bold text-success">مرحباً بك في اقرأ 📖</h1>
+                   <h1 id="main-greeting" class="display-6 fw-bold text-success">مرحباً بك في اقرأ 📖</h1>
                     <div class="mt-3 bg-light p-3 rounded shadow-sm border-start border-success border-4">
                         <h5 id="hijri-date" class="text-muted mb-2 small"></h5>
                         <h6 id="location-name" class="text-success fw-bold small">جارى جلب مواقيت الصلاه...</h6>
@@ -1335,6 +1708,26 @@ nav#main-navbar {
                     <i class="fas fa-arrow-right"></i> القائمة الرئيسية
                 </button>
 
+                 <!-- 🔍 زرار البحث الشيك -->
+                <div class="surah-search-wrapper mb-3">
+                    <div class="surah-search-box" id="surahSearchBox">
+                        <i class="fas fa-search surah-search-icon"></i>
+                        <input
+                            type="text"
+                            id="surah-search-input"
+                            class="surah-search-input"
+                            placeholder="ابحث عن سورة..."
+                            oninput="filterSurahIndex(this.value)"
+                            autocomplete="off"
+                        />
+                        <button class="surah-search-clear" id="surahSearchClear" onclick="clearSurahSearch()" style="display:none;">
+
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="surah-search-count" class="surah-search-count d-none"></div>
+                </div>
+
                 <div class="btn-group mb-4 w-100" role="group">
                     <button class="btn btn-success active" id="tab-surahs" onclick="switchIndexTab('surahs')">
                         <i class="fas fa-list me-1"></i> السور
@@ -1352,6 +1745,10 @@ nav#main-navbar {
 
                 <div id="view-surahs">
                     <div id="surah-index-list" class="row g-3"></div>
+                    <div id="surah-no-results" class="d-none text-center py-5">
+        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+        <p class="text-muted">لم يتم العثور على سورة بهذا الاسم</p>
+    </div>
                 </div>
 
                 <div id="view-juz" class="d-none">
@@ -1568,9 +1965,24 @@ nav#main-navbar {
                     <button id="btn-night-mode" class="btn btn-sm btn-outline-secondary rounded-pill px-3" style="font-size:0.78rem;" onclick="toggleNightMode()" title="وضع القراءة الليلية">
                         <i class="fas fa-moon me-1"></i> ليلي
                     </button>
+                    <!-- ملء الشاشة -->
+<button id="btn-fullscreen" class="btn btn-sm btn-outline-secondary rounded-pill px-3" style="font-size:0.78rem;" onclick="window.toggleQuranFullScreen()" title="قراءة بملء الشاشة">
+    <i class="fas fa-expand me-1"></i> شاشة كاملة
+</button>
+<div class="d-flex align-items-center bg-white border rounded-pill shadow-sm ms-1 px-1">
+        <button id="btn-autoscroll-normal" class="btn btn-sm text-secondary fw-bold" onclick="window.toggleAutoScroll()" style="font-size:0.78rem; border:none; background:transparent;">
+            <i class="fas fa-scroll me-1"></i> تمرير
+        </button>
+
+        <div id="autoscroll-controls-normal" class="d-none align-items-center border-start ps-1 ms-1">
+            <button class="btn btn-sm p-0" onclick="window.changeScrollSpeed(-1)" style="font-size:1.1rem; border:none; background:transparent;">🐢</button>
+            <span id="scroll-speed-label-normal" class="mx-1 fw-bold text-success" style="font-size:1rem;min-width:15px;text-align:center;">2</span>
+            <button class="btn btn-sm p-0" onclick="window.changeScrollSpeed(+1)" style="font-size:1.1rem; border:none; background:transparent;">🐇</button>
+        </div>
+    </div>
 
                     <!-- تمرير تلقائي -->
-                    <div class="autoscroll-container d-flex align-items-center bg-white border rounded-pill shadow-sm">
+                    <!-- <div class="autoscroll-container d-flex align-items-center bg-white border rounded-pill shadow-sm">
     <button id="btn-autoscroll" class="btn btn-autoscroll-toggle text-muted" onclick="toggleAutoScroll()">
         <i class="fas fa-scroll me-1"></i> تمرير تلقائي
     </button>
@@ -1580,13 +1992,36 @@ nav#main-navbar {
         <span id="scroll-speed-label" class="speed-label">2</span>
         <button class="btn btn-speed-control" onclick="changeScrollSpeed(+1)">🐇</button>
     </div>
-</div>
+</div> -->
 
                 </div>
                 <!-- ══ نهاية شريط الأدوات ══ -->
-                <div id="quran-book" class="position-relative mx-auto bg-white rounded shadow-sm p-3 mb-3" style="min-height: 500px;">
-                    <div id="ayahs-container"></div>
-                </div>
+              
+           <div id="quran-book" class="position-relative mx-auto bg-white rounded shadow-sm p-3 mb-3" style="min-height: unset;">
+   <div id="mushaf-header" class="d-flex justify-content-between align-items-center w-100">
+        
+        <div class="d-flex align-items-center justify-content-start" style="flex: 1;">
+            <span id="mh-surah" style="font-weight: bold; font-size: 1.2rem; color: #1e5f31;">سورة ...</span>
+        </div>
+
+        <div class="d-flex align-items-center justify-content-center" style="flex: 1;">
+            <span id="mh-juz" style="font-weight: bold; font-size: 1rem; color: #1e5f31;">الجزء ...</span>
+        </div>
+
+        <div class="d-flex align-items-center justify-content-end gap-3" style="flex: 1;">
+            <button onclick="toggleNightMode()" style="background: transparent; border: none; outline: none; cursor: pointer; padding: 0; display: flex; align-items: center;">
+                <i class="fas fa-moon fs-5" id="header-night-icon" style="color: #1e5f31; transition: 0.3s;"></i>
+            </button>
+
+            <button id="fullscreen-exit-btn" onclick="window.toggleQuranFullScreen()" style="position: relative !important; top: 0 !important; right: 0 !important; left: 0 !important; background: rgba(220, 53, 69, 0.1); color: #dc3545; border: 1px solid rgba(220, 53, 69, 0.3); border-radius: 20px; padding: 4px 12px; font-weight: bold; font-size: 0.8rem; display: flex; align-items: center; gap: 5px; margin: 0 !important;">
+                <i class="fas fa-times"></i>
+                <span>خروج</span>
+            </button>
+        </div>
+    </div>
+    
+    <div id="ayahs-container"></div>
+</div>
                 
                 <div id="khatmah-dua-btn-container" class="d-none mb-3">
                     <button class="btn btn-warning w-100 py-2 fw-bold shadow-sm" onclick="showSection('khatmah-dua')">
@@ -1611,9 +2046,10 @@ nav#main-navbar {
             </div>
         </div>
 
-        <button id="autoscroll-fab" onclick="toggleAutoScroll()" title="إيقاف التمرير التلقائي">
+        <!-- <button id="autoscroll-fab" onclick="toggleAutoScroll()" title="إيقاف التمرير التلقائي">
             <i class="fas fa-pause"></i>
-        </button>
+        </button> -->
+        
 
         <div id="reciters-section" class="d-none">
             <div class="d-flex align-items-center mb-3">
@@ -1864,6 +2300,26 @@ nav#main-navbar {
 
     </div>
 
+    <div id="quran-controls" style="display: none; position: fixed; z-index: 10020; pointer-events: none;">
+        <button id="btn-autoscroll" style="pointer-events: auto; appearance: none !important; -webkit-appearance: none !important; outline: none; cursor: pointer; -webkit-tap-highlight-color: transparent;" onclick="window.toggleAutoScroll()">
+            <i class="fas fa-scroll me-1"></i> تمرير
+        </button>
+    </div>
+
+    <button id="autoscroll-fab" onclick="window.toggleAutoScroll()" style="display: none !important; position: fixed; z-index: 10020; appearance: none !important; -webkit-appearance: none !important; outline: none; cursor: pointer; -webkit-tap-highlight-color: transparent;">
+        <i class="fas fa-pause"></i>
+    </button>
+
+    <div id="autoscroll-controls" style="display: none !important; position: fixed; z-index: 10020; align-items: center; justify-content: space-between; gap: 5px;">
+        <button onclick="window.changeScrollSpeed(-1)" style="appearance: none !important; -webkit-appearance: none !important; border: none !important; background: transparent !important; color: inherit; outline: none; cursor: pointer; -webkit-tap-highlight-color: transparent;">
+            <i class="fas fa-minus"></i>
+        </button>
+        <span id="scroll-speed-label" class="fw-bold" style="min-width: 15px; text-align: center; color: inherit;">2</span>
+        <button onclick="window.changeScrollSpeed(1)" style="appearance: none !important; -webkit-appearance: none !important; border: none !important; background: transparent !important; color: inherit; outline: none; cursor: pointer; -webkit-tap-highlight-color: transparent;">
+            <i class="fas fa-plus"></i>
+        </button>
+    </div>
+
     <nav class="bottom-nav" id="bottom-nav">
         <button class="bottom-nav-item active" id="bnav-home" onclick="showSection('home'); setActiveNav('bnav-home')">
             <i class="fas fa-home"></i>
@@ -1926,68 +2382,91 @@ const analytics = getAnalytics(app);
          ─── Modal: شرح علامات صفحة المصحف ────────────
     ══════════════════════════════════════════════ -->
 <div class="modal fade" id="modal-quran-icons" tabindex="-1" aria-hidden="true" dir="rtl">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content border-0 shadow-lg" style="border-radius:20px;overflow:hidden;background:#ffffff !important;">
+      
       <div style="background:linear-gradient(135deg,#1e5f31,#198754);padding:28px 24px 20px;text-align:center;color:white;">
         <div style="width:64px;height:64px;background:rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
-          <i class="fas fa-hand-pointer" style="font-size:1.8rem;"></i>
+          <i class="fas fa-magic" style="font-size:1.8rem;"></i>
         </div>
-        <h5 class="fw-bold mb-1" style="font-size:1.3rem;color:#ffffff !important;">كيفية التفاعل مع الآيات</h5>
-        <p class="mb-0" style="font-size:0.9rem;font-weight:600;color:#e8f5e9 !important;">اضغط على أي آية لفتح قائمة الخيارات</p>
+        <h5 class="fw-bold mb-1" style="font-size:1.3rem;color:#ffffff !important;">دليل القراءة الذكية</h5>
+        <p class="mb-0" style="font-size:0.9rem;font-weight:600;color:#e8f5e9 !important;">اكتشف كيف تتفاعل مع المصحف بسهولة</p>
       </div>
 
       <div class="modal-body p-4" style="background:#ffffff !important;">
         
         <div class="mb-4">
-          <div class="fw-bold mb-3" style="font-size:0.95rem;color:#1e5f31 !important;">
-            <i class="fas fa-layer-group me-1"></i> عند الضغط على الآية يمكنك:
+          <div class="fw-bold mb-3 pb-2" style="font-size:1rem;color:#1e5f31 !important; border-bottom: 2px dashed #e0e0e0;">
+            <i class="fas fa-hand-pointer me-1"></i> إيماءات اللمس السريعة:
           </div>
           <div class="d-flex flex-column gap-3 ps-2">
             
             <div class="d-flex align-items-start gap-2">
-              <div style="width:24px;text-align:center"><i class="fas fa-book-open text-success fs-5"></i></div>
-              <div style="font-size:0.9rem;color:#333333 !important;"><strong style="color:#222222 !important;">عرض التفسير:</strong> قراءة التفسير الميسر للآية.</div>
+              <div style="width:30px;text-align:center"><i class="far fa-hand-point-up text-primary fs-5"></i></div>
+              <div style="font-size:0.9rem;color:#333333 !important;">
+                <strong style="color:#222222 !important; display:block; margin-bottom:2px;">ضغطة واحدة:</strong> 
+                تفتح قائمة الخيارات (تحديث الختمة، الإضاءات، المشاركة).
+              </div>
             </div>
 
             <div class="d-flex align-items-start gap-2">
-              <div style="width:24px;text-align:center"><i class="fas fa-lightbulb fs-5" style="color:#9c27b0 !important;"></i></div>
-              <div style="font-size:0.9rem;color:#333333 !important;"><strong style="color:#222222 !important;">إضاءات وتأملات:</strong> استكشاف المعاني، القصص، والدروس المستفادة من الآيات.</div>
+              <div style="width:30px;text-align:center"><i class="fas fa-stopwatch text-info fs-5"></i></div>
+              <div style="font-size:0.9rem;color:#333333 !important;">
+                <strong style="color:#222222 !important; display:block; margin-bottom:2px;">ضغطة مطولة (أكثر من نصف ثانية):</strong> 
+                تعرض لك <strong>التفسير الميسر</strong> للآية مباشرة وبشكل سريع.
+              </div>
             </div>
 
             <div class="d-flex align-items-start gap-2">
-              <div style="width:24px;text-align:center"><i class="fas fa-flag text-primary fs-5"></i></div>
-              <div style="font-size:0.9rem;color:#333333 !important;"><strong style="color:#222222 !important;">تحديث الختمة:</strong> حفظ مكان وقوفك لتعود إليه لاحقاً.</div>
-            </div>
-
-            <div class="d-flex align-items-start gap-2">
-              <div style="width:24px;text-align:center"><i class="far fa-bookmark text-warning fs-5"></i></div>
-              <div style="font-size:0.9rem;color:#333333 !important;"><strong style="color:#222222 !important;">علامة مرجعية:</strong> حفظ الآية في مفضلتك للرجوع لها.</div>
-            </div>
-
-            <div class="d-flex align-items-start gap-2">
-              <div style="width:24px;text-align:center"><i class="fas fa-share-alt text-info fs-5"></i></div>
-              <div style="font-size:0.9rem;color:#333333 !important;"><strong style="color:#222222 !important;">المشاركة والنسخ:</strong> إرسال الآية كصورة جميلة أو نسخ نصها.</div>
+              <div style="width:30px;text-align:center"><i class="fas fa-heart text-danger fs-5"></i></div>
+              <div style="font-size:0.9rem;color:#333333 !important;">
+                <strong style="color:#222222 !important; display:block; margin-bottom:2px;">نقر مزدوج (Double Tap):</strong> 
+                حفظ سريع للآية في <strong>العلامات المرجعية 🔖</strong> لسهولة العودة إليها.
+              </div>
             </div>
 
           </div>
         </div>
 
-        <div style="height:1px;background:#e0e0e0 !important;"></div>
+        <div class="mb-4">
+          <div class="fw-bold mb-3 pb-2" style="font-size:1rem;color:#1e5f31 !important; border-bottom: 2px dashed #e0e0e0;">
+            <i class="fas fa-glasses me-1"></i> أدوات الراحة والانغماس:
+          </div>
+          <div class="d-flex flex-column gap-3 ps-2">
+            
+            <div class="d-flex align-items-start gap-2">
+              <div style="width:30px;text-align:center"><i class="fas fa-expand text-success fs-5"></i></div>
+              <div style="font-size:0.9rem;color:#333333 !important;">
+                <strong style="color:#222222 !important; display:block; margin-bottom:2px;">الشاشة الكاملة:</strong> 
+                تخفي القوائم لقراءة بدون تشتيت، مع <strong>منع انطفاء الشاشة</strong> تلقائياً.
+              </div>
+            </div>
 
-        <div class="mt-4 p-3" style="border-radius:12px;background:#f1f8e9 !important;border:1px solid #c8e6c9 !important;">
+            <div class="d-flex align-items-start gap-2">
+              <div style="width:30px;text-align:center"><i class="fas fa-scroll text-secondary fs-5"></i></div>
+              <div style="font-size:0.9rem;color:#333333 !important;">
+                <strong style="color:#222222 !important; display:block; margin-bottom:2px;">التمرير التلقائي:</strong> 
+                تتحرك الصفحة لوحدها بالسرعة التي تناسبك دون الحاجة للمس الشاشة.
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="mt-2 p-3" style="border-radius:12px;background:#f1f8e9 !important;border:1px solid #c8e6c9 !important;">
           <div class="fw-bold mb-2" style="font-size:0.9rem;color:#1e5f31 !important;">
-            <i class="fas fa-eye me-1"></i> دلالة الرموز بجوار رقم الآية:
+            <i class="fas fa-eye me-1"></i> ماذا تعني الرموز بجوار الآيات؟
           </div>
           <div class="d-flex flex-column gap-2 mt-3">
             <div class="d-flex align-items-center gap-2">
               <span style="color:#d4af37 !important;border:1px solid #d4af37;border-radius:50%;padding:0 5px;font-size:0.8em;font-family:sans-serif;">١</span>
               <i class="fas fa-bookmark" style="color:#d4af37 !important;font-size:0.9em;"></i>
-              <span style="font-size:0.85rem;color:#333333 !important;">تعني أن هذه الآية <strong style="color:#222222 !important;">محفوظة كعلامة</strong>.</span>
+              <span style="font-size:0.85rem;color:#333333 !important;">هذه الآية <strong style="color:#222222 !important;">محفوظة في علاماتك</strong>.</span>
             </div>
             <div class="d-flex align-items-center gap-2 mt-1">
               <span style="color:#d4af37 !important;border:1px solid #d4af37;border-radius:50%;padding:0 5px;font-size:0.8em;font-family:sans-serif;">٢</span>
               <i class="fas fa-flag" style="color:#198754 !important;font-size:0.9em;"></i>
-              <span style="font-size:0.85rem;color:#333333 !important;">تعني أن هذا هو <strong style="color:#222222 !important;">موضع ختمتك</strong> الحالي.</span>
+              <span style="font-size:0.85rem;color:#333333 !important;">هذا هو <strong style="color:#222222 !important;">موضع ختمتك</strong> الحالي.</span>
             </div>
           </div>
         </div>
@@ -1995,8 +2474,8 @@ const analytics = getAnalytics(app);
       </div>
 
       <div class="modal-footer border-0 pb-4 pt-0 px-4" style="background:#ffffff !important;">
-        <button class="btn btn-success w-100 py-2 fw-bold" style="border-radius:12px;background:#198754 !important;color:#ffffff !important;border:none;" data-bs-dismiss="modal">
-          <i class="fas fa-check me-2"></i> فهمت، يلا نقرأ!
+        <button class="btn w-100 py-2 fw-bold" style="border-radius:12px;background:linear-gradient(135deg,#1e5f31,#198754) !important;color:#ffffff !important;border:none;box-shadow: 0 4px 10px rgba(25, 135, 84, 0.3);" data-bs-dismiss="modal">
+          <i class="fas fa-book-reader me-2"></i> فهمت، لنبدأ القراءة!
         </button>
       </div>
     </div>
@@ -2125,24 +2604,37 @@ const analytics = getAnalytics(app);
       </div>
       <div class="offcanvas-body small pt-3" style="overflow-y: auto;">
         <div class="d-flex flex-column gap-2 pb-5 mb-4">
-          <button class="btn btn-light text-start p-3 fs-6 rounded-3 action-btn-tafseer border-0 shadow-sm d-flex align-items-center" data-bs-dismiss="offcanvas">
-            <div class="bg-success bg-opacity-10 p-2 rounded-circle me-3"><i class="fas fa-book-open text-success fa-fw"></i></div> <span class="fw-bold text-dark">عرض التفسير</span>
+          
+          <button class="btn btn-light text-start p-3 fs-6 rounded-3 action-btn-tafseer border-0 shadow-sm d-flex align-items-center">
+            <div class="bg-success bg-opacity-10 p-2 rounded-circle me-3"><i class="fas fa-book-open text-success fa-fw"></i></div> 
+            <span class="fw-bold text-dark">عرض التفسير</span>
           </button>
-          <button class="btn btn-light text-start p-3 fs-6 rounded-3 action-btn-nuzul border-0 shadow-sm d-flex align-items-center" data-bs-dismiss="offcanvas">
-            <div class="bg-warning bg-opacity-10 p-2 rounded-circle me-3"><i class="fas fa-lightbulb text-warning fa-fw"></i></div> <span class="fw-bold text-dark">إضاءات وتأملات</span>
+          
+          <button class="btn btn-light text-start p-3 fs-6 rounded-3 action-btn-nuzul border-0 shadow-sm d-flex align-items-center">
+            <div class="bg-warning bg-opacity-10 p-2 rounded-circle me-3"><i class="fas fa-lightbulb text-warning fa-fw"></i></div> 
+            <span class="fw-bold text-dark">إضاءات وتأملات</span>
           </button>
-          <button class="btn btn-light text-start p-3 fs-6 rounded-3 action-btn-khatmah border-0 shadow-sm d-flex align-items-center" data-bs-dismiss="offcanvas">
-            <div class="bg-primary bg-opacity-10 p-2 rounded-circle me-3"><i class="fas fa-flag text-primary fa-fw"></i></div> <span class="fw-bold text-dark">تحديث موضع الختمة</span>
+          
+          <button class="btn btn-light text-start p-3 fs-6 rounded-3 action-btn-khatmah border-0 shadow-sm d-flex align-items-center">
+            <div class="bg-primary bg-opacity-10 p-2 rounded-circle me-3"><i class="fas fa-flag text-primary fa-fw"></i></div> 
+            <span class="fw-bold text-dark">تحديث موضع الختمة</span>
           </button>
-          <button class="btn btn-light text-start p-3 fs-6 rounded-3 action-btn-bookmark border-0 shadow-sm d-flex align-items-center" data-bs-dismiss="offcanvas">
-            <div class="bg-warning bg-opacity-10 p-2 rounded-circle me-3"><i id="sheet-bookmark-icon" class="far fa-bookmark text-warning fa-fw"></i></div> <span id="sheet-bookmark-text" class="fw-bold text-dark">حفظ كعلامة مرجعية</span>
+          
+          <button class="btn btn-light text-start p-3 fs-6 rounded-3 action-btn-bookmark border-0 shadow-sm d-flex align-items-center">
+            <div class="bg-warning bg-opacity-10 p-2 rounded-circle me-3"><i id="sheet-bookmark-icon" class="far fa-bookmark text-warning fa-fw"></i></div> 
+            <span id="sheet-bookmark-text" class="fw-bold text-dark">حفظ كعلامة مرجعية</span>
           </button>
-          <button class="btn btn-light text-start p-3 fs-6 rounded-3 action-btn-share border-0 shadow-sm d-flex align-items-center" data-bs-dismiss="offcanvas">
-            <div class="bg-info bg-opacity-10 p-2 rounded-circle me-3"><i class="fas fa-share-alt text-info fa-fw"></i></div> <span class="fw-bold text-dark">مشاركة الآية كصورة</span>
+          
+          <button class="btn btn-light text-start p-3 fs-6 rounded-3 action-btn-share border-0 shadow-sm d-flex align-items-center">
+            <div class="bg-info bg-opacity-10 p-2 rounded-circle me-3"><i class="fas fa-share-alt text-info fa-fw"></i></div> 
+            <span class="fw-bold text-dark">مشاركة الآية</span>
           </button>
-          <button class="btn btn-light text-start p-3 fs-6 rounded-3 action-btn-copy border-0 shadow-sm d-flex align-items-center" data-bs-dismiss="offcanvas">
-            <div class="bg-secondary bg-opacity-10 p-2 rounded-circle me-3"><i class="fas fa-copy text-secondary fa-fw"></i></div> <span class="fw-bold text-dark">نسخ نص الآية</span>
+          
+          <button class="btn btn-light text-start p-3 fs-6 rounded-3 action-btn-copy border-0 shadow-sm d-flex align-items-center">
+            <div class="bg-secondary bg-opacity-10 p-2 rounded-circle me-3"><i class="fas fa-copy text-secondary fa-fw"></i></div> 
+            <span class="fw-bold text-dark">نسخ نص الآية</span>
           </button>
+
         </div>
       </div>
     </div>
@@ -2174,6 +2666,19 @@ const analytics = getAnalytics(app);
             const activeBtn = document.getElementById(activeId);
             if (activeBtn) activeBtn.classList.add('active');
         }
+        // ─── التحكم في شفافية ترويسة المصحف عند التمرير (الشاشة الكاملة) ───
+        // window.handleMushafScroll = function(elem) {
+        //     const header = document.getElementById('mushaf-header');
+        //     if (!header) return;
+            
+        //     // إذا قام المستخدم بالنزول للأسفل أكثر من 20 بيكسل
+        //     if (elem.scrollTop > 20) {
+        //         header.classList.add('header-transparent');
+        //     } else {
+        //         // إذا عاد لأعلى الصفحة تماماً
+        //         header.classList.remove('header-transparent');
+        //     }
+        // };
 
         document.addEventListener('DOMContentLoaded', () => {
             const sectionNavMap = {
@@ -2289,6 +2794,10 @@ function handleForgotPassword() {
 }
 
         function switchIndexTab(tab) {
+            const searchWrapper = document.querySelector('.surah-search-wrapper');
+    if (searchWrapper) {
+        searchWrapper.style.display = tab === 'surahs' ? '' : 'none';
+    }
               if (!document.getElementById('view-surahs')) return;
             const surahsView = document.getElementById('view-surahs');
             const juzView    = document.getElementById('view-juz');
@@ -2314,7 +2823,43 @@ function handleForgotPassword() {
                 if (window.loadJuzIndex) window.loadJuzIndex();
             }
         }
+          
+        // 🔍 بحث السور في الفهرس
+window.filterSurahIndex = (query) => {
+    const cards = document.querySelectorAll('#surah-index-list .col-6');
+    const clearBtn = document.getElementById('surahSearchClear');
+    const countEl = document.getElementById('surah-search-count');
+    const noResults = document.getElementById('surah-no-results');
+    const q = query.trim();
 
+    clearBtn.style.display = q.length === 0 ? 'none' : 'flex';
+
+    if (q.length === 0) {
+        cards.forEach(c => c.classList.remove('surah-card-hidden'));
+        countEl.classList.add('d-none');
+        noResults.classList.add('d-none');
+        return;
+    }
+
+    let count = 0;
+    cards.forEach(card => {
+        const name = card.querySelector('h6')?.textContent || '';
+        const num  = card.querySelector('.badge')?.textContent || '';
+        const match = name.includes(q) || num.includes(q);
+        card.classList.toggle('surah-card-hidden', !match);
+        if (match) count++;
+    });
+
+    countEl.textContent = count > 0 ? `${count} سورة` : '';
+    countEl.classList.toggle('d-none', count === 0);
+    noResults.classList.toggle('d-none', count > 0);
+};
+
+window.clearSurahSearch = () => {
+    const input = document.getElementById('surah-search-input');
+    if (input) { input.value = ''; input.focus(); }
+    window.filterSurahIndex('');
+};
         // ─── دوال وهمية مؤقتة للسبحة (سيتم استبدالها في feature.js) ───
 // window.tasbeehCount = 0;
 // window.incrementTasbeeh = window.incrementTasbeeh || function() {
