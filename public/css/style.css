@@ -402,9 +402,11 @@ footer {
 @media (max-width: 768px) {
     /* الحاوية الرئيسية */
     #ayahs-container {
-        padding: 20px 15px; /* تقليل الحواف */
+        padding: 10px 8px; /* ✅ تقليل الحواف أكثر */
         border-width: 1px; /* تخفيف الإطار */
         min-height: auto;
+        margin-top: 0 !important;
+        margin-bottom: 10px !important;
     }
 
     /* إخفاء الإطار الداخلي الذهبي في الموبايل */
@@ -1291,6 +1293,18 @@ test*/
     margin: 20px auto;
     max-width: 900px;
     transition: background-image 0.3s ease, border-color 0.3s ease; /* انتقال سلس عند تغيير الوضع */
+}
+
+/* ✅ تنسيق المصحف في الموبايل */
+@media (max-width: 768px) {
+    #quran-book {
+        padding: 12px 10px !important;
+        margin: 0 0 10px 0 !important;
+        border-radius: 8px !important;
+        border-width: 2px !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+        max-width: 100% !important;
+    }
 }
 
 /* تنسيق إضافي لصفحة المصحف داخل الكتاب لضمان قراءة مريحة */

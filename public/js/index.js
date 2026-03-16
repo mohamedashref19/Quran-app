@@ -638,6 +638,8 @@ window.checkAuth = async () => {
 };
 
 window.loadSurahIndex = () => {
+   const searchWrapper = document.querySelector('.surah-search-wrapper');
+    if (searchWrapper) searchWrapper.style.display = '';
   const container = document.getElementById('surah-index-list');
   if (!container || container.children.length > 0) return;
   surahNames.forEach((name, i) => {
@@ -755,6 +757,12 @@ const showTafseerModal = (ayahId, tafseer) => {
 // ─── showSection ──────────────────────────────────────────────────────────────
 window.showSection = async (sectionName) => {
   stopAllMedia();
+  
+  //  السطر السحري: إجبار الخروج من الشاشة الكاملة عند الانتقال لأي صفحة أخرى 
+  document.body.classList.remove('fullscreen-reading');
+  const quranBook = document.getElementById('quran-book');
+  if (quranBook) quranBook.classList.remove('no-transition');
+
   if (sectionName !== 'quran' && typeof _stopAutoScroll === 'function') _stopAutoScroll();
   document.querySelectorAll('[id$="-section"]').forEach(el => el.classList.add('d-none'));
   const target = document.getElementById(`${sectionName}-section`);
@@ -785,7 +793,7 @@ window.showSection = async (sectionName) => {
   if (window.location.pathname !== newPath) {
     window.history.pushState({ section: sectionName }, '', newPath);
   }
- if (sectionName === 'home') {
+  if (sectionName === 'home') {
   const lastCheck = window._lastAuthCheck || 0;
   if (Date.now() - lastCheck > 60000) {
     window._lastAuthCheck = Date.now();
@@ -862,10 +870,7 @@ window.showSection = async (sectionName) => {
     if (window.loadTasbeeh) window.loadTasbeeh();
   }
 
-  
-
   if (sectionName !== 'qibla') {
-
     window.removeEventListener('deviceorientationabsolute', window._qiblaOrientationHandler);
     window.removeEventListener('deviceorientation', window._qiblaOrientationHandler);
   }
@@ -1311,29 +1316,44 @@ document.addEventListener('change', (e) => {
 // ─── 13. Global Click Listener (Bottom Sheet Logic) ──────────────────────────
 let selectedVerseData = null; 
 
+function hideVerseSheet() {
+  return new Promise(resolve => {
+    const sheetEl = document.getElementById('verseActionSheet');
+    if (!sheetEl) return resolve();
+    
+    // سحب القائمة المفتوحة حالياً فقط
+    const bs = bootstrap.Offcanvas.getInstance(sheetEl);
+    if (!bs) return resolve(); // لو مش مفتوحة كمل الكود عادي
+
+    const backupTimeout = setTimeout(() => { resolve(); }, 400);
+
+    sheetEl.addEventListener('hidden.bs.offcanvas', () => {
+      clearTimeout(backupTimeout);
+      resolve();
+    }, { once: true });
+
+    bs.hide();
+  });
+}
+
 document.addEventListener('click', async (e) => {
   // 🌟 1. فتح القائمة السفلية عند الضغط على أي مكان في الآية
   const verseWrapper = e.target.closest('.verse-wrapper');
   if (verseWrapper) {
     e.preventDefault(); e.stopPropagation();
     
-    // سحب بيانات الآية من الـ HTML
     const surah = verseWrapper.dataset.surah;
     const ayah = verseWrapper.dataset.ayah;
     const rawSurahName = verseWrapper.dataset.surahname || '';
     const isBookmarked = verseWrapper.dataset.bookmarked === 'true';
     
-    // ✅ التعديل: تنظيف اسم السورة عشان كلمة "سورة" متتكررش
     const cleanSurahName = rawSurahName.replace(/سورة /g, '').replace(/سُورَةُ /g, '').trim();
     
-    // تنظيف النص لتجهيزه للنسخ أو المشاركة
     const ayahEl = document.getElementById(`ayah-${surah}-${ayah}`);
     const text = ayahEl ? ayahEl.innerText.replace(/[۩]/g, '').replace(/[٠-٩0-9]/g, '').trim() : '';
 
-    // حفظ البيانات بالاسم النظيف
     selectedVerseData = { surah, ayah, surahName: cleanSurahName, text, isBookmarked };
 
-    // تحديث النصوص داخل القائمة السفلية (Bottom Sheet)
     const sheetLabel = document.getElementById('verseActionSheetLabel');
     if(sheetLabel) sheetLabel.innerText = `سورة ${cleanSurahName} - آية ${ayah}`;
     
@@ -1349,70 +1369,82 @@ document.addEventListener('click', async (e) => {
         }
     }
 
-    // إظهار القائمة المنزلقة من الأسفل
     const sheetEl = document.getElementById('verseActionSheet');
     if (sheetEl) {
-        const bsSheet = new bootstrap.Offcanvas(sheetEl);
+        let bsSheet = bootstrap.Offcanvas.getInstance(sheetEl);
+        if (!bsSheet) bsSheet = new bootstrap.Offcanvas(sheetEl);
         bsSheet.show();
     }
     return;
   }
 
   // 🌟 2. تنفيذ الأوامر عند الضغط على الأزرار داخل القائمة السفلية
+  
+  // -- زر التفسير --
   if (e.target.closest('.action-btn-tafseer')) {
-    if (selectedVerseData) window.showTafseer(selectedVerseData.surah, selectedVerseData.ayah);
-    return;
-  }
-   if (e.target.closest('.action-btn-nuzul')) {
-    e.preventDefault();
-    
-    const sheetEl = document.getElementById('verseActionSheet');
-    if (sheetEl) {
-        const bsSheet = bootstrap.Offcanvas.getInstance(sheetEl) || new bootstrap.Offcanvas(sheetEl);
-        bsSheet.hide();
+    await hideVerseSheet();
+    if (selectedVerseData) {
+      // تجنب خطأ الاسم: تشغيل الدالة أياً كان اسمها في مشروعك
+      if (typeof window.showTafseer === 'function') window.showTafseer(selectedVerseData.surah, selectedVerseData.ayah);
+      else if (typeof window.showTafseerModal === 'function') window.showTafseerModal(selectedVerseData.surah, selectedVerseData.ayah);
+      else if (typeof showTafseerModal !== 'undefined') showTafseerModal(selectedVerseData.surah, selectedVerseData.ayah);
     }
-
-    setTimeout(() => {
-        if (selectedVerseData && window.openAyahInsights) {
-            window.openAyahInsights(selectedVerseData.surah, selectedVerseData.ayah);
-        }
-    }, 300);
-    
     return;
   }
   
+  // -- زر الإضاءات / أسباب النزول --
+  if (e.target.closest('.action-btn-nuzul')) {
+    await hideVerseSheet(); 
+    if (selectedVerseData) {
+      if (typeof window.openAyahInsights === 'function') window.openAyahInsights(selectedVerseData.surah, selectedVerseData.ayah);
+      else if (typeof window.showNuzulModal === 'function') window.showNuzulModal(selectedVerseData);
+      else if (typeof showNuzulModal !== 'undefined') showNuzulModal(selectedVerseData);
+    }
+    return;
+  }
+  
+  // -- زر العلامة المرجعية --
   if (e.target.closest('.action-btn-bookmark')) {
-    if (!await isUserLoggedIn()) { requireLogin('استخدام العلامات المرجعية'); return; }
+    await hideVerseSheet();
+    if (typeof isUserLoggedIn === 'function' && !(await isUserLoggedIn())) { requireLogin('استخدام العلامات المرجعية'); return; }
+    
     if (selectedVerseData) {
         const dummyIcon = document.createElement('i');
         dummyIcon.className = selectedVerseData.isBookmarked ? 'fas' : 'far';
-        await toggleBookmark(selectedVerseData.surah, selectedVerseData.ayah, dummyIcon);
-        // تحديث الواجهة فوراً لتظهر/تختفي علامة الـ Bookmark الصغيرة
-        setTimeout(() => window.loadQuranPage(window.currentPage), 400); 
+        if (typeof toggleBookmark === 'function') await toggleBookmark(selectedVerseData.surah, selectedVerseData.ayah, dummyIcon);
+        if (window.loadQuranPage) window.loadQuranPage(window.currentPage);
     }
     return;
   }
   
+  // -- زر الختمة --
   if (e.target.closest('.action-btn-khatmah')) {
-    if (!await isUserLoggedIn()) { requireLogin('تتبع الختمة'); return; }
+    await hideVerseSheet();
+    if (typeof isUserLoggedIn === 'function' && !(await isUserLoggedIn())) { requireLogin('تتبع الختمة'); return; }
+    
     if (selectedVerseData) {
-        await updateKhatmahProgress(selectedVerseData.surah, selectedVerseData.ayah);
-        setTimeout(() => window.loadQuranPage(window.currentPage), 400);
+        if (typeof updateKhatmahProgress === 'function') await updateKhatmahProgress(selectedVerseData.surah, selectedVerseData.ayah);
+        if (window.loadQuranPage) window.loadQuranPage(window.currentPage);
     }
     return;
   }
   
+  // -- زر المشاركة --
   if (e.target.closest('.action-btn-share')) {
+    await hideVerseSheet();
     if (selectedVerseData) {
-        shareAyah(selectedVerseData.text, selectedVerseData.surahName, selectedVerseData.ayah);
+        if (typeof window.shareAyah === 'function') shareAyah(selectedVerseData.text, selectedVerseData.surahName, selectedVerseData.ayah);
+        else if (typeof shareAyah === 'function') shareAyah(selectedVerseData.text, selectedVerseData.surahName, selectedVerseData.ayah);
     }
     return;
   }
 
+  // -- زر النسخ --
   if (e.target.closest('.action-btn-copy')) {
+    await hideVerseSheet();
     if (selectedVerseData) {
         navigator.clipboard.writeText(`"${selectedVerseData.text}"\n[سورة ${selectedVerseData.surahName} - الآية ${selectedVerseData.ayah}]`).then(() => {
-            Swal.fire({ toast: true, position: 'top', icon: 'success', title: 'تم نسخ الآية بنجاح 📋', showConfirmButton: false, timer: 2000 });
+            if (window.Swal) Swal.fire({ toast: true, position: 'top', icon: 'success', title: 'تم نسخ الآية بنجاح 📋', showConfirmButton: false, timer: 2000 });
         });
     }
     return;
@@ -1423,7 +1455,7 @@ document.addEventListener('click', async (e) => {
   if (deleteBookmarkBtn) {
     e.preventDefault(); e.stopPropagation();
     const id = deleteBookmarkBtn.dataset.id;
-    if (id) await deleteBookmark(id);
+    if (id && typeof deleteBookmark === 'function') await deleteBookmark(id);
     return;
   }
 });
@@ -1690,23 +1722,15 @@ if (_origLoadForZoom) {
   }
 })();
 
+// ===================================================
+// ─── Auto Scroll (Pro Version - Continuous Flow) ───
+// ===================================================
 
-// ─── Auto Scroll (Pro Version) 
 let _autoScrollReq = null; 
 let _scrollSpeedLevel = 2; 
+let _scrollAccumulator = 0; // 🔥 الحصالة اللي هنجمع فيها الكسور للكمبيوتر
 
-const SCROLL_SPEEDS = [
-  null,
-  0.5, 
-  0.8,   
-  1, 
-  1.5,   
-  2.5,   
-  4,   
-  6,   
-  9,  
-  12   
-];
+const SCROLL_SPEEDS = [ null, 0.15, 0.25, 0.4, 0.6, 0.9, 1.3, 1.8, 2.5, 3.5 ];
 
 function _isOnQuranPage() {
   const qs = document.getElementById('quran-section');
@@ -1717,85 +1741,330 @@ window.toggleAutoScroll = function() {
   _autoScrollReq ? _stopAutoScroll() : _startAutoScroll();
 };
 
+function _updateAutoScrollUI(isActive) {
+  const btnN = document.getElementById('btn-autoscroll-normal');
+  const ctlN = document.getElementById('autoscroll-controls-normal');
+  
+  const btnF = document.getElementById('btn-autoscroll'); 
+  const ctlF = document.getElementById('autoscroll-controls'); 
+  const fabF = document.getElementById('autoscroll-fab'); 
+
+  if (isActive) {
+      if (btnN) { btnN.classList.replace('text-secondary', 'text-success'); btnN.innerHTML = '<i class="fas fa-pause me-1"></i> إيقاف'; }
+      if (ctlN) { ctlN.classList.replace('d-none', 'd-flex'); }
+      
+      if (btnF) { btnF.innerHTML = '<i class="fas fa-pause me-1"></i> إيقاف'; btnF.classList.add('text-danger'); }
+      if (ctlF) { ctlF.style.setProperty('display', 'flex', 'important'); }
+      if (fabF) { fabF.style.setProperty('display', 'flex', 'important'); }
+      
+      if (document.body.classList.contains('fullscreen-reading')) {
+          document.body.classList.add('is-autoscrolling');
+      }
+  } else {
+      if (btnN) { btnN.classList.replace('text-success', 'text-secondary'); btnN.innerHTML = '<i class="fas fa-scroll me-1"></i> تمرير'; }
+      if (ctlN) { ctlN.classList.replace('d-flex', 'd-none'); }
+      
+      if (btnF) { btnF.innerHTML = '<i class="fas fa-scroll me-1"></i> تمرير'; btnF.classList.remove('text-danger'); }
+      if (ctlF) { ctlF.style.setProperty('display', 'none', 'important'); }
+      if (fabF) { fabF.style.setProperty('display', 'none', 'important'); }
+      
+      document.body.classList.remove('is-autoscrolling');
+  }
+}
+
 function _startAutoScroll() {
   if (!_isOnQuranPage()) return;
-  const btn = document.getElementById('btn-autoscroll');
-  const ctl = document.getElementById('autoscroll-controls');
-  const fab = document.getElementById('autoscroll-fab');
-  
-  if (btn) { btn.classList.add('active'); btn.innerHTML = '<i class="fas fa-pause me-1"></i> إيقاف'; }
-  if (ctl) ctl.classList.replace('d-none', 'd-flex');
-  if (fab) fab.classList.add('visible');
-  
-  const lbl = document.getElementById('scroll-speed-label');
-  if (lbl) lbl.textContent = _scrollSpeedLevel;
+  _updateAutoScrollUI(true);
+
+  _scrollAccumulator = 0; // تصفير الحصالة مع كل تشغيل جديد
+
+  const lblN = document.getElementById('scroll-speed-label-normal');
+  const lblF = document.getElementById('scroll-speed-label');
+  if (lblN) lblN.textContent = _scrollSpeedLevel;
+  if (lblF) lblF.textContent = _scrollSpeedLevel;
 
   _runScrollLoop();
 }
 
 function _stopAutoScroll() {
-  if (_autoScrollReq) { cancelAnimationFrame(_autoScrollReq); _autoScrollReq = null; }
-  const btn = document.getElementById('btn-autoscroll');
-  const ctl = document.getElementById('autoscroll-controls');
-  const fab = document.getElementById('autoscroll-fab');
+  if (_autoScrollReq) { 
+      cancelAnimationFrame(_autoScrollReq); 
+      _autoScrollReq = null; 
+  }
   
-  if (btn) { btn.classList.remove('active'); btn.innerHTML = '<i class="fas fa-scroll me-1"></i> تمرير تلقائي'; }
-  if (ctl) ctl.classList.replace('d-flex', 'd-none');
-  if (fab) fab.classList.remove('visible');
+  // تنظيف: إزالة المساحة الوهمية فوراً عند الإيقاف
+  const spacer = document.getElementById('auto-scroll-spacer');
+  if (spacer) spacer.remove();
+
+  _updateAutoScrollUI(false);
 }
 
 function _runScrollLoop() {
   if (!_isOnQuranPage()) { _stopAutoScroll(); return; }
 
-  const step = SCROLL_SPEEDS[_scrollSpeedLevel] || 2;
-  const maxY = document.body.scrollHeight - window.innerHeight;
+  const isFullScreen = document.body.classList.contains('fullscreen-reading');
+  const scrollContainer = isFullScreen ? document.getElementById('quran-book') : window;
+  const contentContainer = document.getElementById('quran-book');
 
-  if (window.scrollY >= maxY - 2) {
-    _stopAutoScroll();
-    if (window.currentPage < 604) {
-      document.getElementById('btn-prev-page')?.click();
-      setTimeout(() => {
-        if (_isOnQuranPage()) {
-          window.scrollTo({ top: 0, behavior: 'instant' });
-          _startAutoScroll();
-        }
-      }, 700); 
-    }
-  } else {
-    window.scrollBy({ top: step, left: 0, behavior: 'instant' });
-    
-    _autoScrollReq = requestAnimationFrame(_runScrollLoop);
+  if (!scrollContainer || !contentContainer) { _stopAutoScroll(); return; }
+
+  // ضمان أن المحتوى أطول من الشاشة عشان التمرير يشتغل حتى في السور القصيرة (زي الإخلاص)
+  contentContainer.style.minHeight = '100vh';
+
+  // 🔥 الخدعة السحرية: إضافة المساحة الوهمية (Spacer)
+  let spacer = document.getElementById('auto-scroll-spacer');
+  if (!spacer) {
+      spacer = document.createElement('div');
+      spacer.id = 'auto-scroll-spacer';
+      // 80vh تضمن إن آخر سطر يترفع لحد 20% من أعلى الشاشة قبل التقليب
+      spacer.style.height = '80vh'; 
+      spacer.style.width = '100%';
+      spacer.style.display = 'flex';
+      spacer.style.justifyContent = 'center';
+      spacer.style.paddingTop = '10vh';
+      spacer.style.opacity = '0.5';
+      spacer.style.pointerEvents = 'none'; // عشان ميعطلش التاتش
+      spacer.innerHTML = '<i class="fas fa-chevron-down fa-2x fa-fade text-success"></i>'; 
+      contentContainer.appendChild(spacer);
   }
+
+  const step = SCROLL_SPEEDS[_scrollSpeedLevel] || 0.25;
+  let currentY = isFullScreen ? scrollContainer.scrollTop : window.scrollY;
+  
+  let maxY = isFullScreen 
+      ? (scrollContainer.scrollHeight - scrollContainer.clientHeight)
+      : (document.documentElement.scrollHeight - window.innerHeight);
+
+  // 🔥 التقليب الفوري والانسيابي بدون أي توقف
+  if (maxY > 0 && currentY >= maxY - 2) {
+      if (window.currentPage >= 604) {
+          _stopAutoScroll(); // نهاية المصحف
+          return;
+      }
+
+      // التقليب للآية/الصفحة التالية في نفس اللحظة
+      window.currentPage++;
+      if (window.loadQuranPage) window.loadQuranPage(window.currentPage);
+      
+      // التصفير الفوري لمكان التركيز للصفحة الجديدة
+      if (isFullScreen) { scrollContainer.scrollTop = 0; } 
+      else { window.scrollTo({ top: 0, behavior: 'instant' }); }
+      
+      // التحميل المسبق (Prefetch)
+      if (typeof window.prefetchPage === 'function') {
+          window.prefetchPage(window.currentPage + 1);
+      }
+
+  } else {
+      // 🔥 تطبيق الحصالة هنا لحل مشكلة متصفحات الكمبيوتر 🔥
+      if (maxY > 0) {
+          _scrollAccumulator += step;
+          
+          // لما الحصالة تكمل 1 بيكسل أو أكتر، ننفذ السكرول
+          if (_scrollAccumulator >= 1) {
+              const pixelsToScroll = Math.floor(_scrollAccumulator); // ناخد الرقم الصحيح
+              _scrollAccumulator -= pixelsToScroll; // نحتفظ بالكسور الباقية للمرة الجاية
+              
+              if (isFullScreen) { 
+                  scrollContainer.scrollTop += pixelsToScroll; 
+              } else { 
+                  window.scrollBy({ top: pixelsToScroll, left: 0, behavior: 'instant' }); 
+              }
+          }
+      }
+  }
+
+  _autoScrollReq = requestAnimationFrame(_runScrollLoop);
 }
 
 window.changeScrollSpeed = function(dir) {
   _scrollSpeedLevel = Math.max(1, Math.min(9, _scrollSpeedLevel + dir));
-  const lbl = document.getElementById('scroll-speed-label');
-  if (lbl) lbl.textContent = _scrollSpeedLevel;
+  const lblN = document.getElementById('scroll-speed-label-normal');
+  const lblF = document.getElementById('scroll-speed-label');
+  if (lblN) lblN.textContent = _scrollSpeedLevel;
+  if (lblF) lblF.textContent = _scrollSpeedLevel;
 };
 
 function _pauseAutoScrollOnManualNav() { if (_autoScrollReq) _stopAutoScroll(); }
-// ─── 15. Nav Buttons 
+
+
+
+// ─── 15. Nav Buttons (أزرار التنقل اليدوية) ───
 document.getElementById('btn-prev-page')?.addEventListener('click', () => {
   _pauseAutoScrollOnManualNav();
   if (window.currentPage < 604) {
     window.currentPage++;
     window.loadQuranPage(window.currentPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    prefetchPage(window.currentPage + 1);
-    prefetchPage(window.currentPage + 2);
+    if(typeof window.prefetchPage === 'function') {
+        window.prefetchPage(window.currentPage + 1);
+        window.prefetchPage(window.currentPage + 2);
+    }
   }
 });
+
 document.getElementById('btn-next-page')?.addEventListener('click', () => {
   _pauseAutoScrollOnManualNav();
   if (window.currentPage > 1) {
     window.currentPage--;
     window.loadQuranPage(window.currentPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    prefetchPage(window.currentPage - 1);
-    prefetchPage(window.currentPage - 2);
+    if(typeof window.prefetchPage === 'function') {
+        window.prefetchPage(window.currentPage - 1);
+        window.prefetchPage(window.currentPage - 2);
+    }
   }
 });
+
+// ─── إبقاء الشاشة مضاءة أثناء القراءة (Wake Lock) ───
+let _wakeLockObj = null;
+
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator) {
+      _wakeLockObj = await navigator.wakeLock.request('screen');
+      console.log('💡 تم تفعيل إبقاء الشاشة مضاءة');
+      _wakeLockObj.addEventListener('release', () => {
+        console.log('💡 تم إلغاء إبقاء الشاشة مضاءة (توفير البطارية)');
+      });
+    } else {
+        console.log('⚠️ متصفحك لا يدعم ميزة Wake Lock');
+    }
+  } catch (err) {
+    console.error(`خطأ في Wake Lock: ${err.message}`);
+  }
+}
+
+function releaseWakeLock() {
+  if (_wakeLockObj !== null) {
+    _wakeLockObj.release().then(() => {
+      _wakeLockObj = null;
+    });
+  }
+}
+
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible' && document.body.classList.contains('fullscreen-reading')) {
+    requestWakeLock();
+  }
+});
+
+let _previousFullscreenState = document.body.classList.contains('fullscreen-reading');
+
+const fullscreenObserver = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+            const currentFullscreenState = document.body.classList.contains('fullscreen-reading');
+            if (currentFullscreenState !== _previousFullscreenState) {
+                _previousFullscreenState = currentFullscreenState; 
+                
+                if (typeof _autoScrollReq !== 'undefined' && _autoScrollReq) {
+                    if (typeof _stopAutoScroll === 'function') _stopAutoScroll();
+                }
+
+                if (currentFullscreenState) {
+                    requestWakeLock(); 
+                } else {
+                    releaseWakeLock(); 
+                }
+            }
+        }
+    });
+});
+
+fullscreenObserver.observe(document.body, { attributes: true });
+
+// ===================================================
+// ─── الحفظ السريع بنقرة مزدوجة (Double Tap) 🔖 ───
+// ===================================================
+
+// 1. التأكد من وجود الأيقونة الذهبية
+let tapIcon = document.querySelector('.double-tap-icon');
+if (!tapIcon) {
+    tapIcon = document.createElement('i');
+    tapIcon.className = 'fas fa-bookmark double-tap-icon';
+    document.body.appendChild(tapIcon);
+}
+
+let _clickTimer = null;
+let _clickCount = 0;
+
+const quranContainer = document.getElementById('quran-book');
+
+if (quranContainer) {
+    // نستخدم capture: true عشان نمسك الكليك أول واحد قبل أي مكتبة تانية
+    quranContainer.addEventListener('click', function(e) {
+        const isAyah = e.target.closest('.ayah-text');
+        if (!isAyah) return;
+
+        // حماية الضغطة المطولة (للتفسير)
+        if (window.isLongPress) return;
+
+        // 🔥 الحل النووي: نزع صلاحية الفتح التلقائي من Bootstrap للأبد 🔥
+        if (isAyah.hasAttribute('data-bs-toggle')) {
+            // نحفظ الـ ID بتاع القائمة عشان نستخدمه إحنا بعدين
+            isAyah.setAttribute('data-saved-target', isAyah.getAttribute('data-bs-target'));
+            // نمسح أكواد بوتستراب تماماً من الآية
+            isAyah.removeAttribute('data-bs-toggle');
+            isAyah.removeAttribute('data-bs-target');
+        }
+
+        // لو دي الضغطة البرمجية الصامتة بتاعتنا، عديها بسلام
+        if (e.detail === 555) return; 
+
+        // 🛑 فرمَل المتصفح! مفيش أي أكواد تانية هتشتغل دلوقتي
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+
+        _clickCount++;
+
+        if (_clickCount === 1) {
+            // نستنى 300 مللي ثانية
+            _clickTimer = setTimeout(() => {
+                _clickCount = 0;
+                
+                // ✅ طلعت ضغطة واحدة: نبعت كليك عشان التطبيق يحدد الآية
+                isAyah.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 555 }));
+                
+                // 🔥 نفتح إحنا القائمة برمجياً وبمزاجنا 🔥
+                const targetId = isAyah.getAttribute('data-saved-target') || '#verseActionSheet';
+                const sheetEl = document.querySelector(targetId);
+                if (sheetEl && window.bootstrap) {
+                    const bsSheet = window.bootstrap.Offcanvas.getOrCreateInstance(sheetEl);
+                    bsSheet.show();
+                }
+            }, 300);
+        } 
+        else if (_clickCount === 2) {
+            // ✌️ دبل كليك مؤكد! (مستحيل القائمة تفتح لأننا ما أمرناهاش تفتح)
+            clearTimeout(_clickTimer);
+            _clickCount = 0;
+
+            // 1. الأنيميشن الذهبي ✨
+            tapIcon.classList.add('animate-pop');
+            setTimeout(() => tapIcon.classList.remove('animate-pop'), 800);
+
+            // 2. كتم الـ Swal عشان الشاشة تفضل رايقة
+            const originalSwal = window.Swal ? window.Swal.fire : null;
+            if (window.Swal) window.Swal.fire = () => {};
+
+            // 3. تنفيذ اختيار الآية في صمت
+            isAyah.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 555 }));
+
+            // 4. تنفيذ الحفظ
+            setTimeout(() => {
+                const bookmarkBtn = document.querySelector('.action-btn-bookmark');
+                if (bookmarkBtn) {
+                    bookmarkBtn.click();
+                }
+                
+                // 5. إرجاع إشعارات Swal
+                if (originalSwal) window.Swal.fire = originalSwal;
+            }, 50);
+        }
+    }, { capture: true }); 
+}
 
 // ─── 16. Popstate ─────────────────────────────────────────────────────────────
 window.addEventListener('popstate', (event) => {
@@ -2043,44 +2312,44 @@ const checkForUpdates = async () => {
   } catch (err) { console.warn('Update check failed:', err); }
 };
 
-const scheduleWebFridayReminder = () => {
-  const now = new Date();
-  const isFriday = now.getDay() === 5;
-  const hour = now.getHours();
+// const scheduleWebFridayReminder = () => {
+//   const now = new Date();
+//   const isFriday = now.getDay() === 5;
+//   const hour = now.getHours();
 
-  if (isFriday && hour < 12) {
-    const lastShown = localStorage.getItem('kahf_reminder_shown');
-    const today     = now.toDateString();
+//   if (isFriday && hour < 12) {
+//     const lastShown = localStorage.getItem('kahf_reminder_shown');
+//     const today     = now.toDateString();
 
-    if (lastShown !== today) {
-      setTimeout(() => {
-        Swal.fire({
-          title: '📖 يوم الجمعة المبارك',
-          html: `
-            <div style="font-family:'Amiri'; direction:rtl; text-align:right;">
-              <p style="font-size:1.1rem; line-height:1.8;">
-                <strong>من قرأ سورة الكهف يوم الجمعة أضاء له النور ما بين الجمعتين</strong>
-              </p>
-              <p class="text-muted small">رواه البيهقي والحاكم</p>
-            </div>`,
-          confirmButtonText: '📖 اقرأ سورة الكهف الآن',
-          cancelButtonText:  'لاحقاً',
-          showCancelButton:   true,
-          confirmButtonColor: '#198754',
-          cancelButtonColor:  '#6c757d',
-          imageUrl: null,
-        }).then(result => {
-          if (result.isConfirmed) {
-            // سورة الكهف رقم 18 - الصفحة 293
-            window.showSection('quran');
-            window.loadQuranPage(293);
-          }
-        });
-        localStorage.setItem('kahf_reminder_shown', today);
-      }, 5000);
-    }
-  }
-};
+//     if (lastShown !== today) {
+//       setTimeout(() => {
+//         Swal.fire({
+//           title: '📖 يوم الجمعة المبارك',
+//           html: `
+//             <div style="font-family:'Amiri'; direction:rtl; text-align:right;">
+//               <p style="font-size:1.1rem; line-height:1.8;">
+//                 <strong>من قرأ سورة الكهف يوم الجمعة أضاء له النور ما بين الجمعتين</strong>
+//               </p>
+//               <p class="text-muted small">رواه البيهقي والحاكم</p>
+//             </div>`,
+//           confirmButtonText: '📖 اقرأ سورة الكهف الآن',
+//           cancelButtonText:  'لاحقاً',
+//           showCancelButton:   true,
+//           confirmButtonColor: '#198754',
+//           cancelButtonColor:  '#6c757d',
+//           imageUrl: null,
+//         }).then(result => {
+//           if (result.isConfirmed) {
+//             // سورة الكهف رقم 18 - الصفحة 293
+//             window.showSection('quran');
+//             window.loadQuranPage(293);
+//           }
+//         });
+//         localStorage.setItem('kahf_reminder_shown', today);
+//       }, 5000);
+//     }
+//   }
+// };
 
 // ─── منطق آية اليوم ──────────────────────────────
 const dailyAyahs = [
@@ -3166,6 +3435,8 @@ window.openPersonDetails = function(type, index) {
 
 
 
+
+
 // ─── 18. DOMContentLoaded 
 document.addEventListener('DOMContentLoaded', async () => {
   // if ('serviceWorker' in navigator) {
@@ -3381,7 +3652,15 @@ document.getElementById('tasbeeh-tab')?.addEventListener('shown.bs.tab', () => {
         const surahVal = document.getElementById('ai-surah-select').value;
         if (!surahVal) return showAlert('error', 'يرجى اختيار السورة أولاً');
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const stream = await navigator.mediaDevices.getUserMedia({
+    audio: {
+        noiseSuppression: true,     
+        echoCancellation: true,     
+        autoGainControl: true,      
+        sampleRate: 16000,          
+        channelCount: 1             
+    }
+});
           aiMediaRecorder = new MediaRecorder(stream);
           let chunks = [];
           aiMediaRecorder.ondataavailable = (e) => chunks.push(e.data);
@@ -3419,7 +3698,15 @@ document.getElementById('tasbeeh-tab')?.addEventListener('shown.bs.tab', () => {
     btnStartLive.addEventListener('click', async () => {
       if (!await isUserLoggedIn()) { requireLogin('تتبع التلاوة المباشر'); return; }
       try {
-        liveStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+liveStream = await navigator.mediaDevices.getUserMedia({ 
+    audio: {
+        noiseSuppression: true,     
+        echoCancellation: true,     
+        autoGainControl: true,      
+        sampleRate: 16000,          
+        channelCount: 1
+    } 
+});
         isLiveTracking = true;
         lastMatchedIndex = -1; searchStartIndex = 0; accumulatedBuffer = '';
         btnStartLive.classList.add('d-none');
@@ -3575,7 +3862,7 @@ if (resultContainer) {
 }
 
 setupIosInstallPrompt();
-scheduleWebFridayReminder();
+// scheduleWebFridayReminder();
 
 
 
@@ -3598,3 +3885,68 @@ scheduleWebFridayReminder();
     }, { once: true });
   });
 });
+
+// ─── 🌟 دالة الترحيب الذكية (النسخة الاحترافية بـ 3 فترات) ───
+function setWelcomeGreeting() {
+  const greetingEl = document.getElementById('main-greeting');
+  if (!greetingEl) return;
+
+  greetingEl.classList.remove('display-6'); 
+  greetingEl.style.fontSize = '1.4rem';     
+  greetingEl.style.lineHeight = '1.6';
+
+  const hour = new Date().getHours();
+  let timeGreeting = '';
+
+  // 🔥 التعديل هنا: تقسيم الوقت بذكاء لـ 3 فترات 🔥
+  if (hour >= 4 && hour < 12) {
+    timeGreeting = 'صباح معطر بذكر الله ☀️';  // من 4 الفجر لـ 12 الظهر
+  } else if (hour >= 12 && hour < 17) {
+    timeGreeting = 'أسعد الله أوقاتك 🌿';      // من 12 الظهر لـ 5 المغرب (فترة الظهر والعصر)
+  } else {
+    timeGreeting = 'مساء تحرسه عناية الله 🌙'; // من 5 المغرب لـ 4 الفجر (الليل)
+  }
+
+  let userName = '';
+  let userEmail = '';
+
+  // الكشاف الشامل
+  for (let i = 0; i < localStorage.length; i++) {
+    let key = localStorage.key(i);
+    let value = localStorage.getItem(key);
+
+    if (value && value.includes('{')) { 
+      try {
+        let obj = JSON.parse(value);
+        if (obj.name && obj.name !== 'null') userName = obj.name;
+        else if (obj.displayName && obj.displayName !== 'null') userName = obj.displayName;
+        else if (obj.userName && obj.userName !== 'null') userName = obj.userName;
+        if (obj.email) userEmail = obj.email;
+      } catch(e) {}
+    }
+    if (userName) break; 
+  }
+
+  if (!userName) {
+     userName = localStorage.getItem('name') || localStorage.getItem('user_name') || localStorage.getItem('userName');
+  }
+
+  // 2. معالجة الاسم والطباعة
+  if (userName && userName !== 'null' && userName !== 'undefined') {
+    let firstName = userName.trim().split(/\s+/)[0]; 
+    firstName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+    greetingEl.innerHTML = `${timeGreeting}، <span style="color:#d4af37; font-family: sans-serif;">${firstName}</span>`;
+    
+  } else if (userEmail) {
+    let emailName = userEmail.split('@')[0];
+    let firstName = emailName.split(/[\.\-_]/)[0]; 
+    firstName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+    greetingEl.innerHTML = `${timeGreeting}، <span style="color:#d4af37; font-family: sans-serif;">${firstName}</span>`;
+    
+  } else {
+    greetingEl.innerHTML = `السلام عليكم ورحمة الله 🌿`; 
+  }
+}
+
+document.addEventListener('DOMContentLoaded', setWelcomeGreeting);
+setWelcomeGreeting();

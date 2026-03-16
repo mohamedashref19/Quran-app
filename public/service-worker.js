@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aqra-cache-v19';
+const CACHE_NAME = 'aqra-cache-v22';
 
 const ASSETS_TO_CACHE = [
   '/',                

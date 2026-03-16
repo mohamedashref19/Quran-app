@@ -25,6 +25,12 @@ export const login = async (email, password) => {
       }
     }
 
+    const user = res.data.data?.user || res.data.user;
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+      if (user.name) localStorage.setItem('name', user.name);
+    }
+
     if (res.data.status === 'success') {
       showAlert('success', 'تم تسجيل الدخول بنجاح!');
       window.setTimeout(() => {
@@ -118,6 +124,14 @@ export const updateSettings = async (data, type) => {
   try {
     const res = await axios({ method: "PATCH", url, data });
     if (res.data.status === "success") {
+        
+      // 🔥 الإضافة الجديدة: تحديث الاسم في الذاكرة لو المستخدم عدل بياناته الشخصية 🔥
+      const user = res.data.data?.user || res.data.user;
+      if (user && type !== 'password') {
+        localStorage.setItem('user', JSON.stringify(user));
+        if (user.name) localStorage.setItem('name', user.name);
+      }
+
       showAlert("success", "تم التحديث بنجاح");
       window.setTimeout(() => location.reload(), 1000);
     }

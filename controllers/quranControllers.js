@@ -151,15 +151,35 @@ exports.check_recitation = catchAsync(async (req, res, next) => {
 
         const fullReferenceText = comparisonWords.join(" ");
 
-        // 🌟 استدعاء الدالة السحرية بدلاً من الاستدعاء المباشر
+        let safePrompt = `تلاوة قرآنية دقيقة. القارئ يقرأ: ${fullReferenceText}`;
+        if (safePrompt.length > 850) {
+            safePrompt = safePrompt.substring(0, 850);
+        }
+
+        // 🌟 استدعاء الدالة السحرية بالـ safePrompt
         const transcription = await executeGroqWithFallback(req.file.path, {
             model: "whisper-large-v3", 
             language: "ar",
             temperature: 0, 
-            prompt: `تلاوة قرآنية دقيقة. القارئ يقرأ: ${fullReferenceText}`
+            prompt: safePrompt
         });
 
         let rawUserText = normalization(transcription.text);
+        const hallucinations = [
+            "اشترك في القناة", "رابط القناة", "سيدي محمد رسول الله", "شكرا لكم",
+            "شرح", "تفسير", "السياق الحالي", "المترجم", "يتبع", "صلى الله عليه وسلم",
+            "والسلام عليكم ورحمة الله وبركاته", "شكرا على المشاهدة"
+        ];
+        hallucinations.forEach(h => {
+            const cleanH = normalization(h);
+            if (rawUserText.includes(cleanH)) {
+                rawUserText = rawUserText.replace(new RegExp(cleanH, 'g'), "").trim();
+            }
+        });
+        const aouzuPattern = normalization("أعوذ بالله من الشيطان الرجيم");
+if (rawUserText.startsWith(aouzuPattern)) {
+    rawUserText = rawUserText.replace(aouzuPattern, '').trim();
+}
 
         if (startAyah === 1 && surah !== 9) {
             const basmalaStandard = "بسم الله الرحمن الرحيم";
@@ -277,13 +297,18 @@ exports.stream_check = catchAsync(async (req, res, next) => {
         const promptText = `تلاوة قرآنية للشيخ محمود خليل الحصري سورة ${surahName}. النص: ${expectedContext}`;
 
         // 🌟 استدعاء الدالة السحرية هنا أيضاً
+        // 🔥 الحل الجذري: تقصير النص ليتوافق مع شروط Groq الصارمة (أقل من 896 حرف)
+        let safePrompt = promptText || "";
+        if (safePrompt.length > 850) {
+            safePrompt = safePrompt.substring(0, 850);
+        }
+
         const transcription = await executeGroqWithFallback(req.file.path, {
             model: "whisper-large-v3",
             language: "ar",
             temperature: 0,
-            prompt: promptText 
+            prompt: safePrompt // هنبعت النص الآمن هنا
         });
-
         let text = normalization(transcription.text); 
 
         const hallucinations = [
