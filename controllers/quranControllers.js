@@ -152,8 +152,8 @@ exports.check_recitation = catchAsync(async (req, res, next) => {
         const fullReferenceText = comparisonWords.join(" ");
 
         let safePrompt = `تلاوة قرآنية دقيقة. القارئ يقرأ: ${fullReferenceText}`;
-        if (safePrompt.length > 850) {
-            safePrompt = safePrompt.substring(0, 850);
+        if (safePrompt.length > 250) {
+            safePrompt = safePrompt.substring(0, 250);
         }
 
         // 🌟 استدعاء الدالة السحرية بالـ safePrompt
@@ -297,10 +297,9 @@ exports.stream_check = catchAsync(async (req, res, next) => {
         const promptText = `تلاوة قرآنية للشيخ محمود خليل الحصري سورة ${surahName}. النص: ${expectedContext}`;
 
         // 🌟 استدعاء الدالة السحرية هنا أيضاً
-        // 🔥 الحل الجذري: تقصير النص ليتوافق مع شروط Groq الصارمة (أقل من 896 حرف)
         let safePrompt = promptText || "";
-        if (safePrompt.length > 850) {
-            safePrompt = safePrompt.substring(0, 850);
+        if (safePrompt.length > 250) {
+            safePrompt = safePrompt.substring(0, 250);
         }
 
         const transcription = await executeGroqWithFallback(req.file.path, {
