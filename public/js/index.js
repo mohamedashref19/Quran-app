@@ -15,7 +15,7 @@ import { login, logout, signup, verifyOTP, updateSettings, forgotPassword, reset
 import { 
   loadSurahs, startSurahReading, manageKhatmah, createKhatmah, updateKhatmahProgress,
   checkRecitation, loadReciters, loadPrayers, loadBookmarks, loadQuranPage,
-  toggleBookmark, deleteBookmark, deleteKhatmah, initSearch, initBookmarksSearch,scheduleFridayKahfNotification,scheduleDuhaNotification,scheduleAllPrayers,
+  toggleBookmark, deleteBookmark, deleteKhatmah, initSearch, initBookmarksSearch,scheduleFridayKahfNotification,scheduleDuhaNotification,scheduleAllPrayers,checkAndPromptNotifications,
   shareAyah,
 } from './features';
 import './insights';
@@ -365,43 +365,43 @@ window.deleteUserHandler = async (id) => {
     }
 };
 
-window.downloadEntireQuranOffline = async () => {
-    const isFullyCached = await localforage.getItem('quran_fully_cached');
-    if (isFullyCached) {
-        console.log('✅ المصحف كاملاً موجود بالفعل في الذاكرة (Offline Ready)');
-        return;
-    }
-    //console.log('🔄 جاري تحميل المصحف في الخلفية للعمل بدون إنترنت...');
-    let successCount = 0;
-    for (let page = 1; page <= 604; page++) {
-    if (!navigator.onLine) break; // ✅ تحقق في كل iteration
+// window.downloadEntireQuranOffline = async () => {
+//     const isFullyCached = await localforage.getItem('quran_fully_cached');
+//     if (isFullyCached) {
+//         console.log('✅ المصحف كاملاً موجود بالفعل في الذاكرة (Offline Ready)');
+//         return;
+//     }
+//     //console.log('🔄 جاري تحميل المصحف في الخلفية للعمل بدون إنترنت...');
+//     let successCount = 0;
+//     for (let page = 1; page <= 604; page++) {
+//     if (!navigator.onLine) break; // ✅ تحقق في كل iteration
 
-    const pageExists = await window.cacheGet(page);
-    if (!pageExists) {
-      try {
-        const response = await fetch(`https://api.alquran.cloud/v1/page/${page}/quran-uthmani`);
-        if (!response.ok) throw new Error('Network Error');
-        const data = await response.json();
-        await window.cacheSet(page, data.data);
-        successCount++;
-        await new Promise(resolve => setTimeout(resolve, 200));
-      } catch (err) {
-        console.warn(`⚠️ توقف التحميل عند صفحة ${page}`);
-        break;
-      }
-    }
-  }
-    if (successCount > 0) {
-        let allSaved = true;
-        for(let i=1; i<=604; i++){
-            if(!(await window.cacheGet(i))) { allSaved = false; break; }
-        }
-        if(allSaved) {
-            await localforage.setItem('quran_fully_cached', true);
-            console.log('🎉 المصحف متاح الآن للعمل 100% بدون إنترنت.');
-        }
-    }
-};
+//     const pageExists = await window.cacheGet(page);
+//     if (!pageExists) {
+//       try {
+//         const response = await fetch(`https://api.alquran.cloud/v1/page/${page}/quran-uthmani`);
+//         if (!response.ok) throw new Error('Network Error');
+//         const data = await response.json();
+//         await window.cacheSet(page, data.data);
+//         successCount++;
+//         await new Promise(resolve => setTimeout(resolve, 200));
+//       } catch (err) {
+//         console.warn(`⚠️ توقف التحميل عند صفحة ${page}`);
+//         break;
+//       }
+//     }
+//   }
+//     if (successCount > 0) {
+//         let allSaved = true;
+//         for(let i=1; i<=604; i++){
+//             if(!(await window.cacheGet(i))) { allSaved = false; break; }
+//         }
+//         if(allSaved) {
+//             await localforage.setItem('quran_fully_cached', true);
+//             console.log('🎉 المصحف متاح الآن للعمل 100% بدون إنترنت.');
+//         }
+//     }
+// };
 
 window.downloadEntireTafseerOffline = async () => {
   const isFullyCached = await localforage.getItem('tafseer_fully_cached');
@@ -450,8 +450,61 @@ window.downloadEntireTafseerOffline = async () => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => { downloadEntireQuranOffline(); }, 3000);
+    // setTimeout(() => { downloadEntireQuranOffline(); }, 3000);
     setTimeout(() => { window.downloadEntireTafseerOffline(); }, 10000);
+    setTimeout(() => { checkAndPromptNotifications(); }, 2000);
+
+    // التأكد إننا على تطبيق موبايل عشان الإشعارات متعملش إيرور على الويب
+    if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
+        
+        // ─── مستمع واحد ذكي لكل الإشعارات ───
+        LocalNotifications.addListener('localNotificationActionPerformed', async (action) => {
+            const notification = action.notification;
+            const extraData = notification.extra || {}; // جلب البيانات الإضافية إن وجدت
+
+            // ==========================================
+            // 1. حالة الضغط على إشعار "الورد اليومي للختمة"
+            // ==========================================
+            if (notification.id === 999 || notification.actionTypeId === 'OPEN_KHATMAH') {
+                const khatmahNavBtn = document.getElementById('bnav-khatmah'); // تأكد من الـ ID
+                if (khatmahNavBtn) {
+                    khatmahNavBtn.click(); // فتح قسم الختمة
+                }
+                if (typeof manageKhatmah === 'function') {
+                    await manageKhatmah(); // تحديث البيانات
+                }
+            }
+
+            // ==========================================
+            // 2. حالة الضغط على إشعار "سورة الكهف يوم الجمعة"
+            // ==========================================
+            else if (extraData.target === 'kahf') {
+                // توجيه المستخدم لقسم المصحف
+                if (typeof window.showSection === 'function') {
+                    window.showSection('quran');
+                }
+                
+                // فتح صفحة سورة الكهف والنزول للآية الأولى
+                if (typeof window.loadQuranPage === 'function') {
+                    window.loadQuranPage(extraData.page, extraData.surah, extraData.ayah);
+                } else if (typeof loadQuranPage === 'function') {
+                    loadQuranPage(extraData.page, extraData.surah, extraData.ayah);
+                }
+                
+                // عرض رسالة ترحيبية خفيفة
+                setTimeout(() => {
+                    if (typeof showAlert === 'function') {
+                        showAlert('success', 'تقبل الله طاعتك.. جمعة مباركة ✨');
+                    }
+                }, 1000);
+            }
+            
+            // ==========================================
+            // 3. يمكن إضافة حالات أخرى هنا مستقبلاً (مثل الأذكار)
+            // ==========================================
+            
+        });
+    }
 });
 // ─── 5. requireLogin ──────────────────────────────────────────────────────────
 const requireLogin = (featureName = 'هذه الميزة') => {
@@ -3458,6 +3511,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setTimeout(checkForUpdates, 3000);
   loadDailyContent();
 initIslamicCountdown();
+
   // 1. استرجاع التوكن أول حاجة
   try {
     if (Capacitor.isNativePlatform()) {
@@ -3950,3 +4004,64 @@ function setWelcomeGreeting() {
 
 document.addEventListener('DOMContentLoaded', setWelcomeGreeting);
 setWelcomeGreeting();
+
+// ─── منطق شاشات الافتتاحية (Onboarding) ───
+
+document.addEventListener('DOMContentLoaded', () => {
+    const onboardingOverlay = document.getElementById('onboarding-overlay');
+    if (!onboardingOverlay) return;
+
+    // التحقق من التخزين المحلي (هل هذه أول زيارة؟)
+    const hasSeenIntro = localStorage.getItem('aqra_has_seen_intro');
+
+    if (!hasSeenIntro) {
+        // إظهار الشاشة
+        onboardingOverlay.classList.remove('d-none');
+        
+        const nextBtn = document.getElementById('next-onboarding');
+        const startBtn = document.getElementById('start-onboarding');
+        const skipBtn = document.getElementById('skip-onboarding');
+        const carouselElement = document.getElementById('onboardingCarousel');
+        
+        // تفعيل الـ Carousel الخاص بـ Bootstrap
+        const carousel = new bootstrap.Carousel(carouselElement, {
+            interval: false, // تعطيل التقليب التلقائي
+            wrap: false      // تعطيل الدوران للبداية عند الوصول للنهاية
+        });
+
+        // متابعة تغيير الشاشات لتغيير الأزرار (إظهار زر "ابدأ الآن" في الشريحة الأخيرة)
+        carouselElement.addEventListener('slide.bs.carousel', function (e) {
+            if (e.to === 5) { // الشريحة الرابعة والأخيرة (تبدأ من 0)
+                nextBtn.classList.add('d-none');
+                startBtn.classList.remove('d-none');
+                skipBtn.classList.add('d-none');
+            } else {
+                nextBtn.classList.remove('d-none');
+                startBtn.classList.add('d-none');
+                skipBtn.classList.remove('d-none');
+            }
+        });
+
+        // زر التالي
+        nextBtn.addEventListener('click', () => {
+            carousel.next();
+        });
+
+        // دالة الإنهاء (حفظ البيانات وإخفاء الشاشة بأنيميشن)
+        const finishOnboarding = () => {
+            localStorage.setItem('aqra_has_seen_intro', 'true'); // تسجيل إن المستخدم شاف الافتتاحية
+            
+            // تأثير خروج سلس
+            onboardingOverlay.style.opacity = '0';
+            onboardingOverlay.style.transform = 'scale(1.05)';
+            
+            setTimeout(() => {
+                onboardingOverlay.classList.add('d-none');
+            }, 400); // نفس مدة الـ transition في الـ CSS
+        };
+
+        // تفعيل أزرار التخطي والبدء
+        startBtn.addEventListener('click', finishOnboarding);
+        skipBtn.addEventListener('click', finishOnboarding);
+    }
+});

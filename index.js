@@ -100,7 +100,8 @@ app.use(
           "https://stream.radiojar.com",
           "https://*.radiojar.com",
           "https://qurango.net",
-          "https://*.qurango.net"
+          "https://*.qurango.net",
+          "https://*.r2.dev"
         ], 
         
         connectSrc: [
@@ -133,7 +134,8 @@ app.use(
           "capacitor://localhost",
           "http://localhost",
           "ws://127.0.0.1:*", 
-          "http://127.0.0.1:3000"
+          "http://127.0.0.1:3000",
+          "https://*.r2.dev"
         ],
         
         workerSrc: ["'self'", "blob:"], 
