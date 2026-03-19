@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aqra-cache-v22';
+const CACHE_NAME = 'aqra-cache-v28'; 
 
 const ASSETS_TO_CACHE = [
   '/',                
@@ -46,6 +46,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const requestUrl = new URL(event.request.url);
 
+  // استثناء ملفات الـ API والصوتيات والراديو من الكاش الافتراضي
   if (
     requestUrl.pathname.startsWith('/api/') ||
     requestUrl.pathname.endsWith('.mp3') ||
@@ -57,69 +58,73 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // أ. الكاش الذكي للملفات الخارجية (Bootstrap, FontAwesome, Google Fonts, Icons)
   if (
-    requestUrl.hostname === 'fonts.googleapis.com' ||
-    requestUrl.hostname === 'fonts.gstatic.com'
+    requestUrl.hostname.includes('jsdelivr.net') || 
+    requestUrl.hostname.includes('cloudflare.com') || 
+    requestUrl.hostname.includes('googleapis.com') || 
+    requestUrl.hostname.includes('gstatic.com')
   ) {
     event.respondWith(
       caches.match(event.request).then((cached) => {
-        if (cached) return cached;
+        if (cached) return cached; // لو متخزنة رجعها فوراً
+        
         return fetch(event.request).then((networkResponse) => {
           const clone = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
           return networkResponse;
         }).catch(() => {
-          console.warn('⚠️ [SW] فشل تحميل الخط:', requestUrl.href);
+          console.warn('⚠️ [SW] فشل تحميل المورد الخارجي أوفلاين:', requestUrl.href);
         });
       })
     );
     return;
   }
 
-  // ج. HTML Navigation (Network First)
-if (event.request.mode === 'navigate') {
-  event.respondWith(
-    fetch(event.request)
-      .then((networkResponse) => {
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
-        return networkResponse;
-      })
-      .catch(async () => {
-        const cachedPage = await caches.match(event.request);
-        if (cachedPage) return cachedPage;
-        const cachedIndex = await caches.match('/index.html');
-        if (cachedIndex) return cachedIndex;
-        return caches.match('/offline.html');
-      })
-  );
-  return;
-}
-
-  // د. JS/CSS (Network First)
-if (
-  requestUrl.pathname.includes('/js/bundle.js') ||
-  requestUrl.pathname.includes('/css/style.css')
-) {
-  event.respondWith(
-    fetch(event.request)
-      .then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+  // ب. HTML Navigation (Network First)
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
           return networkResponse;
-        }
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
-        return networkResponse;
-      })
-      .catch(async () => {
-        const cached = await caches.match(event.request);
-        return cached || new Response('Network error occurred', { status: 408 });
-      })
-  );
-  return;
-}
+        })
+        .catch(async () => {
+          const cachedPage = await caches.match(event.request);
+          if (cachedPage) return cachedPage;
+          const cachedIndex = await caches.match('/index.html');
+          if (cachedIndex) return cachedIndex;
+          return caches.match('/offline.html');
+        })
+    );
+    return;
+  }
 
-  // هـ. Cache First (للصور والخطوط المحلية)
+  // ج. JS/CSS (Network First)
+  if (
+    requestUrl.pathname.includes('/js/bundle.js') ||
+    requestUrl.pathname.includes('/css/style.css')
+  ) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+            return networkResponse;
+          }
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
+          return networkResponse;
+        })
+        .catch(async () => {
+          const cached = await caches.match(event.request);
+          return cached || new Response('Network error occurred', { status: 408 });
+        })
+    );
+    return;
+  }
+
+  // د. Cache First (للصور والخطوط المحلية)
   event.respondWith(
     caches.match(event.request).then((response) => {
       return response || fetch(event.request).then((networkResponse) => {

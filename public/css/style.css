@@ -394,6 +394,15 @@ footer {
         right: auto;
         left: auto;
     }
+    ::-webkit-scrollbar { 
+    display: none; 
+  }
+  
+  /* لمتصفحات Firefox و Edge */
+  * {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
 }
 
 
@@ -647,6 +656,22 @@ footer {
     box-shadow: none;
 }
 
+/* إصلاح ألوان البوردر الأحمر/الأصفر في شريط البحث بالـ Navbar */
+#main-navbar .form-control,
+#main-navbar .form-control:focus,
+#main-navbar .form-control:valid,
+#main-navbar .form-control:invalid,
+#main-navbar .form-control:focus:valid,
+#main-navbar .form-control:focus:invalid {
+    border-color: rgba(255,255,255,0.3) !important;
+    box-shadow: none !important;
+    background-image: none !important;
+}
+#main-navbar .form-control:focus {
+    border-color: rgba(255,255,255,0.6) !important;
+    box-shadow: 0 0 0 0.25rem rgba(255,255,255,0.15) !important;
+}
+
 /* ضبط المسافات في الموبايل لضمان بقاء العناصر في سطر واحد */
 @media (max-width: 991px) {
     .navbar-brand {
@@ -765,6 +790,7 @@ body {
     color: var(--text-color) !important;
     transition: background-color 0.3s ease, color 0.3s ease;
     padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+    background-clip: padding-box !important;
 }
 
 /* العناوين والنصوص المهمة */
@@ -1456,7 +1482,29 @@ nav#main-navbar #search-input {
 nav#main-navbar.sticky-top {
     top: 0 !important;
     position: sticky !important;
-    padding-top: env(safe-area-inset-top) !important;
+    padding-top: env(safe-area-inset-top, 0px) !important;
+    background-color: #1e5f31 !important;
+    background-clip: border-box !important;
+}
+
+nav#main-navbar.sticky-top::before {
+    content: '';
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: env(safe-area-inset-top, 0px);
+    background-color: #1e5f31;
+    z-index: 10000;
+}
+
+[data-theme="dark"] nav#main-navbar.sticky-top::before {
+    background-color: #1e5f31;
+}
+
+[data-reading="night"] nav#main-navbar.sticky-top::before {
+    background-color: #0a2e0f;
 }
 
 /* منع أي padding على الـ body من ملفات تانية */
