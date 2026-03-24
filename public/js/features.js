@@ -1844,6 +1844,47 @@ async function renderReciters(recitersList, container) {
     optionsHTML += `<option value="${index + 1}">${index + 1}. ${name}</option>`;
   });
 
+  // 🌟 إضافة لمسات الـ CSS الجمالية للشرايط والأزرار (بتتحقن مرة واحدة بس) 🌟
+  if (!document.getElementById('custom-audio-styles')) {
+    const style = document.createElement('style');
+    style.id = 'custom-audio-styles';
+    style.innerHTML = `
+        .custom-range {
+            -webkit-appearance: none;
+            height: 4px !important;
+            background: rgba(150, 150, 150, 0.2) !important;
+            border-radius: 5px;
+            outline: none;
+            padding: 0;
+        }
+        .custom-range::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #198754;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .custom-range::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        .play-pause-btn:active {
+            transform: scale(0.92);
+            background-color: rgba(25, 135, 84, 0.2) !important;
+        }
+    `;
+    document.head.appendChild(style);
+  }
+
+  const formatTime = (time) => {
+    if (isNaN(time) || time === Infinity) return "00:00";
+    const m = Math.floor(time / 60);
+    const s = Math.floor(time % 60);
+    return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
   for (const reciter of recitersList) {
     const displayName = reciterNamesAr[reciter.name] || reciter.name;
     const fallbackImage = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=198754&color=fff&size=128&font-size=0.33`;
@@ -1862,12 +1903,12 @@ async function renderReciters(recitersList, container) {
           const blob = await cachedRes.blob();
           audioSrc = URL.createObjectURL(blob); 
         }
-      } catch(e) { console.error("Cache blob error during render", e); }
+      } catch(e) { console.error("Cache error", e); }
     }
 
     container.insertAdjacentHTML('beforeend', `
       <div class="col-md-4 col-sm-6">
-        <div class="card h-100 shadow-sm border-0" style="border-radius: 16px; overflow: hidden;">
+        <div class="card h-100 shadow-sm border-0 reciter-card" style="border-radius: 16px; overflow: hidden; background-color: transparent;">
           <div class="card-body text-center p-4">
             <div class="mb-3 position-relative d-inline-block">
               <img src="${imageUrl}" loading="lazy"
@@ -1876,25 +1917,45 @@ async function renderReciters(recitersList, container) {
                 class="rounded-circle shadow-sm"
                 style="width: 100px; height: 100px; object-fit: cover; border: 3px solid #198754;">
             </div>
-            <h5 class="card-title fw-bold text-dark mb-1">${displayName}</h5>
+            <h5 class="card-title fw-bold mb-1">${displayName}</h5>
             <p class="small text-muted mb-3">رواية حفص عن عاصم</p>
 
             <div class="form-group mb-2">
-              <select class="form-select surah-select" style="font-family: 'Amiri'; border-radius: 10px;" data-server="${serverUrl}">${optionsHTML}</select>
+              <select class="form-select surah-select bg-transparent" style="font-family: 'Amiri'; border-radius: 10px; text-align: right;" data-server="${serverUrl}">${optionsHTML}</select>
             </div>
 
-            <div class="audio-loading-indicator d-none text-success small fw-bold mb-1" style="transition: opacity 0.3s;">
+            <div class="audio-loading-indicator d-none text-success small fw-bold mb-1">
               <i class="fas fa-circle-notch fa-spin me-1"></i> جاري التحميل...
             </div>
 
-            <audio controls class="w-100 mt-1 quran-player" preload="none" crossorigin="anonymous"
-  src="${audioSrc}"  
-  data-url="${defaultUrl}"
-  data-reciter="${displayName}"
-  style="border-radius: 30px;">
-</audio>
+            <audio class="quran-player d-none" preload="none" crossorigin="anonymous"
+              src="${audioSrc}"  
+              data-url="${defaultUrl}"
+              data-reciter="${displayName}">
+            </audio>
 
-            <button class="btn btn-sm mt-2 download-audio-btn w-100 ${isDefaultCached ? 'btn-outline-success' : 'btn-outline-secondary'}"
+            <div class="custom-audio-player mt-4 pt-3" style="border-top: 1px solid rgba(150, 150, 150, 0.15);">
+                <div class="d-flex align-items-center justify-content-between mb-3" style="font-size: 0.8rem; color: #888; direction: ltr; font-family: monospace;">
+                    <span class="current-time" style="min-width: 40px;">00:00</span>
+                    <input type="range" class="form-range progress-slider flex-grow-1 mx-2 custom-range" min="0" max="100" value="0">
+                    <span class="total-time" style="min-width: 40px;">00:00</span>
+                </div>
+                
+                <div class="d-flex align-items-center justify-content-between" style="direction: ltr;">
+                    <div class="d-flex align-items-center" style="width: 30%;">
+                        <i class="fas fa-volume-up vol-icon me-2" style="font-size: 0.85rem; color: #888;"></i>
+                        <input type="range" class="form-range volume-slider w-100 custom-range" min="0" max="1" step="0.05" value="1">
+                    </div>
+                    
+                    <button class="btn play-pause-btn shadow-none" style="width: 50px; height: 50px; border-radius: 50%; background-color: rgba(25, 135, 84, 0.1); border: 1px solid rgba(25, 135, 84, 0.15); color: #198754; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">
+                        <i class="fas fa-play" style="margin-left: 3px; font-size: 1.2rem;"></i>
+                    </button>
+                    
+                    <div style="width: 30%;"></div>
+                </div>
+            </div>
+
+            <button class="btn btn-sm mt-3 download-audio-btn w-100 ${isDefaultCached ? 'btn-outline-success' : 'btn-outline-secondary'}"
               style="border-radius: 10px; transition: all 0.3s;"
               onclick="window.downloadAudioOffline('${defaultUrl}', this)">
               ${isDefaultCached
@@ -1907,117 +1968,156 @@ async function renderReciters(recitersList, container) {
       </div>`);
   }
 
-  // ─── Event Listeners ───────────────────────────────────────────────────────
-  
-  document.querySelectorAll('.surah-select').forEach(select => {
+  // ─── منطق التشغيل والتحكم (بدون تغيير) ───
+  container.querySelectorAll('.reciter-card').forEach(card => {
+    const select = card.querySelector('.surah-select');
+    const audioPlayer = card.querySelector('.quran-player');
+    const downloadBtn = card.querySelector('.download-audio-btn');
+    const loadingIndicator = card.querySelector('.audio-loading-indicator');
+    
+    const playPauseBtn = card.querySelector('.play-pause-btn');
+    const playIcon = playPauseBtn.querySelector('i');
+    const progressSlider = card.querySelector('.progress-slider');
+    const volumeSlider = card.querySelector('.volume-slider');
+    const volIcon = card.querySelector('.vol-icon');
+    const currentTimeEl = card.querySelector('.current-time');
+    const totalTimeEl = card.querySelector('.total-time');
+
     if (window.transformSelectToSearchable) window.transformSelectToSearchable(select);
+
     select.addEventListener('change', async function() {
       const paddedSurah = this.value.toString().padStart(3, '0');
-      const cardBody = this.closest('.card-body');
       const newUrl = `${this.dataset.server}/${paddedSurah}.mp3`;
-      const audioPlayer = cardBody.querySelector('audio');
-      const downloadBtn = cardBody.querySelector('.download-audio-btn');
-      const loadingIndicator = cardBody.querySelector('.audio-loading-indicator');
 
-      if (audioPlayer) {
-  // 1. إظهار التحميل
-  loadingIndicator.classList.remove('d-none');
-  
-  // 2. تنظيف عميق لمنع التهنيج والتداخل
-  audioPlayer.pause();
-  audioPlayer.src = '';
-  audioPlayer.load();
+      loadingIndicator.classList.remove('d-none');
+      playIcon.className = 'fas fa-play';
+      playIcon.style.marginLeft = '3px';
+      progressSlider.value = 0;
+      currentTimeEl.textContent = "00:00";
+      totalTimeEl.textContent = "00:00";
 
-  // 3. تجهيز الرابط الجديد
-  audioPlayer.dataset.url = newUrl;
-  
-  // 4. إجبار البافر لو الرابط من أرشيف
-  // if (newUrl.includes('archive.org')) {
-  //   audioPlayer.preload = 'auto';
-  // }
-  
-  // 5. التشغيل
-  audioPlayer.src = newUrl;
-  audioPlayer.load();
-}
+      audioPlayer.pause();
+      audioPlayer.src = '';
+      audioPlayer.load();
+      audioPlayer.dataset.url = newUrl;
+      audioPlayer.src = newUrl;
+      audioPlayer.load();
 
       const isCached = await isAudioCached(newUrl);
       if (downloadBtn) {
         if (isCached) {
           downloadBtn.innerHTML = '<i class="fas fa-check-circle text-success"></i> محفوظة أوفلاين ✓';
-          downloadBtn.className = 'btn btn-sm mt-2 download-audio-btn w-100 btn-outline-success';
-          
+          downloadBtn.className = 'btn btn-sm mt-3 download-audio-btn w-100 btn-outline-success';
           try {
             const cache = await caches.open('quran-audio-cache-v1');
             const cachedRes = await cache.match(newUrl);
             if (cachedRes) {
               const blob = await cachedRes.blob();
-              if (audioPlayer) audioPlayer.src = URL.createObjectURL(blob);
+              audioPlayer.src = URL.createObjectURL(blob);
             }
-          } catch(e) { console.error("Cache blob error", e); }
-          
+          } catch(e) { console.error("Cache error", e); }
         } else {
           downloadBtn.innerHTML = '<i class="fas fa-download me-1"></i> حفظ للاستماع أوفلاين';
-          downloadBtn.className = 'btn btn-sm mt-2 download-audio-btn w-100 btn-outline-secondary';
+          downloadBtn.className = 'btn btn-sm mt-3 download-audio-btn w-100 btn-outline-secondary';
         }
         downloadBtn.disabled = false;
         downloadBtn.setAttribute('onclick', `window.downloadAudioOffline('${newUrl}', this)`);
       }
     });
-  });
 
-  document.querySelectorAll('.quran-player').forEach(player => {
-    const cardBody = player.closest('.card-body');
-    const loadingIndicator = cardBody.querySelector('.audio-loading-indicator');
-
-   player.addEventListener('waiting',   () => loadingIndicator.classList.remove('d-none')); 
-    
-    // إخفاء التحميل بمجرد ما الصوت يشتغل أو يكون جاهز
-    player.addEventListener('playing',   () => loadingIndicator.classList.add('d-none'));
-    player.addEventListener('canplay',   () => loadingIndicator.classList.add('d-none')); 
-    player.addEventListener('loadedmetadata', () => loadingIndicator.classList.add('d-none')); // أمان إضافي
-    player.addEventListener('pause',     () => loadingIndicator.classList.add('d-none'));
-    player.addEventListener('error', () => {
-        loadingIndicator.classList.add('d-none');
-        
-        if (navigator.onLine && player.offsetParent !== null) {
-            if (player.currentTime > 0 && !player.src.startsWith('blob:')) {
-                const savedTime = player.currentTime; 
-                const originalUrl = player.dataset.url; 
-                
-                player.src = originalUrl + '?retry=' + Date.now();
-                player.load();
-                
-                player.onloadedmetadata = () => {
-                    player.currentTime = savedTime;
-                    player.play().catch(e => console.warn('Auto-resume failed', e));
-                    player.onloadedmetadata = null; // مسح الحدث عشان ميتكررش
-                };
-            } else {
-                Swal.fire({ 
-                  toast: true, 
-                  position: 'top', 
-                  icon: 'error', 
-                  title: 'عذراً، انقطع الاتصال بالسيرفر', 
-                  showConfirmButton: false, 
-                  timer: 3000 
-                });
-            }
-        }
+    playPauseBtn.addEventListener('click', () => {
+      if (audioPlayer.paused) {
+        document.querySelectorAll('.quran-player').forEach(a => {
+          if (a !== audioPlayer && !a.paused) a.pause();
+        });
+        audioPlayer.play();
+      } else {
+        audioPlayer.pause();
+      }
     });
 
-    player.addEventListener('play', function(e) {
-      // إيقاف باقي المشغلات
-      document.querySelectorAll('audio').forEach(a => { if (a !== this) a.pause(); });
+    audioPlayer.addEventListener('timeupdate', () => {
+      if (!isNaN(audioPlayer.duration) && audioPlayer.duration > 0) {
+        const percent = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+        progressSlider.value = percent;
+        currentTimeEl.textContent = formatTime(audioPlayer.currentTime);
+      }
+    });
 
+    audioPlayer.addEventListener('loadedmetadata', () => {
+      totalTimeEl.textContent = formatTime(audioPlayer.duration);
+    });
+
+    progressSlider.addEventListener('input', (e) => {
+      if (!isNaN(audioPlayer.duration)) {
+        const seekTime = (e.target.value / 100) * audioPlayer.duration;
+        audioPlayer.currentTime = seekTime;
+      }
+    });
+
+    volumeSlider.addEventListener('input', (e) => {
+      audioPlayer.volume = e.target.value;
+      if (e.target.value == 0) {
+        volIcon.className = 'fas fa-volume-mute text-muted me-2 vol-icon';
+      } else if (e.target.value > 0.5) {
+        volIcon.className = 'fas fa-volume-up text-muted me-2 vol-icon';
+      } else {
+        volIcon.className = 'fas fa-volume-down text-muted me-2 vol-icon';
+      }
+    });
+
+    audioPlayer.addEventListener('waiting', () => loadingIndicator.classList.remove('d-none')); 
+    
+    audioPlayer.addEventListener('playing', () => {
+      loadingIndicator.classList.add('d-none');
+      playIcon.className = 'fas fa-pause';
+      playIcon.style.marginLeft = '0'; 
+    });
+    
+    audioPlayer.addEventListener('pause', () => {
+      loadingIndicator.classList.add('d-none');
+      playIcon.className = 'fas fa-play';
+      playIcon.style.marginLeft = '3px';
+    });
+    
+    audioPlayer.addEventListener('ended', () => {
+      playIcon.className = 'fas fa-play';
+      playIcon.style.marginLeft = '3px';
+      progressSlider.value = 0;
+      currentTimeEl.textContent = "00:00";
+    });
+
+    audioPlayer.addEventListener('error', () => {
+      loadingIndicator.classList.add('d-none');
+      playIcon.className = 'fas fa-play';
+      playIcon.style.marginLeft = '3px';
+      
+      if (navigator.onLine && audioPlayer.offsetParent !== null) {
+        if (audioPlayer.currentTime > 0 && !audioPlayer.src.startsWith('blob:')) {
+          const savedTime = audioPlayer.currentTime; 
+          const originalUrl = audioPlayer.dataset.url; 
+          audioPlayer.src = originalUrl + '?retry=' + Date.now();
+          audioPlayer.load();
+          audioPlayer.onloadedmetadata = () => {
+            audioPlayer.currentTime = savedTime;
+            audioPlayer.play().catch(e => console.warn('Auto-resume failed', e));
+            audioPlayer.onloadedmetadata = null; 
+          };
+        } else {
+          if(typeof Swal !== 'undefined') {
+            Swal.fire({ toast: true, position: 'top', icon: 'error', title: 'عذراً، انقطع الاتصال بالسيرفر', showConfirmButton: false, timer: 3000 });
+          }
+        }
+      }
+    });
+
+    audioPlayer.addEventListener('play', function(e) {
       if (!navigator.onLine && !this.src.startsWith('blob:')) {
         e.preventDefault();
         this.pause();
-        loadingIndicator.classList.add('d-none'); // إخفاء التحميل لو مفيش نت
-        
-        const select = cardBody?.querySelector('.surah-select');
+        loadingIndicator.classList.add('d-none'); 
         const surahName = select ? select.options[select.selectedIndex]?.text.replace(/^\d+\.\s*/, '') : '';
-        showOfflineAudioMessage(surahName || this.dataset.reciter);
+        if(window.showOfflineAudioMessage) window.showOfflineAudioMessage(surahName || this.dataset.reciter);
       }
     });
   });
@@ -3774,6 +3874,20 @@ window.loadMyRecitations = async function() {
     const container = document.getElementById('my-recitations-list');
     if (!container) return;
 
+    // 🌟 التعديل الجديد: فحص الإنترنت قبل أي حاجة 🌟
+    if (!navigator.onLine) {
+        container.innerHTML = `
+            <div class="text-center w-100 py-5">
+                <i class="fas fa-wifi fa-3x text-muted mb-3 opacity-50"></i>
+                <h5 class="fw-bold text-muted mb-1">لا يوجد اتصال بالإنترنت</h5>
+                <p class="text-muted small mb-3">تحتاج إلى الاتصال بالإنترنت لعرض وسماع تسجيلاتك السابقة.</p>
+                <button class="btn btn-outline-success rounded-pill px-4" onclick="window.loadMyRecitations()">
+                    <i class="fas fa-sync-alt me-1"></i> إعادة المحاولة
+                </button>
+            </div>`;
+        return;
+    }
+
     const surahsList = [
         '', 'الفاتحة', 'البقرة', 'آل عمران', 'النساء', 'المائدة', 'الأنعام',
         'الأعراف', 'الأنفال', 'التوبة', 'يونس', 'هود', 'يوسف', 'الرعد',
@@ -3867,15 +3981,27 @@ window.loadMyRecitations = async function() {
     } catch (err) {
         console.error('Error loading recitations:', err);
         if (err.response?.status === 401) {
-            container.innerHTML = '<div class="alert alert-warning text-center w-100">يرجى تسجيل الدخول أولاً</div>';
+            container.innerHTML = '<div class="alert alert-warning text-center w-100 rounded-4">يرجى تسجيل الدخول أولاً لعرض تسجيلاتك.</div>';
         } else {
-            container.innerHTML = '<div class="alert alert-danger text-center w-100">فشل تحميل التسجيلات، حاول مرة أخرى</div>';
+            // تصميم رسالة الخطأ العام بشكل ألطف
+            container.innerHTML = `
+                <div class="text-center w-100 py-4">
+                    <i class="fas fa-exclamation-circle fa-2x text-danger mb-2 opacity-75"></i>
+                    <p class="text-muted">عذراً، حدث خطأ أثناء جلب التسجيلات.</p>
+                    <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="window.loadMyRecitations()">إعادة المحاولة</button>
+                </div>`;
         }
     }
 };
 
 // ─── تشغيل الصوت داخل الكارت ───
 window.playRecitationAudio = function(id, url, btn) {
+    // 🌟 فحص الإنترنت إذا كان المستخدم محمل الصفحة والنت فصل فجأة
+    if (!navigator.onLine) {
+        if (typeof showAlert === 'function') showAlert('error', 'تحتاج إلى اتصال بالإنترنت لتشغيل التسجيل');
+        return;
+    }
+
     // 1. إيقاف أي صوت شغال حالياً
     if (window.currentPlayingAudio) {
         window.currentPlayingAudio.pause();
@@ -3885,17 +4011,9 @@ window.playRecitationAudio = function(id, url, btn) {
         }
     }
 
-    // 🌟 التعديل الجديد: تنظيف الرابط وتجهيزه للموبايل 🌟
-    // نشيل كلمة /public/ لو متسجلة بالغلط في الداتا القديمة
     let cleanUrl = url.replace(/^\/public\//, '/');
-    
-    // نجيب الدومين عشان الموبايل يقدر يوصل للسيرفر
-    const backendUrl = axios.defaults.baseURL || '';
-    
-    // ندمجهم مع بعض
-    const finalUrl = cleanUrl.startsWith('http') ? cleanUrl : backendUrl + cleanUrl;
+    const finalUrl = cleanUrl.startsWith('http') ? cleanUrl : 'https://aqraapp.com' + cleanUrl;
 
-    // تشغيل الصوت بالرابط النهائي الصحيح
     const audio = new Audio(finalUrl);
     window.currentPlayingAudio = audio;
     window.currentPlayingBtn = btn;
@@ -3912,10 +4030,11 @@ window.playRecitationAudio = function(id, url, btn) {
             btn.onclick = () => window.playRecitationAudio(id, url, btn);
         };
     }).catch(e => {
-        console.error("Audio Play Error:", e); // هيساعدك لو في خطأ تتبع المشكلة
+        console.error("Audio Play Error:", e); 
+        console.log("Failed URL was:", finalUrl); 
         btn.innerHTML = '<i class="fas fa-play me-1"></i> تشغيل';
         btn.disabled = false;
-        if (typeof showAlert === 'function') showAlert('error', 'تعذر تشغيل التسجيل');
+        if (typeof showAlert === 'function') showAlert('error', 'تعذر تشغيل التسجيل، تأكد من جودة الإنترنت');
     });
 
     audio.onended = () => {
