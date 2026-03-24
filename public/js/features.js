@@ -3996,13 +3996,11 @@ window.loadMyRecitations = async function() {
 
 // ─── تشغيل الصوت داخل الكارت ───
 window.playRecitationAudio = function(id, url, btn) {
-    // 🌟 فحص الإنترنت إذا كان المستخدم محمل الصفحة والنت فصل فجأة
     if (!navigator.onLine) {
         if (typeof showAlert === 'function') showAlert('error', 'تحتاج إلى اتصال بالإنترنت لتشغيل التسجيل');
         return;
     }
 
-    // 1. إيقاف أي صوت شغال حالياً
     if (window.currentPlayingAudio) {
         window.currentPlayingAudio.pause();
         if (window.currentPlayingBtn) {
@@ -4011,10 +4009,15 @@ window.playRecitationAudio = function(id, url, btn) {
         }
     }
 
+    // تجميع الرابط والتأكد منه
     let cleanUrl = url.replace(/^\/public\//, '/');
+    if (!cleanUrl.startsWith('/')) cleanUrl = '/' + cleanUrl;
     const finalUrl = cleanUrl.startsWith('http') ? cleanUrl : 'https://aqraapp.com' + cleanUrl;
 
     const audio = new Audio(finalUrl);
+    // 🌟 السطر ده مهم جداً لتخطي مشاكل الحماية في تطبيقات الموبايل 🌟
+    audio.crossOrigin = 'anonymous'; 
+
     window.currentPlayingAudio = audio;
     window.currentPlayingBtn = btn;
 
@@ -4031,10 +4034,20 @@ window.playRecitationAudio = function(id, url, btn) {
         };
     }).catch(e => {
         console.error("Audio Play Error:", e); 
-        console.log("Failed URL was:", finalUrl); 
         btn.innerHTML = '<i class="fas fa-play me-1"></i> تشغيل';
         btn.disabled = false;
-        if (typeof showAlert === 'function') showAlert('error', 'تعذر تشغيل التسجيل، تأكد من جودة الإنترنت');
+        
+        // 🚨 الفخ: هنعرض الخطأ حرفياً للمستخدم عشان نعرف المشكلة منين 🚨
+        const errorMsg = e.message || e.name || JSON.stringify(e);
+        Swal.fire({
+            icon: 'error',
+            title: 'كشف العطل',
+            html: `<div style="direction: ltr; font-size: 13px; text-align: left; background: #f8f9fa; padding: 10px; border-radius: 8px;">
+                   <b>URL:</b> <a href="${finalUrl}" target="_blank">رابط الصوت</a><br><br>
+                   <b>Error:</b> <span style="color:red;">${errorMsg}</span>
+                   </div>`,
+            confirmButtonText: 'فهمت'
+        });
     });
 
     audio.onended = () => {
