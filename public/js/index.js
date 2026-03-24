@@ -531,38 +531,67 @@ const isUserLoggedIn = async () => {
 };
 
 // ─── 7. Stop All Media ────────────────────────────────────────────────────────
-const stopAllMedia = () => {
+window.stopAllMedia = () => {
   console.log("🔴 [SYSTEM] Stopping all media...");
-  if (window.currentAudio) { window.currentAudio.pause(); window.currentAudio = null; }
+
+  // 1. إيقاف صوت صفحة "تسجيلاتي" وإرجاع الزرار لشكله الطبيعي
+  if (window.currentPlayingAudio) { 
+      window.currentPlayingAudio.pause(); 
+      if (window.currentPlayingBtn) {
+          window.currentPlayingBtn.innerHTML = '<i class="fas fa-play me-1"></i> تشغيل';
+          window.currentPlayingBtn.disabled = false;
+      }
+      window.currentPlayingAudio = null; 
+      window.currentPlayingBtn = null;
+  }
+
+  // 2. إيقاف الصوت العام (لو مستخدم في حتة تانية)
+  if (window.currentAudio) { 
+      window.currentAudio.pause(); 
+      window.currentAudio = null; 
+  }
+
   if (typeof window.stopSheikhFollowAlong === 'function') {
       window.stopSheikhFollowAlong();
   }
+  
   if (typeof window.stopAzkarAudio === 'function') window.stopAzkarAudio();
-  document.querySelectorAll('audio, video').forEach(m => { m.pause(); m.currentTime = 0; });
-  if (aiMediaRecorder && aiMediaRecorder.state !== 'inactive') {
+  
+  // 3. إيقاف كل المشغلات المخفية (زي صفحة القراء)
+  document.querySelectorAll('audio, video').forEach(m => { 
+      m.pause(); 
+      // ملحوظة: شيلنا m.currentTime = 0 عشان لو هو عامل Pause يفضل محتفظ بمكانه
+  });
+
+  if (typeof aiMediaRecorder !== 'undefined' && aiMediaRecorder && aiMediaRecorder.state !== 'inactive') {
     aiMediaRecorder.stop();
     if (aiMediaRecorder.stream) aiMediaRecorder.stream.getTracks().forEach(t => t.stop());
     aiMediaRecorder = null;
   }
-  isLiveTracking = false;
-  clearTimeout(chunkTimeout);
-  if (chunkRecorder && chunkRecorder.state !== 'inactive') {
+  
+  if (typeof isLiveTracking !== 'undefined') isLiveTracking = false;
+  if (typeof chunkTimeout !== 'undefined') clearTimeout(chunkTimeout);
+  
+  if (typeof chunkRecorder !== 'undefined' && chunkRecorder && chunkRecorder.state !== 'inactive') {
       try { chunkRecorder.stop(); } catch(e){}
   }
-  if (liveStream) {
+  
+  if (typeof liveStream !== 'undefined' && liveStream) {
       liveStream.getTracks().forEach(t => t.stop());
       liveStream = null;
   }
-  // ✅ FIX: تحقق من وجود الـ DOM قبل استدعاء resetUIButtons
+
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    resetUIButtons();
+      if (typeof resetUIButtons === 'function') resetUIButtons();
   }
-   document.querySelectorAll('.live-ayah-text').forEach(el => {
+  
+  document.querySelectorAll('.live-ayah-text').forEach(el => {
     el.style.backgroundColor = '';
     el.style.color = '';
     el.style.borderRadius = '';
     el.style.padding = '';
   });
+  
   document.querySelectorAll('.live-ayah-item').forEach(el => {
     el.classList.remove('ayah-active');
   });
@@ -809,9 +838,12 @@ const showTafseerModal = (ayahId, tafseer) => {
 
 // ─── showSection ──────────────────────────────────────────────────────────────
 window.showSection = async (sectionName) => {
-  stopAllMedia();
+  // 🌟 التعديل: إيقاف أي صوت شغال بأمان تام قبل الانتقال لأي صفحة
+  if (typeof window.stopAllMedia === 'function') {
+      window.stopAllMedia();
+  }
   
-  //  السطر السحري: إجبار الخروج من الشاشة الكاملة عند الانتقال لأي صفحة أخرى 
+  // السطر السحري: إجبار الخروج من الشاشة الكاملة عند الانتقال لأي صفحة أخرى 
   document.body.classList.remove('fullscreen-reading');
   const quranBook = document.getElementById('quran-book');
   if (quranBook) quranBook.classList.remove('no-transition');
@@ -822,6 +854,7 @@ window.showSection = async (sectionName) => {
   if (!target) return;
   target.classList.remove('d-none');
   window.scrollTo(0, 0);
+  
   if (sectionName === 'quran') {
     if (typeof _nightModeActive !== 'undefined' && _nightModeActive) {
       document.body.setAttribute('data-reading', 'night');
@@ -840,32 +873,38 @@ window.showSection = async (sectionName) => {
     'live-recitation': 'تتبع التلاوة المباشر', 'ai-correction': 'المصحح الذكي',
     'reset-password': 'تعيين كلمة مرور جديدة',
   };
+  
   if (sectionName !== 'quran') {
     document.title = titles[sectionName] || "تطبيق اقرأ";
   }
+  
   if (window.location.pathname !== newPath) {
     window.history.pushState({ section: sectionName }, '', newPath);
   }
+  
   if (sectionName === 'home') {
-  const lastCheck = window._lastAuthCheck || 0;
-  if (Date.now() - lastCheck > 60000) {
-    window._lastAuthCheck = Date.now();
-    window.checkAuth();
+    const lastCheck = window._lastAuthCheck || 0;
+    if (Date.now() - lastCheck > 60000) {
+      window._lastAuthCheck = Date.now();
+      window.checkAuth();
+    }
+    loadPrayers();
+    if (document.getElementById('active-khatmah')) manageKhatmah().catch(() => {});
   }
-  loadPrayers();
-  if (document.getElementById('active-khatmah')) manageKhatmah().catch(() => {});
-}
+  
   if (sectionName === 'surah-index') window.loadSurahIndex();
   if (sectionName === 'reciters') loadReciters();
   if (sectionName === 'bookmarks') loadBookmarks();
+  
   if (sectionName === 'khatmah') {
     manageKhatmah().catch(() => {});
     const sel = document.getElementById('currentSurah');
     if (sel && sel.options.length <= 1) surahNames.forEach((n, i) => { const o = document.createElement('option'); o.value = i + 1; o.textContent = `${i + 1}. ${n}`; sel.appendChild(o); });
   }
+  
   if (sectionName === 'profile') {
     let savedToken = null;
-    if (Capacitor.isNativePlatform()) {
+    if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
       const { value } = await Preferences.get({ key: 'auth_token' });
       savedToken = value;
     } else {
@@ -891,12 +930,14 @@ window.showSection = async (sectionName) => {
       if (err.response?.status === 401) window.showSection('login');
     });
   }
+  
   if (sectionName === 'forgot-password') {
     const emailEl = document.getElementById('forgot-email');
     const msgEl   = document.getElementById('forgot-success-msg');
     if (emailEl) emailEl.value = '';
     if (msgEl) msgEl.classList.add('d-none');
   }
+  
   const fillSelect = (id) => {
     const s = document.getElementById(id);
     if (s && s.options.length <= 1) {
@@ -911,9 +952,11 @@ window.showSection = async (sectionName) => {
       }
     }
   };
+  
   if (sectionName === 'ai-correction') fillSelect('ai-surah-select');
   if (sectionName === 'live-recitation') fillSelect('live-surah-select');
-    if (sectionName === 'qibla') {
+  
+  if (sectionName === 'qibla') {
     setTimeout(() => {
       if (window.initQibla) window.initQibla();
     }, 300);
