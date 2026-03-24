@@ -32,8 +32,8 @@ if (window.location.hostname !== 'localhost' && window.location.hostname !== '12
 
 // ─── 1. Config 
 // axios.defaults.baseURL = 'https://aqra-app.serveftp.com';
-//axios.defaults.baseURL = 'https://aqraapp.com';
- axios.defaults.baseURL ='http://127.0.0.1:3000';
+axios.defaults.baseURL = 'https://aqraapp.com';
+//axios.defaults.baseURL ='http://127.0.0.1:3000';
 axios.defaults.withCredentials =  Capacitor.isNativePlatform();
 const OFFLINE_HANDLED_URLS = [
   '/api/v1/bookmarks',
