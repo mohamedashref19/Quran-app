@@ -123,11 +123,12 @@ exports.check_recitation = catchAsync(async (req, res, next) => {
     const endAyah = parseInt(req.body.endAyah) || surahAyahCounts[surah];
 
     try {
-        const newRecitation = await Recitation.create({
-            user: req.user.id,
-            audioUrl: req.file.path, 
-            surah, startAyah, endAyah, score: 0
-        });
+     const audioWebUrl = '/' + req.file.path.replace(/\\/g, '/').split('public/')[1];
+const newRecitation = await Recitation.create({
+    user: req.user.id,
+    audioUrl: audioWebUrl,
+    surah, startAyah, endAyah, score: 0
+});
 
         let originalAyahs = await Ayah.find({ 
             surahNumber: surah, 
@@ -259,9 +260,9 @@ if (rawUserText.startsWith(aouzuPattern)) {
         const score = Math.round((correctCount / comparisonWords.length) * 100);
         await Recitation.findByIdAndUpdate(newRecitation._id, { score: Math.min(score, 100) });
 
-        setTimeout(() => {
-            if (req.file.path && fs.existsSync(req.file.path)) fs.unlink(req.file.path, () => {});
-        }, 1000);
+        // setTimeout(() => {
+        //     if (req.file.path && fs.existsSync(req.file.path)) fs.unlink(req.file.path, () => {});
+        // }, 1000);
 
         res.status(200).json({
             success: true,
@@ -351,5 +352,17 @@ exports.getAyahs = catchAsync(async (req, res, next) => {
     res.status(200).json({
         status: 'success',
         data: ayahs
+    });
+});
+
+exports.getMyRecitations = catchAsync(async (req, res, next) => {
+    const recitations = await Recitation.find({ user: req.user.id })
+        .sort({ createdAt: -1 })
+        .limit(20);
+
+    res.status(200).json({
+        status: 'success',
+        results: recitations.length,
+        data: { recitations }
     });
 });
