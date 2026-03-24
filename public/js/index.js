@@ -16,7 +16,7 @@ import {
   loadSurahs, startSurahReading, manageKhatmah, createKhatmah, updateKhatmahProgress,
   checkRecitation, loadReciters, loadPrayers, loadBookmarks, loadQuranPage,
   toggleBookmark, deleteBookmark, deleteKhatmah, initSearch, initBookmarksSearch,scheduleFridayKahfNotification,scheduleDuhaNotification,scheduleAllPrayers,checkAndPromptNotifications,
-  shareAyah,
+  shareAyah, scheduleIslamicEvents
 } from './features';
 import './insights';
 
@@ -32,8 +32,8 @@ if (window.location.hostname !== 'localhost' && window.location.hostname !== '12
 
 // ─── 1. Config 
 // axios.defaults.baseURL = 'https://aqra-app.serveftp.com';
-axios.defaults.baseURL = 'https://aqraapp.com';
-// axios.defaults.baseURL ='http://127.0.0.1:3000';
+//axios.defaults.baseURL = 'https://aqraapp.com';
+ axios.defaults.baseURL ='http://127.0.0.1:3000';
 axios.defaults.withCredentials =  Capacitor.isNativePlatform();
 const OFFLINE_HANDLED_URLS = [
   '/api/v1/bookmarks',
@@ -2296,6 +2296,7 @@ const initNativeFeatures = async () => {
       // ✅ الحفاظ على تنبيه سورة الكهف وصلاة الضحى
       await scheduleFridayKahfNotification();
       await scheduleDuhaNotification();
+      await scheduleIslamicEvents();
       const savedPrayers = await localforage.getItem('offline_prayers');
       if (savedPrayers && savedPrayers.timings) {
           await scheduleAllPrayers(savedPrayers.timings);
@@ -2961,7 +2962,7 @@ window.initIslamicCountdown = function() {
 
         const note = diffDays > 2 ? ' <span style="font-size: 0.65rem; opacity: 0.7; font-weight: normal; margin-right: 2px;">(فلكياً)</span>' : '';
 
-       container.innerHTML = `
+        container.innerHTML = `
             <div class="d-flex justify-content-between align-items-center">
                 <span class="fw-bold" style="font-family: 'Tajawal', sans-serif;">
                     <i class="fas fa-hourglass-half text-warning me-2 fa-spin-hover"></i> ${nextEvent.name}
@@ -2972,10 +2973,67 @@ window.initIslamicCountdown = function() {
             </div>
         `;
         container.classList.remove('d-none');
+
+        // 🔥 الاحتفالية المبهجة داخل التطبيق (تظهر يوم المناسبة أو قبلها بيوم) 🔥
+        if (diffDays === 0 || diffDays === 1) { 
+            const currentYear = new Date().getFullYear();
+            const celebrationKey = `aqra_celebrated_${nextEvent.m}_${currentYear}`;
+            
+            if (!localStorage.getItem(celebrationKey)) {
+                setTimeout(() => {
+                    // إطلاق الزينة (Confetti)
+                    fireIslamicConfetti();
+                    
+                    const cleanName = nextEvent.name.replace(/🌙|🎉|🕋|🐑|📅/g, '').trim();
+                    Swal.fire({
+                        title: nextEvent.name,
+                        html: `<div style="font-family: 'Amiri', serif; font-size: 1.3rem; line-height: 1.8;">
+                                تطبيق اقرأ يهنئكم بحلول <strong>${cleanName}</strong>.<br>
+                                <span style="color: #198754; font-weight: bold;">تقبل الله منا ومنكم صالح الأعمال ✨</span>
+                               </div>`,
+                        confirmButtonText: 'كل عام وأنتم بخير',
+                        confirmButtonColor: '#198754',
+                        backdrop: `rgba(25, 135, 84, 0.15)`,
+                        customClass: { popup: 'rounded-4' }
+                    }).then(() => {
+                        localStorage.setItem(celebrationKey, 'true'); // عشان متظهرش تاني
+                    });
+                }, 1500); 
+            }
+        }
+
     } else {
         container.classList.add('d-none');
     }
 };
+
+// دالة الزينة (Confetti) الخاصة بالاحتفالية
+function fireIslamicConfetti() {
+    const colors = ['#198754', '#d4af37', '#ffffff', '#ffc107', '#a5d6a7'];
+    if (!document.getElementById('confetti-style')) {
+        const style = document.createElement('style');
+        style.id = 'confetti-style';
+        style.innerHTML = `@keyframes fall-down { to { top: 110vh; transform: rotate(720deg); } }`;
+        document.head.appendChild(style);
+    }
+    for (let i = 0; i < 45; i++) {
+        const p = document.createElement('div');
+        const size = 6 + Math.random() * 8;
+        p.style.cssText = `
+            position: fixed;
+            width: ${size}px; height: ${size}px;
+            left: ${Math.random() * 100}vw;
+            top: -10vh;
+            background: ${colors[i % colors.length]};
+            animation: fall-down ${1.5 + Math.random() * 2}s linear forwards;
+            transform: rotate(${Math.random() * 360}deg);
+            z-index: 99999;
+            border-radius: ${i % 3 === 0 ? '50%' : '3px'};
+        `;
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 3500);
+    }
+}
 
 const AZKAR_AUDIO_LINKS = {
  'morning': 'audio/sabah.mp3',

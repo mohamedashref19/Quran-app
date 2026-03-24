@@ -29,5 +29,6 @@ router.post(
   quranControllers.stream_check 
 );
 router.get("/ayahs", authControllers.proctect, quranControllers.getAyahs);
+router.get("/my-recitations", authControllers.proctect, quranControllers.getMyRecitations);
 
 module.exports = router

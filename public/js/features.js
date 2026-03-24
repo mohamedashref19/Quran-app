@@ -1392,11 +1392,59 @@ export async function manageKhatmah() {
 }
 
 export async function createKhatmah(name, durationDays) {
+  // ─── أوفلاين: حفظ الختمة محلياً وإضافتها للـ Queue ───
+  if (!navigator.onLine) {
+    const endDate = durationDays
+      ? new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString()
+      : null;
+
+    await localforage.setItem('latest_khatmah', {
+      currentSurah: 1, currentAyah: 1, page: 1, endDate, updatedAt: Date.now()
+    });
+    await localforage.setItem('khatmah_meta', {
+      name: name || 'ختمتي',
+      targetMsg: 'واصل تقدمك لختم القرآن الكريم ✨'
+    });
+    await addToOfflineQueue('CREATE_KHATMAH', { name, durationDays });
+
+    Swal.fire({
+      toast: true, position: 'top-end', icon: 'success',
+      title: '📖 تم إنشاء الختمة محلياً',
+      text: 'ستتم المزامنة تلقائياً عند عودة الإنترنت',
+      showConfirmButton: false, timer: 3000
+    });
+
+    await manageKhatmah();
+    return;
+  }
+
+  // ─── أونلاين: الطريقة العادية ───
   try {
     const res = await axios.post('/api/v1/khatmah', { name, durationDays });
     if (res.data.status === 'success') await manageKhatmah();
   } catch (err) {
-    if (err.response?.status === 401) {
+    if (!navigator.onLine || err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
+      const endDate = durationDays
+        ? new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString()
+        : null;
+
+      await localforage.setItem('latest_khatmah', {
+        currentSurah: 1, currentAyah: 1, page: 1, endDate, updatedAt: Date.now()
+      });
+      await localforage.setItem('khatmah_meta', {
+        name: name || 'ختمتي',
+        targetMsg: 'واصل تقدمك لختم القرآن الكريم ✨'
+      });
+      await addToOfflineQueue('CREATE_KHATMAH', { name, durationDays });
+
+      Swal.fire({
+        toast: true, position: 'top-end', icon: 'success',
+        title: '📖 تم إنشاء الختمة محلياً',
+        text: 'سيتم المزامنة تلقائياً عند عودة الإنترنت',
+        showConfirmButton: false, timer: 3000
+      });
+      await manageKhatmah();
+    } else if (err.response?.status === 401) {
       if (typeof requireLogin === 'function') requireLogin('إنشاء ختمة');
     } else {
       showAlert('error', err.response?.data?.message || 'حدث خطأ، حاول مرة أخرى');
@@ -1977,19 +2025,21 @@ async function renderReciters(recitersList, container) {
 
 export const scheduleAllPrayers = async (prayerTimes) => {
   try {
-    // 1. مسح الإشعارات القديمة بما فيها إشعار التذكير (id: 106)
-    try { 
-      await LocalNotifications.cancel({ 
-        notifications: [{ id: 101 }, { id: 102 }, { id: 103 }, { id: 104 }, { id: 105 }, { id: 106 }] 
-      }); 
-    } catch(e) {}
+    // 1. مسح الإشعارات القديمة بمدى واسع (أرقام النسخ القديمة + أرقام النظام الجديد)
+    const idsToCancel = [];
+    for (let id = 100; id <= 150; id++) idsToCancel.push({ id });
+    for (let p = 1; p <= 5; p++) {
+      for (let d = 0; d <= 6; d++) idsToCancel.push({ id: p * 1000 + 1000 + d });
+    }
+    try { await LocalNotifications.cancel({ notifications: idsToCancel }); } catch(e) {}
 
     const notifications = [];
     const targetPrayers = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
     const prayerNamesAr = { 'Fajr': 'الفجر', 'Dhuhr': 'الظهر', 'Asr': 'العصر', 'Maghrib': 'المغرب', 'Isha': 'العشاء' };
-    const prayerIds     = { 'Fajr': 101, 'Dhuhr': 102, 'Asr': 103, 'Maghrib': 104, 'Isha': 105 };
+    const prayerIds     = { 'Fajr': 1, 'Dhuhr': 2, 'Asr': 3, 'Maghrib': 4, 'Isha': 5 };
+    const nowRef = new Date();
 
-    // 2. جدولة الصلوات الخمس بالتكرار اليومي
+    // 2. جدولة كل صلاة لـ 7 أيام قادمة بـ exact time
     targetPrayers.forEach((key) => {
       const timeStr = prayerTimes[key];
       if (!timeStr) return;
@@ -1998,58 +2048,55 @@ export const scheduleAllPrayers = async (prayerTimes) => {
       const isAM      = cleanTime.toUpperCase().includes('AM');
       const parts     = cleanTime.split(' ')[0].split(':');
       if (parts.length < 2) return;
-      
+
       let hours   = parseInt(parts[0], 10);
       let minutes = parseInt(parts[1], 10);
       if (isNaN(hours) || isNaN(minutes)) return;
-      
+
       if (isPM && hours !== 12) hours += 12;
       if (isAM && hours === 12) hours  = 0;
-      
-      const nowRef     = new Date();
-      const prayerDate = new Date(nowRef.getFullYear(), nowRef.getMonth(), nowRef.getDate(), hours, minutes, 0, 0);
-      
-      if (prayerDate <= nowRef) prayerDate.setDate(prayerDate.getDate() + 1);
-      
-      notifications.push({
-        title: `حان موعد صلاة ${prayerNamesAr[key]} 🕌`,
-        body: `أرحنا بها يا بلال.. حان وقت صلاة ${prayerNamesAr[key]}`,
-        id: prayerIds[key],
-        schedule: { 
-            at: prayerDate, 
-            every: 'day', // التكرار اليومي شغال
-            allowWhileIdle: true 
-        },
-        channelId: 'azan-channel',
-        smallIcon: 'ic_notification',
-        sound: 'azan_short.mp3',
-        actionTypeId: 'OPEN_PRAYERS',
-      });
 
-      console.log(`⏰ تم جدولة ${prayerNamesAr[key]} على الساعة: ${prayerDate.toLocaleTimeString('ar-EG')} (يومياً)`);
+      for (let dayOffset = 0; dayOffset <= 6; dayOffset++) {
+        const prayerDate = new Date(nowRef.getFullYear(), nowRef.getMonth(), nowRef.getDate(), hours, minutes, 0, 0);
+        prayerDate.setDate(prayerDate.getDate() + dayOffset);
+
+        if (prayerDate <= nowRef) continue;
+
+        const uniqueId = prayerIds[key] * 1000 + 1000 + dayOffset;
+
+        notifications.push({
+          title: `حان موعد صلاة ${prayerNamesAr[key]} 🕌`,
+          body: `أرحنا بها يا بلال.. حان وقت صلاة ${prayerNamesAr[key]}`,
+          id: uniqueId,
+          schedule: { at: prayerDate, allowWhileIdle: true },
+          channelId: 'azan-channel',
+          smallIcon: 'ic_notification',
+          sound: 'azan_short.mp3',
+          actionTypeId: 'OPEN_PRAYERS',
+        });
+      }
     });
 
-    // 🔥 3. التعديل السحري: إشعار التذكير بعد 7 أيام 🔥
-    // الإشعار ده هيفكره يفتح التطبيق عشان المواقيت تتحدث ومتبقاش غلط
+    // 3. إشعار ذكي لضمان فتح التطبيق كل 6 أيام (لإعادة الجدولة في صمت بـ UX احترافي)
     const reminderDate = new Date();
-    reminderDate.setDate(reminderDate.getDate() + 7); // بعد 7 أيام من دلوقتي
-    
+    reminderDate.setDate(reminderDate.getDate() + 6);
+    reminderDate.setHours(19, 0, 0, 0); // الساعة 7 مساءً
+
     notifications.push({
       id: 106,
-      title: 'تحديث مواقيت الصلاة 🔄',
-      body: 'مواقيت الصلاة تتغير باستمرار.. افتح التطبيق لثوانٍ ليتم ضبط الأذان بدقة للأيام القادمة.',
-      schedule: { at: reminderDate, allowWhileIdle: true }, // مرة واحدة بس بعد أسبوع
+      title: 'حصادك الأسبوعي من "اقرأ" 📖',
+      body: 'تفقد إحصائيات قراءتك هذا الأسبوع، وواصل تقدمك في ختمتك الحالية لرفع رصيدك من الحسنات ✨',
+      schedule: { at: reminderDate, allowWhileIdle: true },
       smallIcon: 'ic_notification',
       actionTypeId: 'OPEN_PRAYERS',
     });
 
-    // 4. إرسال الجدولة للنظام
     if (notifications.length > 0) {
       await LocalNotifications.schedule({ notifications });
-      console.log('✅ [PRAYERS] تم جدولة جميع الصلوات بنجاح مع تذكير التحديث الأسبوعي!');
+      console.log(`✅ [PRAYERS] تم جدولة ${notifications.length} إشعار بـ exact time لـ 7 أيام قادمة`);
     }
-  } catch (error) { 
-      console.error('❌ خطأ في جدولة إشعارات الصلاة:', error); 
+  } catch (error) {
+    console.error('❌ خطأ في جدولة إشعارات الصلاة:', error);
   }
 };
 
@@ -2083,13 +2130,15 @@ export function loadPrayers() {
           `);
         }
         
-        // 🔥 التعديل الثاني: جدولة الإشعارات من المواقيت المحفوظة (الكاش) لو الموبايل أوفلاين 🔥
+        // 🔥 التعديل الثاني: التحقق الذكي (كل 6 أيام) في وضع الأوفلاين
         if (Capacitor.isNativePlatform()) {
           const lastScheduled = await localforage.getItem('prayers_last_scheduled');
-          const today = new Date().toDateString();
-          if (lastScheduled !== today) {
+          const lastScheduledTime = lastScheduled ? new Date(lastScheduled).getTime() : 0;
+          const daysSinceLastSchedule = (Date.now() - lastScheduledTime) / (1000 * 60 * 60 * 24);
+          
+          if (daysSinceLastSchedule >= 6) {
               await scheduleAllPrayers(cachedData.timings);
-              await localforage.setItem('prayers_last_scheduled', today);
+              await localforage.setItem('prayers_last_scheduled', new Date().toISOString());
           }
         }
 
@@ -2147,13 +2196,15 @@ export function loadPrayers() {
         }
         await localforage.setItem('offline_prayers', { timings, hijri, cityName, savedAt: Date.now() });
         
-        // الجدولة العادية لما يكون فيه نت
+        // 🔥 التحقق الذكي (كل 6 أيام) في وضع الأونلاين
         if (Capacitor.isNativePlatform()) {
           const lastScheduled = await localforage.getItem('prayers_last_scheduled');
-          const today = new Date().toDateString();
-          if (lastScheduled !== today) {
+          const lastScheduledTime = lastScheduled ? new Date(lastScheduled).getTime() : 0;
+          const daysSinceLastSchedule = (Date.now() - lastScheduledTime) / (1000 * 60 * 60 * 24);
+          
+          if (daysSinceLastSchedule >= 6) {
               await scheduleAllPrayers(timings);
-              await localforage.setItem('prayers_last_scheduled', today);
+              await localforage.setItem('prayers_last_scheduled', new Date().toISOString());
           }
         }
       } catch (err) {
@@ -3554,4 +3605,321 @@ window.continueActiveKhatmah = async () => {
     if (window.showSection) window.showSection('quran');
     if (window.loadQuranPage) window.loadQuranPage(targetPage, k.currentSurah, k.currentAyah);
     else loadQuranPage(targetPage, k.currentSurah, k.currentAyah);
+};
+
+// ─── معالجة الـ Offline Queue لما يرجع النت ───
+const processOfflineQueue = async () => {
+  const queue = await localforage.getItem('offline_actions_queue') || [];
+  if (queue.length === 0) return;
+
+  console.log(`🔄 [OFFLINE QUEUE] معالجة ${queue.length} عملية معلقة...`);
+  const remaining = [];
+
+  for (const action of queue) {
+    try {
+      if (action.type === 'CREATE_KHATMAH') {
+        const res = await axios.post('/api/v1/khatmah', action.payload);
+        if (res.data.status === 'success') {
+          const freshK = res.data.data?.khatmah;
+          if (freshK) {
+            await localforage.setItem('latest_khatmah', {
+              currentSurah: freshK.currentSurah || 1,
+              currentAyah:  freshK.currentAyah  || 1,
+              page:         freshK.page         || 1,
+              endDate:      freshK.endDate       || null,
+              updatedAt:    Date.now()
+            });
+            await localforage.setItem('khatmah_meta', {
+              name:      freshK.name      || action.payload.name || 'ختمتي',
+              targetMsg: 'واصل تقدمك لختم القرآن الكريم ✨'
+            });
+          }
+          console.log('✅ [OFFLINE QUEUE] تم إنشاء الختمة على السيرفر');
+        }
+
+      } else if (action.type === 'UPDATE_KHATMAH') {
+        await axios.patch('/api/v1/khatmah', action.payload);
+        console.log('✅ [OFFLINE QUEUE] تم تحديث الختمة على السيرفر');
+
+      } else if (action.type === 'DELETE_KHATMAH') {
+        await axios.delete('/api/v1/khatmah');
+        console.log('✅ [OFFLINE QUEUE] تم حذف الختمة من السيرفر');
+      }
+
+    } catch (err) {
+      if (err.response) {
+        console.warn(`⚠️ [OFFLINE QUEUE] تم حذف عملية فاشلة (${action.type}):`, err.response.status);
+      } else {
+        remaining.push(action);
+      }
+    }
+  }
+
+  await localforage.setItem('offline_actions_queue', remaining);
+
+  if (remaining.length === 0) {
+    console.log('✅ [OFFLINE QUEUE] تم معالجة كل العمليات المعلقة');
+    await manageKhatmah();
+  }
+};
+
+// ─── استمع لحدث عودة الإنترنت ───
+window.addEventListener('online', () => {
+  console.log('🌐 عاد الاتصال بالإنترنت - بدء المزامنة...');
+  processOfflineQueue();
+});
+
+
+
+export const scheduleIslamicEvents = async () => {
+  if (!Capacitor.isNativePlatform()) return;
+
+  const hijriEvents = [
+    { name: 'رمضان المبارك',  m: 9,  d: 1,  icon: '🌙', type: 'ramadan' },
+    { name: 'عيد الفطر',      m: 10, d: 1,  icon: '🎉', type: 'eid' },
+    { name: 'يوم عرفة',       m: 12, d: 9,  icon: '🕋', type: 'arafah' },
+    { name: 'عيد الأضحى',     m: 12, d: 10, icon: '🐑', type: 'eid' },
+    { name: 'رأس السنة الهجرية', m: 1, d: 1, icon: '📅', type: 'newyear' },
+  ];
+
+  const messages = {
+    ramadan:  { title: 'رمضان كريم 🌙', body: 'تقبّل الله منّا ومنكم.. أهلاً بشهر القرآن والرحمة والمغفرة 🤲' },
+    eid:      { title: 'عيد مبارك سعيد 🎉', body: 'كل عام وأنتم بخير.. تقبّل الله طاعتكم وأعاد عليكم هذه الأيام بالخير واليُمن 🌸' },
+    arafah:   { title: 'يوم عرفة المبارك 🕋', body: 'أفضل يوم طلعت فيه الشمس.. أكثر من الدعاء والذكر فهذا يوم مغفرة وعتق من النار 🤲' },
+    newyear:  { title: 'عام هجري جديد 📅', body: 'بارك الله لنا في العام الجديد.. عام مليء بالخير والبركة والطاعة إن شاء الله ✨' },
+  };
+
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', {
+      day: 'numeric', month: 'numeric'
+    });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // إلغاء الإشعارات القديمة للمناسبات (IDs: 200-210)
+    const idsToCancel = [];
+    for (let i = 200; i <= 210; i++) idsToCancel.push({ id: i });
+    try { await LocalNotifications.cancel({ notifications: idsToCancel }); } catch(e) {}
+
+    const notifications = [];
+    let notifId = 200;
+
+    for (const event of hijriEvents) {
+      // نبحث عن تاريخ المناسبة في الـ 360 يوم القادمة
+      for (let i = 0; i <= 360; i++) {
+        const checkDate = new Date(today.getTime() + i * 24 * 60 * 60 * 1000);
+        const parts = formatter.formatToParts(checkDate);
+        const hDay   = parseInt(parts.find(p => p.type === 'day').value);
+        const hMonth = parseInt(parts.find(p => p.type === 'month').value);
+
+        if (hMonth === event.m && hDay === event.d) {
+          // نبعت إشعار لو باقي 3 أيام أو أقل أو يوم المناسبة نفسه
+          if (i <= 3) {
+            const msg = messages[event.type] || {
+              title: `${event.icon} ${event.name}`,
+              body: `أهلاً بـ${event.name}.. تقبّل الله منّا ومنكم 🤲`
+            };
+
+            // وقت الإشعار: يوم المناسبة الساعة 8 الصبح
+            const notifDate = new Date(checkDate);
+            notifDate.setHours(8, 0, 0, 0);
+            if (notifDate <= new Date()) break; // لو فات موعده متجدلوش
+
+            notifications.push({
+              id: notifId++,
+              title: msg.title,
+              body: msg.body,
+              schedule: { at: notifDate, allowWhileIdle: true },
+              smallIcon: 'ic_notification',
+              actionTypeId: 'OPEN_HOME',
+            });
+          }
+          break;
+        }
+      }
+    }
+
+    if (notifications.length > 0) {
+      await LocalNotifications.schedule({ notifications });
+      console.log(`✅ [ISLAMIC EVENTS] تم جدولة ${notifications.length} إشعار للمناسبات القريبة`);
+    }
+  } catch (err) {
+    console.error('❌ خطأ في جدولة إشعارات المناسبات:', err);
+  }
+};
+
+
+// ─── تبديل التابات في المصحح الذكي ───
+window.switchRecitationTab = function(tab) {
+    const recordPane = document.getElementById('ai-record-pane');
+    const historyPane = document.getElementById('ai-history-pane');
+    const btns = document.querySelectorAll('#ai-correction-tabs .nav-link');
+
+    if (tab === 'record') {
+        recordPane?.classList.remove('d-none');
+        historyPane?.classList.add('d-none');
+        if (btns[0]) btns[0].classList.add('active');
+        if (btns[1]) btns[1].classList.remove('active');
+    } else {
+        recordPane?.classList.add('d-none');
+        historyPane?.classList.remove('d-none');
+        if (btns[0]) btns[0].classList.remove('active');
+        if (btns[1]) btns[1].classList.add('active');
+    }
+};
+
+// ─── جلب وعرض تسجيلات المستخدم ───
+window.loadMyRecitations = async function() {
+    const container = document.getElementById('my-recitations-list');
+    if (!container) return;
+
+    const surahsList = [
+        '', 'الفاتحة', 'البقرة', 'آل عمران', 'النساء', 'المائدة', 'الأنعام',
+        'الأعراف', 'الأنفال', 'التوبة', 'يونس', 'هود', 'يوسف', 'الرعد',
+        'إبراهيم', 'الحجر', 'النحل', 'الإسراء', 'الكهف', 'مريم', 'طه',
+        'الأنبياء', 'الحج', 'المؤمنون', 'النور', 'الفرقان', 'الشعراء',
+        'النمل', 'القصص', 'العنكبوت', 'الروم', 'لقمان', 'السجدة', 'الأحزاب',
+        'سبأ', 'فاطر', 'يس', 'الصافات', 'ص', 'الزمر', 'غافر', 'فصلت',
+        'الشورى', 'الزخرف', 'الدخان', 'الجاثية', 'الأحقاف', 'محمد', 'الفتح',
+        'الحجرات', 'ق', 'الذاريات', 'الطور', 'النجم', 'القمر', 'الرحمن',
+        'الواقعة', 'الحديد', 'المجادلة', 'الحشر', 'الممتحنة', 'الصف',
+        'الجمعة', 'المنافقون', 'التغابن', 'الطلاق', 'التحريم', 'الملك',
+        'القلم', 'الحاقة', 'المعارج', 'نوح', 'الجن', 'المزمل', 'المدثر',
+        'القيامة', 'الإنسان', 'المرسلات', 'النبأ', 'النازعات', 'عبس',
+        'التكوير', 'الانفطار', 'المطففين', 'الانشقاق', 'البروج', 'الطارق',
+        'الأعلى', 'الغاشية', 'الفجر', 'البلد', 'الشمس', 'الليل', 'الضحى',
+        'الشرح', 'التين', 'العلق', 'القدر', 'البينة', 'الزلزلة', 'العاديات',
+        'القارعة', 'التكاثر', 'العصر', 'الهمزة', 'الفيل', 'قريش', 'الماعون',
+        'الكوثر', 'الكافرون', 'النصر', 'المسد', 'الإخلاص', 'الفلق', 'الناس'
+    ];
+
+    container.innerHTML = `
+        <div class="text-center w-100 py-5">
+            <div class="spinner-border text-success" role="status"></div>
+            <p class="text-muted mt-2">جاري تحميل التسجيلات...</p>
+        </div>`;
+
+    try {
+        const res = await axios.get('/api/v1/quran/my-recitations');
+        const recitations = res.data.data.recitations;
+
+        if (!recitations || recitations.length === 0) {
+            container.innerHTML = `
+                <div class="text-center w-100 py-5">
+                    <i class="fas fa-microphone-slash fa-3x text-muted mb-3 opacity-50"></i>
+                    <p class="text-muted fw-bold">لا توجد تسجيلات بعد</p>
+                    <p class="text-muted small">سجّل تلاوتك من تاب "فحص جديد" وستحفظ هنا تلقائياً</p>
+                </div>`;
+            return;
+        }
+
+        const html = recitations.map(r => {
+            const surahName = surahsList[r.surah] || `سورة ${r.surah}`;
+            const date = new Date(r.createdAt).toLocaleDateString('ar-EG', {
+                year: 'numeric', month: 'short', day: 'numeric'
+            });
+            const ayahsText = (r.startAyah && r.endAyah)
+                ? `الآيات ${r.startAyah} – ${r.endAyah}`
+                : `الآية ${r.startAyah || 1}`;
+
+            const scoreColor = r.score >= 80 ? 'success' : r.score >= 50 ? 'warning' : 'danger';
+            const scoreLabel = r.score >= 80 ? 'ممتاز' : r.score >= 50 ? 'جيد' : 'يحتاج تحسين';
+
+            return `
+                <div class="col-md-6 mb-3">
+                    <div class="card shadow-sm h-100 border-0 rounded-4 border-start border-${scoreColor} border-4">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <h6 class="fw-bold mb-1" style="font-family:'Amiri',serif; font-size:1.2rem;">
+                                        <i class="fas fa-book-open text-${scoreColor} me-2"></i>${surahName}
+                                    </h6>
+                                    <small class="text-muted d-block">
+                                        <i class="fas fa-list-ol me-1"></i>${ayahsText}
+                                    </small>
+                                    <small class="text-muted d-block">
+                                        <i class="fas fa-calendar-alt me-1"></i>${date}
+                                    </small>
+                                </div>
+                                <div class="text-center">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-1 bg-${scoreColor} bg-opacity-10 border border-${scoreColor}"
+                                         style="width:50px; height:50px;">
+                                        <span class="fw-bold text-${scoreColor}" style="font-size:1.1rem;">${Math.round(r.score)}%</span>
+                                    </div>
+                                    <small class="text-${scoreColor} fw-bold" style="font-size:0.7rem;">${scoreLabel}</small>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                                ${r.audioUrl ? `
+                                <button class="btn btn-sm btn-outline-${scoreColor} rounded-pill px-3 fw-bold"
+                                        onclick="window.playRecitationAudio('${r._id}', '${r.audioUrl}', this)">
+                                    <i class="fas fa-play me-1"></i> تشغيل
+                                </button>` : '<span class="badge bg-light text-muted border">الصوت غير متاح</span>'}
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+        }).join('');
+
+        container.innerHTML = html;
+
+    } catch (err) {
+        console.error('Error loading recitations:', err);
+        if (err.response?.status === 401) {
+            container.innerHTML = '<div class="alert alert-warning text-center w-100">يرجى تسجيل الدخول أولاً</div>';
+        } else {
+            container.innerHTML = '<div class="alert alert-danger text-center w-100">فشل تحميل التسجيلات، حاول مرة أخرى</div>';
+        }
+    }
+};
+
+// ─── تشغيل الصوت داخل الكارت ───
+window.playRecitationAudio = function(id, url, btn) {
+    // 1. إيقاف أي صوت شغال حالياً
+    if (window.currentPlayingAudio) {
+        window.currentPlayingAudio.pause();
+        if (window.currentPlayingBtn) {
+            window.currentPlayingBtn.innerHTML = '<i class="fas fa-play me-1"></i> تشغيل';
+            window.currentPlayingBtn.disabled = false;
+        }
+    }
+
+    // 🌟 التعديل الجديد: تنظيف الرابط وتجهيزه للموبايل 🌟
+    // نشيل كلمة /public/ لو متسجلة بالغلط في الداتا القديمة
+    let cleanUrl = url.replace(/^\/public\//, '/');
+    
+    // نجيب الدومين عشان الموبايل يقدر يوصل للسيرفر
+    const backendUrl = axios.defaults.baseURL || '';
+    
+    // ندمجهم مع بعض
+    const finalUrl = cleanUrl.startsWith('http') ? cleanUrl : backendUrl + cleanUrl;
+
+    // تشغيل الصوت بالرابط النهائي الصحيح
+    const audio = new Audio(finalUrl);
+    window.currentPlayingAudio = audio;
+    window.currentPlayingBtn = btn;
+
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> جاري...';
+    btn.disabled = true;
+    
+    audio.play().then(() => {
+        btn.innerHTML = '<i class="fas fa-stop me-1"></i> إيقاف';
+        btn.disabled = false;
+        btn.onclick = () => {
+            audio.pause();
+            btn.innerHTML = '<i class="fas fa-play me-1"></i> تشغيل';
+            btn.onclick = () => window.playRecitationAudio(id, url, btn);
+        };
+    }).catch(e => {
+        console.error("Audio Play Error:", e); // هيساعدك لو في خطأ تتبع المشكلة
+        btn.innerHTML = '<i class="fas fa-play me-1"></i> تشغيل';
+        btn.disabled = false;
+        if (typeof showAlert === 'function') showAlert('error', 'تعذر تشغيل التسجيل');
+    });
+
+    audio.onended = () => {
+        btn.innerHTML = '<i class="fas fa-play me-1"></i> تشغيل';
+        btn.onclick = () => window.playRecitationAudio(id, url, btn);
+    };
 };
