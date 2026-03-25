@@ -1683,9 +1683,16 @@ export async function loadReciters() {
 
     const recitersList = res.data.data.reciters || [];
 
+    // 1. إضافة الشيخ عبد الرحمن الزواوي
     recitersList.push({
       name: "Abdelrahman Elzwawy",
       server: "https://pub-3e14c7ef9a93492591728d0d064407c2.r2.dev" 
+    });
+
+    // 2. 🌟 إضافة الشيخ ياسر الدوسري (برابط شغال) 🌟
+    recitersList.push({
+      name: "Yasser Al-Dosari",
+      server: "https://server11.mp3quran.net/yasser" 
     });
 
     if (!recitersList || recitersList.length === 0) {
@@ -1693,6 +1700,26 @@ export async function loadReciters() {
       return;
     }
 
+    // 3. 🌟 نظام الترتيب المخصص (تقدر تغير الترتيب هنا براحتك) 🌟
+    const desiredOrder = [
+      "Mahmoud Khalil Al-Hussary",  // 1. الحصري
+      "Abdelbasset Abdessamad",     // 2. عبد الباسط
+      "Abdelrahman Elzwawy",        // 3. الزواوي
+      "Yasser Al-Dosari",           // 4. الدوسري
+      "Maher Al Muaiqly",           // 5. المعيقلي
+      "Saud Al-Shuraim",            // 6. الشريم
+      "Mishary Rashid Alafasy"      // 7. العفاسي
+    ];
+
+    // ترتيب المصفوفة بناءً على القائمة اللي فوق
+    recitersList.sort((a, b) => {
+      const posA = desiredOrder.indexOf(a.name);
+      const posB = desiredOrder.indexOf(b.name);
+      // لو في قارئ مش موجود في القائمة، يترمي في الآخر (999)
+      return (posA === -1 ? 999 : posA) - (posB === -1 ? 999 : posB);
+    });
+
+    // حفظ القائمة المترتبة عشان تشتغل أوفلاين بنفس الترتيب
     await localforage.setItem('cached_reciters', recitersList);
 
     container.innerHTML = '';
@@ -1822,21 +1849,27 @@ async function renderReciters(recitersList, container) {
   if (!container) return;
   container.innerHTML = '';
   const reciterSurahNames = surahNames;
+  
+  // 🌟 تحديث أسماء الشيوخ (ضفنا الدوسري) 🌟
   const reciterNamesAr = {
-    "Mishary Rashid Alafasy": "مشاري راشد العفاسي",
-    "Maher Al Muaiqly": "ماهر المعيقلي",
     "Mahmoud Khalil Al-Hussary": "محمود خليل الحصري",
-    "Saud Al-Shuraim": "سعود الشريم",
     "Abdelbasset Abdessamad": "عبد الباسط عبد الصمد",
-    "Abdelrahman Elzwawy": "عبد الرحمن الزواوي" 
+    "Abdelrahman Elzwawy": "عبد الرحمن الزواوي",
+    "Yasser Al-Dosari": "ياسر الدوسري", // <-- جديد
+    "Maher Al Muaiqly": "ماهر المعيقلي",
+    "Saud Al-Shuraim": "سعود الشريم",
+    "Mishary Rashid Alafasy": "مشاري راشد العفاسي",
   };
+  
+  // 🌟 تحديث صور الشيوخ 🌟
   const reciterImages = {
-    "Mishary Rashid Alafasy": "/img/reciters/mishary.jpg",
-    "Maher Al Muaiqly": "/img/reciters/maher.jpg",
     "Mahmoud Khalil Al-Hussary": "/img/reciters/hussary.jpg",
-    "Saud Al-Shuraim": "/img/reciters/shuraim.jpg",
     "Abdelbasset Abdessamad": "/img/reciters/abdelbasset.jpg",
-    "Abdelrahman Elzwawy": "/img/reciters/elzwawy.jpg" 
+    "Abdelrahman Elzwawy": "/img/reciters/elzwawy.jpg",
+    "Yasser Al-Dosari": "/img/reciters/dosari.jpg", // <-- محتاج تحط صورته هنا
+    "Maher Al Muaiqly": "/img/reciters/maher.jpg",
+    "Saud Al-Shuraim": "/img/reciters/shuraim.jpg",
+    "Mishary Rashid Alafasy": "/img/reciters/mishary.jpg",
   };
 
   let optionsHTML = '';
@@ -1844,7 +1877,6 @@ async function renderReciters(recitersList, container) {
     optionsHTML += `<option value="${index + 1}">${index + 1}. ${name}</option>`;
   });
 
-  // 🌟 إضافة لمسات الـ CSS الجمالية للشرايط والأزرار (بتتحقن مرة واحدة بس) 🌟
   if (!document.getElementById('custom-audio-styles')) {
     const style = document.createElement('style');
     style.id = 'custom-audio-styles';

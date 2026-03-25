@@ -1046,33 +1046,70 @@ window.logout         = logout;
 
 // ─── 9. Live Audio Player ─────────────────────────────────────────────────────
 window.playLiveAudio = (url, btnId) => {
-  if (isLiveTracking) { showAlert('error', 'أوقف التسميع أولاً قبل تشغيل الصوت'); return; }
-  if (window.stopSheikhFollowAlong && typeof window.stopSheikhFollowAlong === 'function') {
-    window.stopSheikhFollowAlong();
+  // 1. منع التشغيل أثناء وضع "التسميع" (الميكروفون)
+  if (isLiveTracking) { 
+      showAlert('error', 'أوقف التسميع أولاً قبل تشغيل الصوت'); 
+      return; 
   }
+
+  // 2. 🌟 التعديل الجديد: منع التشغيل أثناء وضع "اقرأ مع الشيخ" 🌟
+  if (typeof _sheikPlaybackActive !== 'undefined' && _sheikPlaybackActive) {
+      Swal.fire({
+          icon: 'warning',
+          title: 'الشيخ يقرأ الآن',
+          text: 'عذراً، لا يمكنك تشغيل آية مفردة أثناء تشغيل وضع "اقرأ مع الشيخ". يرجى إيقاف الشيخ أولاً أو الانتظار حتى ينتهي.',
+          confirmButtonText: 'حسناً فهمت',
+          confirmButtonColor: '#198754',
+          customClass: { popup: 'rounded-4' }
+      });
+      return; // نوقف الدالة هنا ومفيش صوت هيشتغل
+  }
+
+  // 3. باقي الكود القديم للتشغيل العادي (زرار الـ Play/Pause)
   const btn = document.getElementById(btnId);
   if (!btn) return;
+  
   if (window.currentAudio && btn.classList.contains('playing')) {
-    window.currentAudio.pause(); window.currentAudio = null;
+    window.currentAudio.pause(); 
+    window.currentAudio = null;
     btn.innerHTML = '<i class="fas fa-play"></i>';
-    btn.classList.remove('playing', 'btn-danger'); btn.classList.add('btn-outline-success');
+    btn.classList.remove('playing', 'btn-danger'); 
+    btn.classList.add('btn-outline-success');
     return;
   }
+  
   const playNew = () => {
-    const audio = new Audio(url); window.currentAudio = audio;
+    const audio = new Audio(url); 
+    window.currentAudio = audio;
     const p = audio.play();
+    
     if (p !== undefined) {
-      p.then(() => { btn.innerHTML = '<i class="fas fa-stop"></i>'; btn.classList.add('playing', 'btn-danger'); btn.classList.remove('btn-outline-success'); })
-       .catch(err => { console.warn('Audio play:', err.name); window.currentAudio = null; });
+      p.then(() => { 
+          btn.innerHTML = '<i class="fas fa-stop"></i>'; 
+          btn.classList.add('playing', 'btn-danger'); 
+          btn.classList.remove('btn-outline-success'); 
+      }).catch(err => { 
+          console.warn('Audio play:', err.name); 
+          window.currentAudio = null; 
+      });
     }
+    
     audio.onended = audio.onerror = () => {
       btn.innerHTML = '<i class="fas fa-play"></i>';
-      btn.classList.remove('playing', 'btn-danger'); btn.classList.add('btn-outline-success');
+      btn.classList.remove('playing', 'btn-danger'); 
+      btn.classList.add('btn-outline-success');
       window.currentAudio = null;
     };
   };
-  if (window.currentAudio) { window.currentAudio.pause(); window.currentAudio = null; resetUIButtons(); setTimeout(playNew, 150); }
-  else playNew();
+  
+  if (window.currentAudio) { 
+      window.currentAudio.pause(); 
+      window.currentAudio = null; 
+      resetUIButtons(); 
+      setTimeout(playNew, 150); 
+  } else {
+      playNew();
+  }
 };
 
 // ─── 10. Chunking Logic ────────────────────────────────────────────────────────
@@ -1284,41 +1321,87 @@ window.loadLiveAyahs = async () => {
 
 // ─── اقرأ مع الشيخ: تشغيل متتالي للآيات مع تظليل ─────────────────────────────
 let _sheikPlaybackActive = false;
+let _sheikIsPaused       = false; // 🌟 إضافة حالة الإيقاف المؤقت
 let _sheikCurrentAudio   = null;
 let _sheikCurrentIndex   = 0;
 
+// دالة ذكية تعمل كـ (تشغيل / إيقاف مؤقت / استئناف)
 window.startSheikhFollowAlong = function() {
   const ayahs = window._liveAyahsList;
   if (!ayahs || !ayahs.length) {
     showAlert('error', 'حمّل الآيات أولاً');
     return;
   }
-  if (window.currentAudio) {
-      window.currentAudio.pause();
-      window.currentAudio = null;
-      document.querySelectorAll('.live-play-btn').forEach(b => {
-          b.innerHTML = '<i class="fas fa-play"></i>';
-          b.classList.remove('playing', 'btn-danger');
-          b.classList.add('btn-outline-success');
-      });
-  }
-  _sheikPlaybackActive = true;
-  _sheikCurrentIndex = 0;
 
   const btnStart = document.getElementById('btn-sheikh-start');
   const btnStop  = document.getElementById('btn-sheikh-stop');
-  if (btnStart) btnStart.classList.add('d-none');
-  if (btnStop)  btnStop.classList.remove('d-none');
 
-  _playSheikhAyah(_sheikCurrentIndex);
+  // 1. لو الميزة مش شغالة (أول مرة يدوس أو داس إنهاء قبل كده)
+  if (!_sheikPlaybackActive) {
+      if (window.currentAudio) {
+          window.currentAudio.pause();
+          window.currentAudio = null;
+          document.querySelectorAll('.live-play-btn').forEach(b => {
+              b.innerHTML = '<i class="fas fa-play"></i>';
+              b.classList.remove('playing', 'btn-danger');
+              b.classList.add('btn-outline-success');
+          });
+      }
+      
+      _sheikPlaybackActive = true;
+      _sheikIsPaused = false;
+      
+      if (btnStart) {
+          btnStart.innerHTML = '<i class="fas fa-pause me-1"></i> إيقاف مؤقت';
+          btnStart.classList.remove('btn-success');
+          btnStart.classList.add('btn-warning'); 
+          btnStart.classList.remove('d-none'); // نتأكد إنه ظاهر
+      }
+      if (btnStop) btnStop.classList.remove('d-none'); // إظهار زر الإنهاء
+
+      _playSheikhAyah(_sheikCurrentIndex);
+
+  } else {
+      // 2. الميزة شغالة.. إذن الزرار هيعمل (إيقاف مؤقت / استئناف)
+      if (_sheikIsPaused) {
+          // استئناف (Resume)
+          _sheikIsPaused = false;
+          if (btnStart) {
+              btnStart.innerHTML = '<i class="fas fa-pause me-1"></i> إيقاف مؤقت';
+              btnStart.classList.remove('btn-success');
+              btnStart.classList.add('btn-warning');
+          }
+          if (_sheikCurrentAudio) {
+              _sheikCurrentAudio.play().catch(() => {});
+          } else {
+              _playSheikhAyah(_sheikCurrentIndex);
+          }
+      } else {
+          // إيقاف مؤقت (Pause)
+          _sheikIsPaused = true;
+          if (btnStart) {
+              btnStart.innerHTML = '<i class="fas fa-play me-1"></i> استئناف';
+              btnStart.classList.remove('btn-warning');
+              btnStart.classList.add('btn-success');
+          }
+          if (_sheikCurrentAudio) {
+              _sheikCurrentAudio.pause();
+          }
+      }
+  }
 };
 
+// زر "الإنهاء" (Stop) - يوقف كل حاجة ويرجع للصفر
 window.stopSheikhFollowAlong = function() {
   _sheikPlaybackActive = false;
+  _sheikIsPaused = false;
+  _sheikCurrentIndex = 0; // 🌟 تصفير العداد عشان لو بدأ يبدأ من الأول
+
   if (_sheikCurrentAudio) {
     _sheikCurrentAudio.pause();
     _sheikCurrentAudio = null;
   }
+  
   // إزالة تظليل كل الآيات
   document.querySelectorAll('.live-ayah-item').forEach(el => {
     el.classList.remove('ayah-active');
@@ -1328,18 +1411,26 @@ window.stopSheikhFollowAlong = function() {
 
   const btnStart = document.getElementById('btn-sheikh-start');
   const btnStop  = document.getElementById('btn-sheikh-stop');
-  if (btnStart) btnStart.classList.remove('d-none');
-  if (btnStop)  btnStop.classList.add('d-none');
+  
+  // إرجاع الأزرار لشكلها الأصلي
+  if (btnStart) {
+      btnStart.innerHTML = '<i class="fas fa-play me-1"></i> ابدأ مع الشيخ';
+      btnStart.classList.remove('btn-warning');
+      btnStart.classList.add('btn-success');
+      btnStart.classList.remove('d-none');
+  }
+  if (btnStop) btnStop.classList.add('d-none');
 
   const statusEl = document.getElementById('sheikh-status');
   if (statusEl) statusEl.textContent = '';
 };
 
 function _playSheikhAyah(index) {
-  if (!_sheikPlaybackActive) return;
+  // لو عملنا إيقاف مؤقت، متكملش الدورة
+  if (!_sheikPlaybackActive || _sheikIsPaused) return;
+
   const ayahs = window._liveAyahsList;
   if (!ayahs || index >= ayahs.length) {
-    // انتهى
     window.stopSheikhFollowAlong();
     const statusEl = document.getElementById('sheikh-status');
     if (statusEl) statusEl.innerHTML = '<span class="text-success fw-bold">✅ انتهت التلاوة</span>';
@@ -1349,13 +1440,11 @@ function _playSheikhAyah(index) {
   const ayah = ayahs[index];
   const audioUrl = `https://everyayah.com/data/Husary_128kbps/${ayah.surah}${ayah.ayah}.mp3`;
 
-  // تظليل الآية الحالية وإزالة السابقة
   document.querySelectorAll('.live-ayah-item').forEach((el, i) => {
     const td = el.querySelector('.live-ayah-text');
     if (i === index) {
       el.classList.add('ayah-active');
       if (td) { td.classList.remove('blurred-text'); }
-      // scroll للآية الحالية
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } else {
       el.classList.remove('ayah-active');
@@ -1374,20 +1463,28 @@ function _playSheikhAyah(index) {
   _sheikCurrentAudio = new Audio(audioUrl);
   _sheikCurrentAudio.play().catch(() => {});
 
-  // لما تخلص الآية روح للتالية
   _sheikCurrentAudio.onended = () => {
     if (!_sheikPlaybackActive) return;
     _sheikCurrentIndex = index + 1;
-    // وقت الراحة بين الآيات من الـ slider
     const pauseSlider = document.getElementById('sheikh-pause-slider');
     const pauseMs = pauseSlider ? parseFloat(pauseSlider.value) * 1000 : 2000;
-    setTimeout(() => _playSheikhAyah(_sheikCurrentIndex), pauseMs);
-};
+    
+    // الانتظار للمدة المحددة، ثم التأكد أننا لسنا في وضع الإيقاف المؤقت قبل التشغيل التالي
+    setTimeout(() => {
+        if (_sheikPlaybackActive && !_sheikIsPaused) {
+            _playSheikhAyah(_sheikCurrentIndex);
+        }
+    }, pauseMs);
+  };
 
   _sheikCurrentAudio.onerror = () => {
     if (!_sheikPlaybackActive) return;
     _sheikCurrentIndex = index + 1;
-    setTimeout(() => _playSheikhAyah(_sheikCurrentIndex), 300);
+    setTimeout(() => {
+        if (_sheikPlaybackActive && !_sheikIsPaused) {
+            _playSheikhAyah(_sheikCurrentIndex);
+        }
+    }, 300);
   };
 }
 

@@ -121,6 +121,7 @@ app.use(
           "https://www.googletagmanager.com",
           "https://cdn.jsdelivr.net",
           "https://*.sentry.io",
+          "https://browser.sentry-cdn.com",
           "https://firebase.googleapis.com",
           "https://firebaseinstallations.googleapis.com",
           "https://*.google-analytics.com",
