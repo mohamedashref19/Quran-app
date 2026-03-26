@@ -1787,3 +1787,87 @@ p.zikr-text {
     min-width: 24px;
     text-align: center;
 }
+/* ─── مشغل صوت احترافي وبسيط (Custom Audio Player) ─── */
+.aqra-player-container {
+    display: flex;
+    align-items: center;
+    background-color: #f8fdfa; /* لون خلفية هادي مائل للأخضر */
+    border: 1px solid #e1f5ea; /* إطار خفيف جداً */
+    border-radius: 50px; /* زوايا دائرية بالكامل */
+    padding: 5px 10px;
+    gap: 10px;
+    max-width: 300px; /* عرض مناسب للقائمة */
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(25, 135, 84, 0.05); /* ظل خفيف */
+}
+
+/* زر التشغيل والإيقاف */
+.aqra-player-btn {
+    background-color: #198754; /* لون التطبيق الأساسي (الأخضر) */
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+}
+
+.aqra-player-btn:hover {
+    background-color: #157347;
+}
+
+/* شريط التقديم والتأخير (SeekBar) */
+.aqra-player-seekbar {
+    flex-grow: 1; /* ياخد باقي المساحة */
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+    height: 32px; /* نفس ارتفاع الزرار للتنسيق */
+}
+
+/* تخصيص شكل شريط التقديم (The Track) */
+.aqra-player-seekbar::-webkit-slider-runnable-track {
+    background: #e9ecef; /* لون الشريط الأساسي */
+    border-radius: 10px;
+    height: 6px;
+}
+
+/* تخصيص شكل المؤشر (The Thumb) */
+.aqra-player-seekbar::-webkit-slider-thumb {
+    -webkit-appearance: none; /* إخفاء الشكل الافتراضي */
+    appearance: none;
+    margin-top: -5px; /* توسيط المؤشر على الشريط */
+    background-color: #198754; /* نفس لون التطبيق (الأخضر) */
+    height: 16px;
+    width: 16px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
+}
+
+.aqra-player-seekbar::-webkit-slider-thumb:hover {
+    transform: scale(1.1); /* تكبير خفيف عند المرور عليه */
+}
+
+/* تلوين الجزء اللي تم سماعه (Progress) - اختياري لمتصفحات كرووم */
+.aqra-player-seekbar::-moz-range-progress {
+    background-color: #198754;
+    height: 6px;
+    border-radius: 10px;
+}
+
+/* عداد الثواني (Timer) */
+.aqra-player-timer {
+    font-size: 13px;
+    color: #6c757d; /* لون رمادي هادي */
+    font-family: sans-serif; /* خط بسيط للأرقام */
+    min-width: 40px; /* مساحة ثابتة للأرقام */
+    text-align: right;
+}

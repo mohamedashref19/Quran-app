@@ -4026,64 +4026,136 @@ window.loadMyRecitations = async function() {
     }
 };
 
-// ─── تشغيل الصوت داخل الكارت ───
 window.playRecitationAudio = function(id, url, btn) {
     if (!navigator.onLine) {
         if (typeof showAlert === 'function') showAlert('error', 'تحتاج إلى اتصال بالإنترنت لتشغيل التسجيل');
         return;
     }
 
-    if (window.currentPlayingAudio) {
-        window.currentPlayingAudio.pause();
-        if (window.currentPlayingBtn) {
-            window.currentPlayingBtn.innerHTML = '<i class="fas fa-play me-1"></i> تشغيل';
-            window.currentPlayingBtn.disabled = false;
+    // دالة داخلية لإيقاف وإخفاء أي مشغل صوت كان شغال قبل كده
+    const stopExistingPlayer = () => {
+        if (window.currentPlayingAudio) {
+            window.currentPlayingAudio.pause();
+            window.currentPlayingAudio = null;
         }
-    }
+        if (window.currentPlayingContainer) {
+            window.currentPlayingContainer.remove(); // مسح المشغل من الشاشة
+            window.currentPlayingContainer = null;
+        }
+        if (window.currentPlayingBtn) {
+            window.currentPlayingBtn.style.display = 'inline-block'; // إرجاع الزرار القديم
+            window.currentPlayingBtn = null;
+        }
+        // إيقاف العداد
+        if (window.currentPlayingTimer) {
+            clearInterval(window.currentPlayingTimer);
+            window.currentPlayingTimer = null;
+        }
+    };
 
-    // تجميع الرابط والتأكد منه
+    // تنفيذ الإيقاف لو فيه حاجة شغالة
+    stopExistingPlayer();
+
+    // تنظيف الرابط وتحديده (Local ولا Live)
     let cleanUrl = url.replace(/^\/public\//, '/');
     if (!cleanUrl.startsWith('/')) cleanUrl = '/' + cleanUrl;
-    const finalUrl = cleanUrl.startsWith('http') ? cleanUrl : 'https://aqraapp.com' + cleanUrl;
+    
+    const isNative = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform();
+    const isLocal = !isNative && (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost');
+    const baseURL = isLocal ? 'http://127.0.0.1:3000' : 'https://aqraapp.com';
+    const finalUrl = cleanUrl.startsWith('http') ? cleanUrl : baseURL + cleanUrl;
 
+    // 🌟 1. إنشاء الـ HTML بتاع مشغل الصوت الشيك والبسيط 🌟
+    const playerContainer = document.createElement('div');
+    playerContainer.className = 'aqra-player-container';
+    
+    playerContainer.innerHTML = `
+        <button class="aqra-player-btn" id="aqra-player-play-pause">
+            <i class="fas fa-play"></i> </button>
+        <input type="range" class="aqra-player-seekbar" id="aqra-player-seekbar" value="0" min="0" max="100">
+        <span class="aqra-player-timer" id="aqra-player-timer">0:00</span>
+    `;
+
+    // إخفاء زرار "تشغيل" المربع وإظهار المشغل مكانه
+    btn.style.display = 'none';
+    btn.parentNode.insertBefore(playerContainer, btn.nextSibling);
+
+    // 🌟 2. ربط الـ HTML بالصوت برمجياً (The Logic) 🌟
     const audio = new Audio(finalUrl);
-    // 🌟 السطر ده مهم جداً لتخطي مشاكل الحماية في تطبيقات الموبايل 🌟
-    audio.crossOrigin = 'anonymous'; 
+    audio.crossOrigin = 'anonymous';
 
+    const playPauseBtn = playerContainer.querySelector('#aqra-player-play-pause');
+    const seekbar = playerContainer.querySelector('#aqra-player-seekbar');
+    const timer = playerContainer.querySelector('#aqra-player-timer');
+    
+    // حفظ المراجع العالمية عشان نقفلهم لو شغل آية تانية
     window.currentPlayingAudio = audio;
+    window.currentPlayingContainer = playerContainer;
     window.currentPlayingBtn = btn;
 
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> جاري...';
-    btn.disabled = true;
-    
-    audio.play().then(() => {
-        btn.innerHTML = '<i class="fas fa-stop me-1"></i> إيقاف';
-        btn.disabled = false;
-        btn.onclick = () => {
-            audio.pause();
-            btn.innerHTML = '<i class="fas fa-play me-1"></i> تشغيل';
-            btn.onclick = () => window.playRecitationAudio(id, url, btn);
-        };
-    }).catch(e => {
-        console.error("Audio Play Error:", e); 
-        btn.innerHTML = '<i class="fas fa-play me-1"></i> تشغيل';
-        btn.disabled = false;
-        
-        // 🚨 الفخ: هنعرض الخطأ حرفياً للمستخدم عشان نعرف المشكلة منين 🚨
-        const errorMsg = e.message || e.name || JSON.stringify(e);
-        Swal.fire({
-            icon: 'error',
-            title: 'كشف العطل',
-            html: `<div style="direction: ltr; font-size: 13px; text-align: left; background: #f8f9fa; padding: 10px; border-radius: 8px;">
-                   <b>URL:</b> <a href="${finalUrl}" target="_blank">رابط الصوت</a><br><br>
-                   <b>Error:</b> <span style="color:red;">${errorMsg}</span>
-                   </div>`,
-            confirmButtonText: 'فهمت'
-        });
+    // دالة مساعدة لتنسيق الوقت (الثواني -> دقايق:ثواني)
+    const formatTime = (seconds) => {
+        if (isNaN(seconds)) return "0:00";
+        const minutes = Math.floor(seconds / 60);
+        seconds = Math.floor(seconds % 60);
+        return minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+    };
+
+    // تشغيل الصوت لأول مرة
+    audio.play().catch(e => {
+        // Fallback للمطورين (لو الملف مش ع اللوكال هاته من السيرفر المباشر)
+        if (isLocal && !finalUrl.includes('aqraapp.com')) {
+            console.warn("ملف غير موجود محلياً، جاري جلبه من السيرفر المباشر...");
+            audio.src = 'https://aqraapp.com' + cleanUrl;
+            audio.play().catch(finalError => {
+                console.error("Audio Play Error:", finalError);
+                stopExistingPlayer(); // إخفاء المشغل وإرجاع الزرار في حالة الفشل النهائي
+            });
+            return;
+        }
+        console.error("Audio Play Error:", e);
+        stopExistingPlayer(); 
     });
 
+    // 🌟 3. التعامل مع أحداث المشغل (Events) 🌟
+    
+    // عند التشغيل: تغيير الأيقونة وإظهار الوقت الإجمالي
+    audio.onplay = () => {
+        playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>'; // زر الإيقاف المؤقت
+    };
+
+    // عند الإيقاف المؤقت: تغيير الأيقونة
+    audio.onpause = () => {
+        playPauseBtn.innerHTML = '<i class="fas fa-play"></i>'; // زر التشغيل
+    };
+
+    // زر التشغيل والإيقاف المؤقت
+    playPauseBtn.onclick = () => {
+        if (audio.paused) audio.play();
+        else audio.pause();
+    };
+
+    // تحديث شريط التقديم وعداد الوقت أثناء العمل
+    audio.ontimeupdate = () => {
+        // عداد الثواني الحالي
+        timer.textContent = formatTime(audio.currentTime);
+        // مؤشر شريط التقديم
+        if (audio.duration) {
+            const progress = (audio.currentTime / audio.duration) * 100;
+            seekbar.value = progress;
+        }
+    };
+
+    // المستخدم بيقدم ويأخر من شريط التقديم
+    seekbar.oninput = () => {
+        if (audio.duration) {
+            const seekTo = (seekbar.value / 100) * audio.duration;
+            audio.currentTime = seekTo;
+        }
+    };
+
+    // لما الصوت يخلص: تنظيف الشاشة وإرجاع الزرار
     audio.onended = () => {
-        btn.innerHTML = '<i class="fas fa-play me-1"></i> تشغيل';
-        btn.onclick = () => window.playRecitationAudio(id, url, btn);
+        stopExistingPlayer();
     };
 };

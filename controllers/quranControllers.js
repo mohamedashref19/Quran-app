@@ -33,13 +33,14 @@ async function executeGroqWithFallback(filePath, options) {
         } catch (error) {
             // قراءة كود الخطأ (سواء جاء من SDK أو من الشبكة)
             const statusCode = error?.status || error?.response?.status;
+            const isNetworkError = error.code === 'ECONNRESET' || error.message.includes('Connection');
             
-            if (statusCode === 429) {
-                console.warn(`⚠️ Groq Key ${currentGroqIndex + 1} Rate Limited. Switching to next key...`);
+            if (statusCode === 429 || isNetworkError) {
+                console.warn(`⚠️ Groq Key ${currentGroqIndex + 1} Issue (${statusCode || 'Network Error'}). Switching to next key...`);
                 // تبديل للمفتاح التالي في المصفوفة
                 currentGroqIndex = (currentGroqIndex + 1) % groqClients.length;
             } else {
-                // لو الخطأ مش 429 (يعني مثلاً الملف الصوتي بايظ)، ارمي الخطأ فوراً
+                // لو الخطأ غريب تاني، ارميه
                 throw error;
             }
         }
@@ -297,7 +298,6 @@ exports.stream_check = catchAsync(async (req, res, next) => {
         const surahName = req.body.surahName || "";
         const promptText = `تلاوة قرآنية للشيخ محمود خليل الحصري سورة ${surahName}. النص: ${expectedContext}`;
 
-        // 🌟 استدعاء الدالة السحرية هنا أيضاً
         let safePrompt = promptText || "";
         if (safePrompt.length > 250) {
             safePrompt = safePrompt.substring(0, 250);
@@ -307,33 +307,94 @@ exports.stream_check = catchAsync(async (req, res, next) => {
             model: "whisper-large-v3",
             language: "ar",
             temperature: 0,
-            prompt: safePrompt // هنبعت النص الآمن هنا
+            prompt: safePrompt 
         });
+        
         let text = normalization(transcription.text); 
+
+        // 🌟 التعديل 1: التسامح مع البسملة والاستعاذة 🌟
+        const expectedNorm = normalization(expectedContext);
+        
+        // مسح الاستعاذة دائماً
+        const aouzuList = ["اعوذ بالله من الشيطان الرجيم", "اعوذ بالله السميع العليم من الشيطان الرجيم"];
+        aouzuList.forEach(a => {
+            text = text.replace(new RegExp(normalization(a), 'g'), " ").trim();
+        });
+
+        // مسح البسملة (فقط إذا كان النص المتوقع لا يحتوي عليها)
+        if (!expectedNorm.includes(normalization("بسم الله"))) {
+            const basmalaList = ["بسم الله الرحمن الرحيم", "بسم الله"];
+            basmalaList.forEach(b => {
+                text = text.replace(new RegExp(normalization(b), 'g'), " ").trim();
+            });
+        }
 
         const hallucinations = [
             "اشترك في القناة", "رابط القناة", "سيدي محمد رسول الله", 
-            "شرح", "تفسير", "السياق الحالي", "المترجم", "يتبع", "صلى الله عليه وسلم"
+            "شرح", "تفسير", "السياق الحالي", "المترجم", "يتبع", "صلى الله عليه وسلم",
+            "صدق الله العظيم"
         ];
-
         hallucinations.forEach(h => {
-            if (text.includes(normalization(h))) {
-                text = ""; 
+            const cleanH = normalization(h);
+            if (text.includes(cleanH)) {
+                text = text.replace(new RegExp(cleanH, 'g'), " ").trim(); 
             }
         });
+        
+        text = text.replace(/\s+/g, ' ').trim(); // تنظيف المسافات الزائدة
 
-        fs.unlink(req.file.path, () => {});
+        if (req.file.path && fs.existsSync(req.file.path)) fs.unlink(req.file.path, () => {});
+
+        // 🌟 التعديل 2: المقارنة كلمة بكلمة 🌟
+        const expectedWords = expectedNorm.split(" ").filter(Boolean);
+        const userWords = text.split(" ").filter(Boolean);
+
+        let lastCorrectWordIndex = -1; 
+        let hasMistake = false;        
+        let expectedWordIfMistake = "";
+        let userWrongWord = "";        
+
+        let uIdx = 0; 
+        
+        for (let eIdx = 0; eIdx < expectedWords.length; eIdx++) {
+            if (uIdx >= userWords.length) break; 
+
+            const eWord = expectedWords[eIdx];
+            const uWord = userWords[uIdx];
+
+            if (isPhoneticallyClose(uWord, eWord) || uWord.includes(eWord) || eWord.includes(uWord)) {
+                lastCorrectWordIndex = eIdx; 
+                uIdx++; 
+            } else {
+                if (eIdx + 1 < expectedWords.length && isPhoneticallyClose(uWord, expectedWords[eIdx + 1])) {
+                    hasMistake = true;
+                    expectedWordIfMistake = eWord; 
+                    userWrongWord = "[تخطى كلمة]";
+                    break;
+                }
+                hasMistake = true;
+                expectedWordIfMistake = eWord;
+                userWrongWord = uWord;
+                break; 
+            }
+        }
 
         res.status(200).json({
             status: 'success',
             text: text, 
+            wordByWordResult: {
+                expectedSent: expectedContext,
+                lastCorrectWordIndex: lastCorrectWordIndex, 
+                hasMistake: hasMistake,                     
+                expectedWordIfMistake: expectedWordIfMistake,
+                userWrongWord: userWrongWord
+            },
             latency: Date.now() - startTime
         });
 
     } catch (error) {
-        if (req.file.path && fs.existsSync(req.file.path)) fs.unlink(req.file.path, () => {});
+        if (req.file && fs.existsSync(req.file.path)) fs.unlink(req.file.path, () => {});
         console.error("Stream Error:", error);
-        
         if (error.message.includes('ضغط عالي')) {
             return res.status(429).json({ message: error.message });
         }
