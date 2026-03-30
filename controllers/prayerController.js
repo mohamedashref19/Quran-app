@@ -118,33 +118,41 @@ exports.getPrayerTimes = catchAsync(async (req, res, next) => {
   }
 
   res.status(200).json({
-    status: "success",
-    data: {
-      date: dateObj.toDateString(),
-      hijri: new Intl.DateTimeFormat('ar-SA-u-ca-islamic', {
-        day: 'numeric', 
-        month: 'long',
-        year : 'numeric'
-      }).format(dateObj),
-      timings: {
-        Fajr: formatTime(prayerTimes.fajr),
-        Sunrise: formatTime(prayerTimes.sunrise),
-        Dhuhr: formatTime(prayerTimes.dhuhr),
-        Asr: formatTime(prayerTimes.asr),
-        Maghrib: formatTime(prayerTimes.maghrib),
-        Isha: formatTime(prayerTimes.isha),
+      status: "success",
+      data: {
+        hijri: new Intl.DateTimeFormat('ar-SA-u-ca-islamic', {
+          day: 'numeric', 
+          month: 'long',
+          year : 'numeric'
+        }).format(dateObj),
+        // الأوقات المنسقة لعرضها في الشاشة (UI)
+        timings: {
+          Fajr: formatTime(prayerTimes.fajr),
+          Sunrise: formatTime(prayerTimes.sunrise),
+          Dhuhr: formatTime(prayerTimes.dhuhr),
+          Asr: formatTime(prayerTimes.asr),
+          Maghrib: formatTime(prayerTimes.maghrib),
+          Isha: formatTime(prayerTimes.isha),
+        },
+        // 🌟 الإضافة الجديدة: الأوقات الأصلية الدقيقة جداً للجدولة (Scheduling) 🌟
+        rawTimestamps: {
+          Fajr: prayerTimes.fajr ? prayerTimes.fajr.getTime() : null,
+          Dhuhr: prayerTimes.dhuhr ? prayerTimes.dhuhr.getTime() : null,
+          Asr: prayerTimes.asr ? prayerTimes.asr.getTime() : null,
+          Maghrib: prayerTimes.maghrib ? prayerTimes.maghrib.getTime() : null,
+          Isha: prayerTimes.isha ? prayerTimes.isha.getTime() : null,
+        },
+        meta: {
+          latitude: lat,
+          longitude: lng,
+          method: methodName, 
+          madhab: params.madhab === Madhab.Hanafi ? "Hanafi" : "Shafi/Maliki/Hanbali",
+          nextPrayer: nextPrayerName,
+          nextPrayerTime: formatTime(nextPrayerTimeRaw),
+          timezone: userTimeZone
+        }
       },
-      meta: {
-        latitude: lat,
-        longitude: lng,
-        method: methodName, 
-        madhab: params.madhab === Madhab.Hanafi ? "Hanafi" : "Shafi/Maliki/Hanbali",
-        nextPrayer: nextPrayerName,
-        nextPrayerTime: formatTime(nextPrayerTimeRaw),
-        timezone: userTimeZone
-      }
-    },
-  });
+    });
 });
 
 exports.getLocation = async (req, res) => {

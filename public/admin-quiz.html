@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>بنك أسئلة المسابقة</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  :root {
+    --green-dark: #1a4a2e;
+    --green-main: #1e5f31;
+    --green-mid: #2d7a45;
+    --green-light: #4caf70;
+    --green-pale: #e8f5e9;
+    --gold: #d4af37;
+    --gold-light: #f0d060;
+    --bg: #f4f7f5;
+    --card: #ffffff;
+    --text: #1a2e1f;
+    --text-muted: #6b7c6f;
+    --border: #d8e8dc;
+    --danger: #c0392b;
+    --shadow: 0 4px 24px rgba(30,95,49,0.10);
+    --radius: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Tajawal', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ─── Header ─── */
+  .admin-header {
+    background: linear-gradient(135deg, var(--green-dark) 0%, var(--green-main) 100%);
+    color: white;
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .header-icon {
+    width: 48px; height: 48px;
+    background: rgba(212,175,55,0.2);
+    border: 2px solid var(--gold);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    color: var(--gold);
+  }
+
+  .header-title h1 {
+    font-family: 'Amiri', serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+  }
+
+  .header-title p {
+    font-size: 0.8rem;
+    opacity: 0.7;
+    margin-top: 2px;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  /* ─── Layout ─── */
+  .main-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 24px;
+    padding: 28px 32px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* ─── Sidebar ─── */
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--green-dark);
+  }
+
+  .card-header i { color: var(--green-main); }
+
+  .card-body { padding: 20px; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 20px;
+    border-radius: 10px;
+    border: none;
+    font-family: 'Tajawal', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--green-main);
+    color: white;
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  .btn-primary:hover { background: var(--green-dark); transform: translateY(-1px); }
+
+  .btn-gold {
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    color: var(--green-dark);
+    font-weight: 700;
+  }
+
+  .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(212,175,55,0.4); }
+
+  .btn-outline {
+    background: transparent;
+    border: 2px solid var(--border);
+    color: var(--text-muted);
+  }
+
+  .btn-outline:hover { border-color: var(--green-main); color: var(--green-main); }
+
+  .btn-danger {
+    background: #ffeaea;
+    color: var(--danger);
+    border: 1px solid #ffd0d0;
+  }
+
+  .btn-danger:hover { background: var(--danger); color: white; }
+
+  .btn-sm { padding: 7px 14px; font-size: 0.85rem; border-radius: 8px; }
+
+  /* Stats */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .stat-item {
+    background: var(--green-pale);
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+
+  .stat-num {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--green-main);
+    font-family: 'Amiri', serif;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* ─── Main Content ─── */
+  .content-area { display: flex; flex-direction: column; gap: 20px; }
+
+  /* Quiz Form Header */
+  .quiz-form-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .quiz-date-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--green-pale);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    color: var(--green-dark);
+    font-weight: 600;
+  }
+
+  /* Question Cards */
+  .questions-list { display: flex; flex-direction: column; gap: 20px; }
+
+  .question-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .question-card:hover { box-shadow: 0 8px 32px rgba(30,95,49,0.15); }
+
+  .q-header {
+    background: linear-gradient(135deg, var(--green-dark), var(--green-main));
+    color: white;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .q-num {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+
+  .q-num-badge {
+    width: 32px; height: 32px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Amiri', serif;
+    font-size: 1.1rem;
+    border: 1px solid rgba(255,255,255,0.3);
+  }
+
+  .q-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+  .form-group { display: flex; flex-direction: column; gap: 8px; }
+
+  .form-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .form-label i { color: var(--green-main); font-size: 0.8rem; }
+
+  .form-control {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    font-family: 'Tajawal', sans-serif;
+    font-size: 0.95rem;
+    color: var(--text);
+    background: var(--bg);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    resize: none;
+  }
+
+  .form-control:focus {
+    border-color: var(--green-main);
+    box-shadow: 0 0 0 3px rgba(30,95,49,0.1);
+    background: white;
+  }
+
+  /* Options Grid */
+  .options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .option-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .option-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .option-label-badge {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+
+  .opt-a { background: #e3f2fd; color: #1565c0; }
+  .opt-b { background: #f3e5f5; color: #7b1fa2; }
+  .opt-c { background: #fff3e0; color: #e65100; }
+  .opt-d { background: #e8f5e9; color: #2e7d32; }
+
+  /* Correct Answer Radio */
+  .correct-answer-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .correct-radio {
+    display: none;
+  }
+
+  .correct-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 2px solid var(--border);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.15s;
+  }
+
+  .correct-radio:checked + .correct-label {
+    border-color: var(--green-main);
+    background: var(--green-pale);
+    color: var(--green-dark);
+  }
+
+  .correct-label .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+  }
+
+  .correct-radio:checked + .correct-label .dot {
+    background: var(--green-main);
+    border-color: var(--green-main);
+  }
+
+  /* Explanation */
+  .explanation-area textarea {
+    min-height: 70px;
+    font-family: 'Amiri', serif;
+    font-size: 1rem;
+  }
+
+  /* Add Question Button */
+  .add-q-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 18px;
+    border: 2px dashed var(--green-light);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--green-main);
+    font-family: 'Tajawal', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+  }
+
+  .add-q-btn:hover {
+    background: var(--green-pale);
+    border-color: var(--green-main);
+    transform: translateY(-1px);
+  }
+
+  /* Action Bar */
+  .action-bar {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  /* Toast */
+  .toast-wrap {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+  }
+
+  .toast {
+    background: var(--green-dark);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+    pointer-events: all;
+  }
+
+  .toast.error { background: var(--danger); }
+  .toast.warning { background: #d4781a; }
+
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(-16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes toastOut {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+  }
+
+  /* Loading overlay */
+  .loading-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,74,46,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 500;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
+  .loading-overlay.active { display: flex; }
+
+  .spinner {
+    width: 48px; height: 48px;
+    border: 4px solid rgba(255,255,255,0.3);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Preview Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 400;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .modal-overlay.active { display: flex; }
+
+  .modal-box {
+    background: white;
+    border-radius: 20px;
+    max-width: 540px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    animation: modalIn 0.3s ease;
+  }
+
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  .modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, var(--green-dark), var(--green-main));
+    color: white;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .modal-body { padding: 24px; }
+
+  .preview-q {
+    margin-bottom: 20px;
+    padding: 16px;
+    border-radius: 12px;
+    background: var(--green-pale);
+    border: 1px solid var(--border);
+  }
+
+  .preview-q-text {
+    font-family: 'Amiri', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: var(--green-dark);
+  }
+
+  .preview-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .preview-opt {
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    border: 1px solid var(--border);
+    background: white;
+  }
+
+  .preview-opt.correct {
+    background: #e8f5e9;
+    border-color: var(--green-main);
+    color: var(--green-dark);
+    font-weight: 700;
+  }
+
+  .scrollbar::-webkit-scrollbar { width: 6px; }
+  .scrollbar::-webkit-scrollbar-track { background: var(--bg); }
+  .scrollbar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* Config section */
+  .config-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+  }
+
+  .config-row:last-child { border-bottom: none; }
+
+  .toggle-wrap { display: flex; align-items: center; gap: 8px; }
+
+  .toggle {
+    width: 44px; height: 24px;
+    background: var(--border);
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    border: none;
+    flex-shrink: 0;
+  }
+
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 18px; height: 18px;
+    background: white;
+    border-radius: 50%;
+    top: 3px; right: 3px;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+
+  .toggle.on { background: var(--green-main); }
+  .toggle.on::after { transform: translateX(-20px); }
+
+  @media (max-width: 900px) {
+    .main-layout { grid-template-columns: 1fr; }
+    .options-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <span id="loadingText">جاري الحفظ...</span>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<div class="modal-overlay" id="previewModal">
+  <div class="modal-box scrollbar">
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <i class="fas fa-eye"></i>
+        <span>معاينة الأسئلة</span>
+      </div>
+      <button onclick="closePreview()" style="background:none;border:none;color:white;font-size:1.2rem;cursor:pointer;">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body" id="previewBody"></div>
+  </div>
+</div>
+
+<header class="admin-header">
+  <div class="header-brand">
+    <div class="header-icon"><i class="fas fa-database"></i></div>
+    <div class="header-title">
+      <h1>إدارة بنك الأسئلة</h1>
+      <p>إضافة أسئلة دينية لقاعدة البيانات · تطبيق اقرأ</p>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-outline btn-sm" onclick="openPreview()">
+      <i class="fas fa-eye"></i> معاينة
+    </button>
+    <button class="btn btn-gold" onclick="saveQuiz()">
+      <i class="fas fa-save"></i> إضافة للبنك
+    </button>
+  </div>
+</header>
+
+<div class="main-layout">
+
+  <aside class="sidebar">
+
+    <div class="card">
+      <div class="card-header">
+        <i class="fas fa-chart-bar"></i>
+        إحصائيات الإضافة الحالية
+      </div>
+      <div class="card-body">
+        <div class="stat-grid">
+          <div class="stat-item">
+            <div class="stat-num" id="statQCount">0</div>
+            <div class="stat-label">الأسئلة الحالية</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-num" id="statComplete">0%</div>
+            <div class="stat-label">الاكتمال</div>
+          </div>
+          
+          <div class="stat-item" style="background-color: #e3f2fd; border-color: #bbdefb;">
+            <div class="stat-num" id="statTotalDb" style="color: #1565c0;">0</div>
+            <div class="stat-label">إجمالي البنك</div>
+          </div>
+          <div class="stat-item" style="background-color: #fff3e0; border-color: #ffe0b2;">
+            <div class="stat-num" id="statUnusedDb" style="color: #e65100;">0</div>
+            <div class="stat-label">لم يُستخدم</div>
+          </div>
+
+          <div class="stat-item">
+            <div class="stat-num" id="statSaved">—</div>
+            <div class="stat-label">آخر إضافة</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-num" id="statStatus">مسودة</div>
+            <div class="stat-label">الحالة</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <i class="fas fa-cog"></i>
+        إعدادات النماذج
+      </div>
+      <div class="card-body" style="padding:16px 20px;">
+        <div class="config-row">
+          <span>عدد الأسئلة للنموذج</span>
+          <select id="maxQCount" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-family:'Tajawal',sans-serif;">
+            <option value="5" selected>5 أسئلة</option>
+            <option value="10">10 أسئلة</option>
+            <option value="15">15 سؤال</option>
+            <option value="20">20 سؤال</option>
+          </select>
+        </div>
+        <div class="config-row">
+          <span>إظهار الشرح</span>
+          <button class="toggle on" id="showExplanation" onclick="this.classList.toggle('on')"></button>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <main class="content-area">
+
+    <div class="card" style="padding:20px 24px;">
+      <div class="quiz-form-header">
+        <div>
+          <h2 style="font-family:'Amiri',serif;font-size:1.3rem;color:var(--green-dark);">
+            <i class="fas fa-plus-circle me-2" style="color:var(--green-main)"></i>
+            إضافة أسئلة للبنك
+          </h2>
+          <p style="color:var(--text-muted);font-size:0.85rem;margin-top:4px;">
+            أضف حتى <span id="maxLabel">5</span> أسئلة في الدفعة الواحدة. التطبيق سيقوم بسحبها برمجياً.
+          </p>
+        </div>
+        <div class="quiz-date-badge">
+          <i class="fas fa-server" style="color:var(--green-main)"></i>
+          <span>حفظ مباشر في قاعدة البيانات</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="questions-list" id="questionsList"></div>
+
+    <button class="add-q-btn" onclick="addQuestion()" id="addQBtn">
+      <i class="fas fa-plus-circle" style="font-size:1.2rem;"></i>
+      إضافة سؤال إضافي للنموذج
+    </button>
+
+    <div class="card">
+      <div class="card-body" style="padding:16px 24px;">
+        <div class="action-bar">
+          <button class="btn btn-outline" onclick="clearAll()">
+            <i class="fas fa-trash-alt"></i> مسح الخانات
+          </button>
+          <button class="btn btn-outline" onclick="loadTemplate()">
+            <i class="fas fa-magic"></i> قالب 5 أسئلة
+          </button>
+          <button class="btn btn-primary" style="min-width:160px;" onclick="saveQuiz()">
+            <i class="fas fa-cloud-upload-alt"></i> حفظ في بنك الأسئلة
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ─── Config 
+// const API_BASE = 'http://127.0.0.1:3000';
+const API_BASE ='https://aqraapp.com'
+const AUTH_TOKEN = localStorage.getItem('auth_token') || '';
+
+// ─── State ─
+let questions = [];
+let lastSaved = null;
+
+// ─── Init ──
+window.addEventListener('DOMContentLoaded', () => {
+  addQuestion(); // سؤال أول افتراضي
+  updateStats();
+  fetchBankStats();
+});
+
+// ─── Questions CRUD ───────────────────────────────────────────────────────────
+function addQuestion() {
+  const max = parseInt(document.getElementById('maxQCount').value);
+  if (questions.length >= max) return showToast(`الحد الأقصى ${max} أسئلة في الدفعة`, 'warning');
+
+  questions.push({ question:'', options:['','','',''], correctAnswer:0, explanation:'' });
+  renderQuestions();
+  updateStats();
+  
+  setTimeout(() => {
+    const cards = document.querySelectorAll('.question-card');
+    cards[cards.length-1]?.scrollIntoView({ behavior:'smooth', block:'center' });
+  }, 100);
+}
+
+function removeQuestion(idx) {
+  if (questions.length <= 1) return showToast('لازم يكون في سؤال واحد على الأقل', 'warning');
+  questions.splice(idx, 1);
+  renderQuestions();
+  updateStats();
+}
+
+function getFormData() {
+  const cards = document.querySelectorAll('.question-card');
+  const result = [];
+  cards.forEach((card, i) => {
+    const q = card.querySelector('.q-text').value.trim();
+    const opts = [...card.querySelectorAll('.opt-input')].map(inp => inp.value.trim());
+    const correct = parseInt(card.querySelector('.correct-radio:checked')?.value ?? 0);
+    const exp = card.querySelector('.exp-input')?.value.trim() || '';
+    result.push({ question: q, options: opts, correctAnswer: correct, explanation: exp });
+  });
+  return result;
+}
+// ─── جلب إحصائيات البنك من الداتا بيز ───
+async function fetchBankStats() {
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/quiz/bank/stats`, {
+      headers: { Authorization: `Bearer ${AUTH_TOKEN}` }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      document.getElementById('statTotalDb').textContent = data.data.total;
+      document.getElementById('statUnusedDb').textContent = data.data.unused;
+    }
+  } catch (err) {
+    console.log('فشل جلب إحصائيات البنك');
+  }
+}
+function renderQuestions() {
+  const list = document.getElementById('questionsList');
+  if (questions.length === 0) {
+    list.innerHTML = '';
+    return;
+  }
+
+  list.innerHTML = questions.map((q, i) => `
+    <div class="question-card" data-idx="${i}">
+      <div class="q-header">
+        <div class="q-num">
+          <div class="q-num-badge">${i + 1}</div>
+          السؤال ${i + 1}
+        </div>
+        <div style="display:flex;gap:8px;">
+          ${i > 0 ? `<button class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:white;padding:6px 10px;" onclick="moveUp(${i})"><i class="fas fa-arrow-up"></i></button>` : ''}
+          <button class="btn btn-sm" style="background:rgba(255,0,0,0.2);color:white;padding:6px 10px;" onclick="removeQuestion(${i})">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+      <div class="q-body">
+
+        <div class="form-group">
+          <label class="form-label"><i class="fas fa-question-circle"></i> نص السؤال</label>
+          <textarea class="form-control q-text" rows="2" placeholder="اكتب السؤال الديني هنا..." oninput="syncQ(${i}, 'question', this.value)">${q.question}</textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label"><i class="fas fa-list-ul"></i> الخيارات الأربعة</label>
+          <div class="options-grid">
+            ${['أ','ب','ج','د'].map((letter, oi) => `
+              <div class="option-wrap">
+                <div class="option-input-row">
+                  <div class="option-label-badge opt-${['a','b','c','d'][oi]}">${letter}</div>
+                  <input type="text" class="form-control opt-input" placeholder="الخيار ${letter}"
+                    value="${q.options[oi] || ''}"
+                    oninput="syncOpt(${i}, ${oi}, this.value)">
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label"><i class="fas fa-check-circle"></i> الإجابة الصحيحة</label>
+          <div class="correct-answer-row">
+            ${['أ','ب','ج','د'].map((letter, oi) => `
+              <input type="radio" class="correct-radio" name="correct_${i}" id="correct_${i}_${oi}" value="${oi}" ${q.correctAnswer === oi ? 'checked' : ''} onchange="syncQ(${i}, 'correctAnswer', ${oi})">
+              <label class="correct-label" for="correct_${i}_${oi}">
+                <span class="dot"></span>
+                الخيار ${letter}
+              </label>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="form-group explanation-area">
+          <label class="form-label"><i class="fas fa-lightbulb"></i> شرح الإجابة (اختياري)</label>
+          <textarea class="form-control exp-input" rows="2" placeholder="اكتب شرحاً مختصراً للإجابة الصحيحة..." oninput="syncQ(${i}, 'explanation', this.value)">${q.explanation}</textarea>
+        </div>
+
+      </div>
+    </div>
+  `).join('');
+}
+
+function syncQ(idx, field, val) {
+  if (questions[idx]) questions[idx][field] = val;
+  updateStats();
+}
+
+function syncOpt(idx, oi, val) {
+  if (questions[idx]) questions[idx].options[oi] = val;
+  updateStats();
+}
+
+function moveUp(idx) {
+  if (idx <= 0) return;
+  [questions[idx-1], questions[idx]] = [questions[idx], questions[idx-1]];
+  renderQuestions();
+}
+
+// ─── Save ──
+async function saveQuiz() {
+  const data = getFormData();
+
+  // Validate
+  for (let i = 0; i < data.length; i++) {
+    const q = data[i];
+    if (!q.question) return showToast(`❌ السؤال ${i+1} فاضي`, 'error');
+    const emptyOpts = q.options.filter(o => !o).length;
+    if (emptyOpts > 0) return showToast(`❌ السؤال ${i+1} فيه خيارات فاضية`, 'error');
+  }
+
+  showLoading('جاري الإضافة لبنك الأسئلة...');
+
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/quiz/bank`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${AUTH_TOKEN}`
+      },
+      body: JSON.stringify({ questions: data })
+    });
+
+    if (res.ok) {
+      lastSaved = new Date();
+      questions = []; // تفريغ بعد النجاح
+      renderQuestions();
+      addQuestion();
+      updateStats();
+      fetchBankStats();
+      showToast('✅ تمت الإضافة للبنك بنجاح! سيتم سحبها تلقائياً.');
+    } else {
+      const err = await res.json();
+      showToast(err.message || 'فشل الحفظ', 'error');
+    }
+  } catch {
+    showToast('فشل الاتصال بالسيرفر', 'error');
+  }
+
+  hideLoading();
+}
+
+// ─── Helpers 
+function updateStats() {
+  const data = questions;
+  const total = data.length;
+  const complete = data.filter(q =>
+    q.question && q.options.every(o => o)
+  ).length;
+  const pct = total === 0 ? 0 : Math.round((complete / total) * 100);
+
+  document.getElementById('statQCount').textContent = total;
+  document.getElementById('statComplete').textContent = pct + '%';
+  document.getElementById('statSaved').textContent = lastSaved
+    ? lastSaved.toLocaleTimeString('ar-EG', { hour:'2-digit', minute:'2-digit' })
+    : '—';
+  document.getElementById('statStatus').textContent = pct === 100 ? 'جاهز للإرسال' : 'مسودة';
+  document.getElementById('maxLabel').textContent = document.getElementById('maxQCount').value;
+
+  const max = parseInt(document.getElementById('maxQCount').value);
+  document.getElementById('addQBtn').style.display = total >= max ? 'none' : 'flex';
+}
+
+function clearAll() {
+  if (!confirm('هل أنت متأكد من مسح جميع الخانات الحالية؟')) return;
+  questions = [];
+  renderQuestions();
+  addQuestion();
+  updateStats();
+}
+
+function loadTemplate() {
+  questions = [
+    {
+      question: 'كم عدد أركان الإسلام؟',
+      options: ['أربعة', 'خمسة', 'ستة', 'سبعة'],
+      correctAnswer: 1,
+      explanation: 'أركان الإسلام خمسة: الشهادتان، والصلاة، والزكاة، والصوم، والحج.'
+    },
+    {
+      question: 'ما هي أول سورة نزلت من القرآن الكريم؟',
+      options: ['الفاتحة', 'البقرة', 'العلق', 'المدثر'],
+      correctAnswer: 2,
+      explanation: 'أول ما نزل من القرآن الكريم هو الآيات الأولى من سورة العلق (اقرأ باسم ربك الذي خلق).'
+    },
+    {
+      question: 'في أي شهر فُرض صيام رمضان؟',
+      options: ['السنة الأولى', 'السنة الثانية', 'السنة الثالثة', 'السنة الرابعة'],
+      correctAnswer: 1,
+      explanation: 'فُرض صيام رمضان في السنة الثانية من الهجرة.'
+    },
+    {
+      question: 'ما هو اسم والد النبي إبراهيم عليه السلام؟',
+      options: ['عمران', 'آزر', 'تارح', 'ناحور'],
+      correctAnswer: 1,
+      explanation: 'اسم والد إبراهيم عليه السلام هو آزر كما ذكر في القرآن الكريم.'
+    },
+    {
+      question: 'كم مرة ذُكرت كلمة "الصلاة" في القرآن الكريم تقريباً؟',
+      options: ['57 مرة', '67 مرة', '77 مرة', '99 مرة'],
+      correctAnswer: 2,
+      explanation: 'ذُكرت الصلاة في القرآن الكريم نحو 77 مرة مما يدل على أهميتها في الإسلام.'
+    }
+  ];
+  renderQuestions();
+  updateStats();
+  showToast('✅ تم تحميل قالب الـ 5 أسئلة');
+}
+
+// ─── Preview 
+function openPreview() {
+  const data = getFormData();
+  if (data.length === 0) return showToast('لا توجد أسئلة للمعاينة', 'warning');
+
+  const body = document.getElementById('previewBody');
+  body.innerHTML = data.map((q, i) => `
+    <div class="preview-q">
+      <div class="preview-q-text">${i+1}. ${q.question || '(بدون نص)'}</div>
+      <div class="preview-options">
+        ${q.options.map((opt, oi) => `
+          <div class="preview-opt ${oi === q.correctAnswer ? 'correct' : ''}">
+            ${['أ','ب','ج','د'][oi]}. ${opt || '—'}
+            ${oi === q.correctAnswer ? '<i class="fas fa-check" style="margin-right:4px;"></i>' : ''}
+          </div>
+        `).join('')}
+      </div>
+      ${q.explanation ? `<div style="margin-top:10px;font-size:0.85rem;color:var(--text-muted);background:white;padding:8px 12px;border-radius:8px;"><i class="fas fa-lightbulb" style="color:var(--gold);margin-left:4px;"></i>${q.explanation}</div>` : ''}
+    </div>
+  `).join('');
+
+  document.getElementById('previewModal').classList.add('active');
+}
+
+function closePreview() {
+  document.getElementById('previewModal').classList.remove('active');
+}
+
+function showLoading(text = 'جاري التحميل...') {
+  document.getElementById('loadingText').textContent = text;
+  document.getElementById('loadingOverlay').classList.add('active');
+}
+
+function hideLoading() {
+  document.getElementById('loadingOverlay').classList.remove('active');
+}
+
+function showToast(msg, type = 'success') {
+  const wrap = document.getElementById('toastWrap');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type === 'error' ? 'error' : type === 'warning' ? 'warning' : ''}`;
+  toast.innerHTML = `<i class="fas fa-${type === 'error' ? 'times-circle' : type === 'warning' ? 'exclamation-triangle' : 'check-circle'}"></i> ${msg}`;
+  wrap.appendChild(toast);
+  setTimeout(() => toast.remove(), 3200);
+}
+
+document.getElementById('maxQCount').addEventListener('change', updateStats);
+</script>
+</body>
+</html>
