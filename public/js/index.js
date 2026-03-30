@@ -2785,7 +2785,9 @@ const checkForUpdates = async () => {
           title: "تحديث جديد متاح! 🎉",
           body: `إصدار ${data.version} متوفر الآن بمميزات جديدة. اضغط للتحميل.`,
           id: 102, // معرف فريد لإشعارات التحديث
-          extra: { type: 'update',url: data.downloadUrl }
+          extra: { type: 'update', url: data.downloadUrl },
+          smallIcon: 'ic_notification', // 🌟 الأيقونة الموحدة للتطبيق 🌟
+          channelId: 'khatmah-channel'  // 🌟 استخدام قناة هادئة بدون صوت الأذان 🌟
         }]
       });
       localStorage.setItem('last_notified_update', String(serverBuild));
