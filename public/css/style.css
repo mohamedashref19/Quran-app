@@ -853,14 +853,23 @@ footer {
 }
 
 /* =========================================
-   9. تطبيق المتغيرات على العناصر
+   9. إعدادات الـ Body وتطبيق المتغيرات (دعم iOS Notch)
    ========================================= */
-
 body {
-    background-color: var(--bg-color) !important;
-    color: var(--text-color) !important;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    margin-top: 0 !important;
+    overflow-x: hidden;
+    font-family: 'Tajawal', 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* يفضل استخدام الخطوط العربية اللي حملتها الأول */
+    
+    /* 🌟 دعم الـ Safe Area للآيفون من جميع الاتجاهات 🌟 */
+    padding-top: env(safe-area-inset-top, 0px) !important;
     padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-left: env(safe-area-inset-left, 0px) !important;
+    padding-right: env(safe-area-inset-right, 0px) !important;
+
+    /* المتغيرات والتأثيرات (الوضع الليلي والنهاري) */
+    background-color: var(--bg-color, #f8f9fa) !important;
+    color: var(--text-color, #333) !important;
+    transition: background-color 0.3s ease, color 0.3s ease;
     background-clip: padding-box !important;
 }
 
