@@ -5,6 +5,28 @@ const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
 
 
+// ─── تطبيع النص العربي للبحث (نفس منطق الـ Frontend تمامًا) ─────────────────
+const normalizeArabic = (text) => {
+  if (!text) return '';
+  return text
+    // إزالة التشكيل والحركات كاملاً
+    .replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED\u0640]/g, '')
+    // توحيد أشكال الألف
+    .replace(/[أإآٱ]/g, 'ا')
+    // توحيد الياء والألف المقصورة
+    .replace(/ى/g, 'ي')
+    // توحيد الواو والواو بهمزة
+    .replace(/ؤ/g, 'و')
+    // توحيد الياء بهمزة
+    .replace(/ئ/g, 'ي')
+    // إزالة علامة الوقف
+    .replace(/۩/g, '')
+    // إزالة مسافات زائدة
+    .trim();
+  // ملاحظة: لا نوحّد ة→ه هنا عشان نحافظ على دقة البحث
+};
+
+
 exports.getAllSurah = catchAsync(async(req,res,next)=>{
     const surahs =await Ayah.aggregate([
         {
@@ -45,22 +67,70 @@ const ayahs = await Ayah.find({ surahNumber: Number(number) }).sort({ ayahNumber
   })
 })
 
+// ─── البحث الذكي ──────────────────────────────────────────────────────────────
 exports.search = catchAsync(async (req, res, next) => {
   const { q } = req.query;
-  if (!q) return next(new AppError("Please provide a search term", 400));
+  if (!q || q.trim().length < 2) {
+    return next(new AppError("يرجى كتابة كلمتين على الأقل للبحث", 400));
+  }
 
-  const results = await Ayah.find({
-    $or: [
-      { simpleText: { $regex: q, $options: "i" } },
-      { text: { $regex: q, $options: "i" } }
-    ]
+  const query = q.trim();
+  const normalizedQuery = normalizeArabic(query);
+  const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+
+  // ─── 1. البحث برقم السورة والآية (مثلاً: "2:255" أو "البقرة 255") ──────────
+  const verseRefMatch = query.match(/^(\d+)[:\s]+(\d+)$/);
+  if (verseRefMatch) {
+    const surahNum = parseInt(verseRefMatch[1]);
+    const ayahNum  = parseInt(verseRefMatch[2]);
+    const ayah = await Ayah.findOne({ surahNumber: surahNum, numberInSurah: ayahNum })
+      .select('text surahNameAr ayahNumber numberInSurah page surahNumber');
+    
+    if (ayah) {
+      return res.status(200).json({
+        status: "success",
+        results: 1,
+        searchType: "verse_ref",
+        data: { ayahs: [ayah] }
+      });
+    }
+  }
+
+  // ─── 2. البحث بالنص المطبّع (بدون تشكيل) - الأسرع والأدق ───────────────────
+  // simpleText: حقل محفوظ في DB بالنص بدون تشكيل (مطبّع مسبقًا عند الاستيراد)
+  let results = await Ayah.find({
+    simpleText: { $regex: normalizedQuery, $options: 'i' }
   })
   .select('text surahNameAr ayahNumber numberInSurah page surahNumber')
-  .limit(20); 
+  .limit(limit)
+  .lean();
+
+  // ─── 3. لو ما فيش نتائج كافية → ابحث بالتشكيل الأصلي (fallback) ─────────────
+  if (results.length === 0) {
+    results = await Ayah.find({
+      text: { $regex: query, $options: 'i' }
+    })
+    .select('text surahNameAr ayahNumber numberInSurah page surahNumber')
+    .limit(limit)
+    .lean();
+  }
+
+  // ─── 4. ترتيب النتائج: الآيات اللي فيها الكلمة في الأول تيجي أولاً ──────────
+  results.sort((a, b) => {
+    const aText = normalizeArabic(a.text || '');
+    const bText = normalizeArabic(b.text || '');
+    const aIdx = aText.indexOf(normalizedQuery);
+    const bIdx = bText.indexOf(normalizedQuery);
+    // الأقرب للأول في الآية تيجي أولاً
+    if (aIdx !== bIdx) return aIdx - bIdx;
+    // ثم ترتيب حسب السورة
+    return (a.surahNumber - b.surahNumber) || (a.numberInSurah - b.numberInSurah);
+  });
 
   res.status(200).json({
     status: "success",
     results: results.length,
+    searchType: "text",
     data: { ayahs: results }
   });
 });

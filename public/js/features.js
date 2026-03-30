@@ -7,7 +7,7 @@ import {  Capacitor } from '@capacitor/core';
 import { StatusBar } from '@capacitor/status-bar';
 import axios from 'axios';
 import { showAlert } from './auth';
-import { surahNames, surahStartPages, juzData, getJuzByPage, getHizbByPage, getSurahNameByPage ,SAJDAH_WORDS_COUNT, SAJDAH_WORDS, SAJDAH_AYAH_END, UTHMANI_FIXES} from './constants';
+import { surahNames, surahStartPages, juzData, getJuzByPage, getHizbByPage, getSurahNameByPage , SAJDAH_WORDS, SAJDAH_AYAH_END, UTHMANI_FIXES} from './constants';
 
 
 
@@ -616,12 +616,18 @@ export async function loadQuranPage(pageNumber, targetSurah = null, targetAyah =
     ayahs.forEach(ayah => {
       let ayahText = ayah.text;
 
-      // تصحيح الرسم العثماني
-      if (typeof UTHMANI_FIXES !== 'undefined') {
-        Object.keys(UTHMANI_FIXES).forEach(wrongWord => {
-          ayahText = ayahText.split(wrongWord).join(UTHMANI_FIXES[wrongWord]);
-        });
-      }
+      // // تصحيح الرسم العثماني
+      // if (typeof UTHMANI_FIXES !== 'undefined') {
+      //   Object.keys(UTHMANI_FIXES).forEach(wrongWord => {
+      //     ayahText = ayahText.split(wrongWord).join(UTHMANI_FIXES[wrongWord]);
+      //   });
+      // }
+
+if (UTHMANI_FIXES) {
+  Object.entries(UTHMANI_FIXES).forEach(([wrong, correct]) => {
+    ayahText = ayahText.split(wrong).join(correct);
+  });
+}
 
       const ayahNum  = ayah.ayahNumber || ayah.numberInSurah;
       const surahNum = ayah.surahNumber || (ayah.surah && ayah.surah.number);
@@ -630,20 +636,25 @@ export async function loadQuranPage(pageNumber, targetSurah = null, targetAyah =
       ayahText = ayahText.replace(/۩/g, '').trim();
 
       // تمييز كلمة السجود
-      if (typeof SAJDAH_WORDS !== 'undefined' && SAJDAH_WORDS[sajdahKey]) {
+      // if (typeof SAJDAH_WORDS !== 'undefined' && SAJDAH_WORDS[sajdahKey]) {
+      if (SAJDAH_WORDS[sajdahKey]) {
         const sajdahWord = SAJDAH_WORDS[sajdahKey];
-        const diacritics = /[\u064B-\u065F\u0670\u06D6-\u06ED]/g;
-        const strippedWord = sajdahWord.replace(diacritics, '');
+        // تنظيف الكلمة المستهدفة من التشكيل
+        const strippedWord = sajdahWord.replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '');
+        
+        // بناء Regex مرن يمسك الكلمة حتى مع الحروف العثمانية (مثل ٱ، ـٰ، ۦ)
         const flexiblePattern = strippedWord
           .split('')
           .map(char => {
-            if (['ا','أ','إ','آ','ء','ؤ','ئ','ـٔ','ٱ'].includes(char)) return '[اأإآءؤئـٔٱ]';
+            if (['ا','أ','إ','آ','ء','ؤ','ئ','ـٔ','ٱ','ٰ'].includes(char)) return '[اأإآءؤئـٔٱٰ]';
             if (['ي','ى','ۦ'].includes(char)) return '[يىۦ]';
             if (['و','ۥ'].includes(char)) return '[وۥ]';
             return char;
           })
-          .join('[\u064B-\u065F\u0670\u06D6-\u06ED]*');
+          .join('[\u064B-\u065F\u0670\u06D6-\u06ED]*'); // السماح بأي تشكيل بين الحروف
+
         try {
+          // نبحث عن الكلمة في النص الكامل للآية
           const regex = new RegExp(`(^|\\s)(${flexiblePattern}[\u064B-\u065F\u0670\u06D6-\u06ED]*)(?=\\s|$)`, 'g');
           ayahText = ayahText.replace(regex, `$1<span class="sajdah-word" style="text-decoration: overline; text-decoration-color: #198754; text-decoration-thickness: 2px;">$2</span>`);
         } catch(e) {
@@ -651,7 +662,8 @@ export async function loadQuranPage(pageNumber, targetSurah = null, targetAyah =
         }
       }
 
-      const hasSajdahSymbol = (typeof SAJDAH_AYAH_END !== 'undefined') && SAJDAH_AYAH_END.includes(sajdahKey);
+      // const hasSajdahSymbol = (typeof SAJDAH_AYAH_END !== 'undefined') && SAJDAH_AYAH_END.includes(sajdahKey);
+      const hasSajdahSymbol = SAJDAH_AYAH_END.includes(sajdahKey);
       const sajdahSymbolHTML = hasSajdahSymbol ? ' <span class="sajdah-icon text-success ms-1 fs-5" title="موضع سجود">۩</span>' : '';
 
       let surahName = ayah.surahNameAr || (ayah.surah && ayah.surah.name) || "";
@@ -1117,56 +1129,65 @@ export async function loadBookmarks() {
 
     // ─── دالة رسم العلامات (تُستخدم مرتين: كاش + API) ────────────────────────
     const renderBookmarksToUI = (bookmarksList) => {
-      container.innerHTML = '';
-      if (!bookmarksList || bookmarksList.length === 0) {
-        container.innerHTML = `<div class="text-center py-5"><i class="far fa-bookmark fa-4x text-muted mb-3"></i><p class="lead">لا توجد علامات محفوظة حالياً</p><a href="#" onclick="window.showSection('quran'); return false;" class="btn btn-success">اذهب للمصحف واحفظ أول علامة</a></div>`;
-        return;
-      }
-      let html = '';
-      bookmarksList.forEach(b => {
-        const surahNum  = parseInt(b.surah);
-        let targetPage  = b.page ? parseInt(b.page) : null;
-        // 🛠️ تم التصحيح هنا لاستخدام المتغير الصحيح surahPageMap الخاص بك
-        // if (!targetPage || isNaN(targetPage)) targetPage = surahPageMap[surahNum - 1] || 1;
-        if (!targetPage || isNaN(targetPage)) targetPage = surahStartPages[surahNum] || 1;
+  container.innerHTML = '';
+  if (!bookmarksList || bookmarksList.length === 0) {
+    container.innerHTML = `<div class="text-center py-5"><i class="far fa-bookmark fa-4x text-muted mb-3"></i><p class="lead">لا توجد علامات محفوظة حالياً</p><a href="#" onclick="window.showSection('quran'); return false;" class="btn btn-success">اذهب للمصحف واحفظ أول علامة</a></div>`;
+    return;
+  }
+  let html = '';
+  bookmarksList.forEach(b => {
+    const surahNum  = parseInt(b.surah);
+    let targetPage  = b.page ? parseInt(b.page) : null;
+    if (!targetPage || isNaN(targetPage)) targetPage = surahStartPages[surahNum] || 1;
 
-        const noteHTML = b.note
-          ? `<div class="mt-2 p-2 rounded bookmark-note-box">
-               <small class="note-text"><i class="fas fa-sticky-note me-1 text-success"></i>${b.note}</small>
-             </div>`
-          : '';
+    const noteHTML = b.note
+      ? `<div class="mt-2 p-2 rounded bookmark-note-box">
+           <small class="note-text"><i class="fas fa-sticky-note me-1 text-success"></i>${b.note}</small>
+         </div>`
+      : '';
 
-        html += `
-          <div class="col-md-6 mb-3">
-            <div class="card shadow-sm border-start border-success border-4 h-100">
-              <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                  <h5 class="card-title text-success">${b.surahName}</h5>
-                  <button class="btn btn-sm btn-outline-danger delete-bookmark-btn" data-id="${b._id}" ${!navigator.onLine ? 'disabled title="تحتاج للإنترنت لحذف العلامة"' : ''}>
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </div>
-                <p class="ayah-text text-dark mt-2" style="font-family: 'Amiri'; font-size: 1.2rem;">${b.ayahText || b.text || ""}</p>
-                ${noteHTML}
-                <div class="mt-3 d-flex justify-content-between align-items-center">
-                  <span class="badge bg-light text-dark">آية رقم: ${b.ayah}</span>
-                  <button class="btn btn-sm btn-success"
-                    onclick="window.showSection('quran'); window.loadQuranPage(${targetPage}, ${surahNum}, ${parseInt(b.ayah)});">
-                    <i class="fas fa-book-open me-1"></i> انتقل للآية
-                  </button>
-                </div>
-              </div>
+    html += `
+      <div class="col-md-6 mb-3">
+        <div class="card shadow-sm border-start border-success border-4 h-100">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+              <h5 class="card-title text-success">${b.surahName}</h5>
+              <button class="btn btn-sm btn-outline-danger delete-bookmark-btn" 
+                data-id="${b._id || ''}" 
+                ${!b._id || !navigator.onLine ? 'disabled title="تحتاج للإنترنت لحذف العلامة"' : ''}>
+                <i class="fas fa-trash"></i>
+              </button>
             </div>
-          </div>`;
-      });
-      container.innerHTML = html;
-    };
+            <p class="ayah-text text-dark mt-2" style="font-family: 'Amiri'; font-size: 1.2rem;">${b.ayahText || b.text || ""}</p>
+            ${noteHTML}
+            <div class="mt-3 d-flex justify-content-between align-items-center">
+              <span class="badge bg-light text-dark">آية رقم: ${b.ayah}</span>
+              <button class="btn btn-sm btn-success"
+                onclick="window.showSection('quran'); window.loadQuranPage(${targetPage}, ${surahNum}, ${parseInt(b.ayah)});">
+                <i class="fas fa-book-open me-1"></i> انتقل للآية
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  });
+  container.innerHTML = html;
+};
 
     // ─── 1. عرض فوري من الكاش (0 ثانية انتظار) ───────────────────────────────
     const cachedBookmarks = await localforage.getItem('offline_bookmarks');
     if (cachedBookmarks) {
       renderBookmarksToUI(cachedBookmarks);
-    } else {
+    } else if (!navigator.onLine) {
+  // أوفلاين وما فيش كاش → رسالة واضحة
+  container.innerHTML = `
+    <div class="col-12 text-center py-5">
+      <i class="fas fa-wifi-slash fa-3x text-muted mb-3"></i>
+      <p class="lead text-muted">لا يوجد اتصال بالإنترنت</p>
+      <p class="text-muted small">سيتم عرض علاماتك عند الاتصال مرة أخرى</p>
+    </div>`;
+} 
+    else {
       container.innerHTML = '<div class="col-12 text-center py-4"><div class="spinner-border text-success"></div></div>';
     }
 
@@ -1178,22 +1199,39 @@ export async function loadBookmarks() {
           await localforage.setItem('offline_bookmarks', freshBookmarks);
           renderBookmarksToUI(freshBookmarks); // تحديث الشاشة لو فيه جديد
         })
-        .catch(apiErr => {
-          console.warn('⚠️ فشل المزامنة الخلفية للعلامات:', apiErr.message);
-          if (apiErr.response?.status === 401) {
-            container.innerHTML = `
-              <div class="col-12">
-                <div class="text-center py-5">
-                  <i class="fas fa-lock fa-4x text-muted mb-4"></i>
-                  <h4 class="text-muted mb-3">انتهت الجلسة</h4>
-                  <p class="text-muted mb-4">يرجى تسجيل الدخول مرة أخرى لرؤية علاماتك.</p>
-                  <button class="btn btn-success btn-lg px-5" onclick="window.showSection('login')">
-                    <i class="fas fa-sign-in-alt me-2"></i> تسجيل الدخول
-                  </button>
-                </div>
-              </div>`;
-          }
-        });
+       .catch(apiErr => {
+  console.warn('⚠️ فشل المزامنة الخلفية للعلامات:', apiErr.message);
+  
+  if (apiErr.response?.status === 401) {
+    container.innerHTML = `
+      <div class="col-12">
+        <div class="text-center py-5">
+          <i class="fas fa-lock fa-4x text-muted mb-4"></i>
+          <h4 class="text-muted mb-3">انتهت الجلسة</h4>
+          <p class="text-muted mb-4">يرجى تسجيل الدخول مرة أخرى لرؤية علاماتك.</p>
+          <button class="btn btn-success btn-lg px-5" onclick="window.showSection('login')">
+            <i class="fas fa-sign-in-alt me-2"></i> تسجيل الدخول
+          </button>
+        </div>
+      </div>`;
+  } else {
+    // أي error تاني (500, network, etc.) → عرض الكاش لو موجود
+    localforage.getItem('offline_bookmarks').then(cached => {
+      if (cached) {
+        renderBookmarksToUI(cached);
+      } else {
+        container.innerHTML = `
+          <div class="col-12 text-center py-5">
+            <i class="fas fa-exclamation-circle fa-3x text-muted mb-3"></i>
+            <p class="lead text-muted">تعذر تحميل العلامات</p>
+            <button class="btn btn-outline-success btn-sm" onclick="window.loadBookmarks()">
+              إعادة المحاولة
+            </button>
+          </div>`;
+      }
+    });
+  }
+});
     }
   } catch (err) {
     console.error("خطأ عام في عرض العلامات:", err);
@@ -1553,21 +1591,24 @@ export async function checkRecitation(file, surah, startAyah, endAyah, userAudio
     const { analysis, score } = res.data;
 
     let resultHTML = `
-      <div class="mb-4 text-center">
-        <h3 class="fw-bold">دقة التلاوة: ${score}%</h3>
-        <div class="progress mx-auto mb-3" style="height: 12px; width: 70%; border-radius: 10px;">
-          <div class="progress-bar bg-success" style="width: ${score}%"></div>
+      <div class="score-card mb-3">
+        <div class="score-number">${score}%</div>
+        <div class="score-label">دقة التلاوة</div>
+        <div class="score-bar-wrap mt-2">
+          <div class="score-bar-fill" style="width: ${score}%"></div>
         </div>
-        <div class="audio-playback-container p-3 bg-light rounded-pill d-inline-block shadow-sm mb-3">
+      </div>
+      <div class="text-center mb-3">
+        <div class="d-inline-block p-3 rounded-4" style="background: rgba(25,135,84,0.06); border: 1px solid rgba(25,135,84,0.12);">
           <p class="small text-success fw-bold mb-2"><i class="fas fa-play-circle me-1"></i> استمع إلى تلاوتك:</p>
-          ${userAudioUrl ? `<audio controls src="${userAudioUrl}" class="custom-audio-player" style="height: 35px; width: 100%;"></audio>` : '<p class="text-muted small">لا يوجد تسجيل صوتي</p>'}
+          ${userAudioUrl ? `<audio controls src="${userAudioUrl}" class="custom-audio-player" style="height: 35px; width: 100%;"></audio>` : '<p class="text-muted small mb-0">لا يوجد تسجيل صوتي</p>'}
         </div>
         <div id="volume-control-ai" class="d-none mt-3 text-center">
           <label class="form-label fw-bold text-muted small"><i class="fas fa-volume-up me-1"></i> مستوى الصوت</label>
           <input type="range" class="form-range" id="volume-slider-ai" min="0" max="1" step="0.1" value="1" style="width: 200px; accent-color: #198754;">
         </div>
       </div>
-      <div class="ai-result-box p-4 bg-white border rounded shadow-sm mb-4" style="font-family: 'Amiri Quran', 'Amiri', serif; font-size: 28px; line-height: 2.4; direction: rtl; text-align: right;">
+      <div class="ai-result-box p-4 mb-4" style="font-family: 'Amiri Quran', 'Amiri', serif; font-size: 28px; line-height: 2.8; direction: rtl; text-align: right; background: linear-gradient(180deg,#fdfbf5 0%,#faf7ee 100%); border-radius: 16px; border: 1px solid rgba(197,165,90,0.25); box-shadow: 0 2px 10px rgba(0,0,0,0.06); position: relative; overflow: hidden;">
     `;
 
     analysis.forEach(item => {
@@ -1586,7 +1627,7 @@ export async function checkRecitation(file, surah, startAyah, endAyah, userAudio
       }
     });
 
-    resultHTML += `</div><div class="text-center"><button id="btn-retry" class="btn btn-success px-5">محاولة جديدة</button></div>`;
+    resultHTML += `</div><div class="text-center mt-3"><button id="btn-retry" class="btn btn-success px-5 py-2 rounded-pill fw-bold shadow-sm"><i class="fas fa-redo me-2"></i>محاولة جديدة</button></div>`;
     feedbackElem.innerHTML = resultHTML;
     document.getElementById('btn-retry').addEventListener('click', () => resetRecitationUI());
 
@@ -2155,81 +2196,96 @@ async function renderReciters(recitersList, container) {
   });
 }
 
-export const scheduleAllPrayers = async (prayerTimes) => {
-  try {
-    // 1. مسح الإشعارات القديمة بمدى واسع (أرقام النسخ القديمة + أرقام النظام الجديد)
-    const idsToCancel = [];
-    for (let id = 100; id <= 150; id++) idsToCancel.push({ id });
-    for (let p = 1; p <= 5; p++) {
-      for (let d = 0; d <= 6; d++) idsToCancel.push({ id: p * 1000 + 1000 + d });
-    }
-    try { await LocalNotifications.cancel({ notifications: idsToCancel }); } catch(e) {}
+// ─── الجدولة الدقيقة لجميع الصلوات ──────────────────────────────────────────
+export const scheduleAllPrayers = async (prayerData) => {
+    try {
+        if (!Capacitor.isNativePlatform()) return;
 
-    const notifications = [];
-    const targetPrayers = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
-    const prayerNamesAr = { 'Fajr': 'الفجر', 'Dhuhr': 'الظهر', 'Asr': 'العصر', 'Maghrib': 'المغرب', 'Isha': 'العشاء' };
-    const prayerIds     = { 'Fajr': 1, 'Dhuhr': 2, 'Asr': 3, 'Maghrib': 4, 'Isha': 5 };
-    const nowRef = new Date();
+        // 1. مسح الإشعارات السابقة المعلقة لمنع التراكم
+        const pending = await LocalNotifications.getPending();
+        const allPendingIds = pending.notifications.map(n => ({ id: n.id }));
+        
+        const idsToCancel = [];
+        // نمسح النطاق الخاص بالصلوات (من 1000 لـ 7000 مثلاً حسب طريقتك)
+        for (let p = 1; p <= 5; p++) {
+            for (let d = 0; d <= 6; d++) {
+                idsToCancel.push({ id: p * 1000 + 1000 + d });
+            }
+        }
+        
+        const combined = [...idsToCancel, ...allPendingIds.filter(p => p.id >= 1000 && p.id <= 7000)];
+        if (combined.length > 0) {
+            try { await LocalNotifications.cancel({ notifications: combined }); } catch(e) { console.warn('Cancel Old Notifications:', e); }
+        }
 
-    // 2. جدولة كل صلاة لـ 7 أيام قادمة بـ exact time
-    targetPrayers.forEach((key) => {
-      const timeStr = prayerTimes[key];
-      if (!timeStr) return;
-      const cleanTime = timeStr.trim();
-      const isPM      = cleanTime.toUpperCase().includes('PM');
-      const isAM      = cleanTime.toUpperCase().includes('AM');
-      const parts     = cleanTime.split(' ')[0].split(':');
-      if (parts.length < 2) return;
+        const notifications = [];
+        const targetPrayers = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+        const prayerNamesAr = { 'Fajr': 'الفجر', 'Dhuhr': 'الظهر', 'Asr': 'العصر', 'Maghrib': 'المغرب', 'Isha': 'العشاء' };
+        const prayerIds     = { 'Fajr': 1, 'Dhuhr': 2, 'Asr': 3, 'Maghrib': 4, 'Isha': 5 };
 
-      let hours   = parseInt(parts[0], 10);
-      let minutes = parseInt(parts[1], 10);
-      if (isNaN(hours) || isNaN(minutes)) return;
+        // الحصول على التوقيتات الدقيقة (Timestamps) من الباك إند
+        // إذا لم تكن موجودة (مثلاً كاش قديم)، نستخدم الـ timings القديمة كحل بديل مؤقت
+        const timestamps = prayerData.rawTimestamps || null;
+        const nowRefTime = Date.now() + (30 * 1000); // 30 ثانية Buffer لمنع جدولة إشعار في الماضي فوراً
 
-      if (isPM && hours !== 12) hours += 12;
-      if (isAM && hours === 12) hours  = 0;
+        targetPrayers.forEach((key) => {
+            let baseTimeMs;
 
-      for (let dayOffset = 0; dayOffset <= 6; dayOffset++) {
-        const prayerDate = new Date(nowRef.getFullYear(), nowRef.getMonth(), nowRef.getDate(), hours, minutes, 0, 0);
-        prayerDate.setDate(prayerDate.getDate() + dayOffset);
+            if (timestamps && timestamps[key]) {
+                // 🌟 الحل السحري: استخدام الوقت الدقيق بالملي ثانية 🌟
+                baseTimeMs = timestamps[key];
+            } else {
+                // Fallback للطريقة القديمة إذا لم يتم تحديث الباك إند بعد
+                const timeStr = prayerData.timings[key];
+                if (!timeStr) return;
+                const cleanTime = timeStr.trim();
+                const isPM = cleanTime.toUpperCase().includes('PM');
+                const isAM = cleanTime.toUpperCase().includes('AM');
+                const parts = cleanTime.split(' ')[0].split(':');
+                if (parts.length < 2) return;
 
-        if (prayerDate <= nowRef) continue;
+                let hours = parseInt(parts[0], 10);
+                let minutes = parseInt(parts[1], 10);
+                if (isNaN(hours) || isNaN(minutes)) return;
 
-        const uniqueId = prayerIds[key] * 1000 + 1000 + dayOffset;
+                if (isPM && hours !== 12) hours += 12;
+                if (isAM && hours === 12) hours = 0;
+                
+                const d = new Date();
+                baseTimeMs = new Date(d.getFullYear(), d.getMonth(), d.getDate(), hours, minutes, 0, 0).getTime();
+            }
 
-        notifications.push({
-          title: `حان موعد صلاة ${prayerNamesAr[key]} 🕌`,
-          body: `أرحنا بها يا بلال.. حان وقت صلاة ${prayerNamesAr[key]}`,
-          id: uniqueId,
-          schedule: { at: prayerDate, allowWhileIdle: true },
-          channelId: 'azan-channel',
-          smallIcon: 'ic_notification',
-          sound: 'azan_short.mp3',
-          actionTypeId: 'OPEN_PRAYERS',
+            // الجدولة لمدة 7 أيام قادمة
+            for (let dayOffset = 0; dayOffset <= 6; dayOffset++) {
+                // نضيف 24 ساعة (بالملي ثانية) لكل يوم إضافي
+                const scheduleTimeMs = baseTimeMs + (dayOffset * 24 * 60 * 60 * 1000);
+                const prayerDate = new Date(scheduleTimeMs);
+
+                // 🌟 منع جدولة إشعار في الماضي 🌟
+                if (prayerDate.getTime() <= nowRefTime) continue;
+
+                const uniqueId = prayerIds[key] * 1000 + 1000 + dayOffset;
+
+                notifications.push({
+                    title: `حان موعد صلاة ${prayerNamesAr[key]} 🕌`,
+                    body: `أرحنا بها يا بلال.. حان وقت صلاة ${prayerNamesAr[key]}`,
+                    id: uniqueId,
+                    schedule: { at: prayerDate, allowWhileIdle: true },
+                    channelId: 'azan-channel',
+                    smallIcon: 'ic_notification',
+                    sound: 'azan_short.mp3',
+                    actionTypeId: 'OPEN_PRAYERS',
+                });
+            }
         });
-      }
-    });
 
-    // 3. إشعار ذكي لضمان فتح التطبيق كل 6 أيام (لإعادة الجدولة في صمت بـ UX احترافي)
-    const reminderDate = new Date();
-    reminderDate.setDate(reminderDate.getDate() + 6);
-    reminderDate.setHours(19, 0, 0, 0); // الساعة 7 مساءً
-
-    notifications.push({
-      id: 106,
-      title: 'حصادك الأسبوعي من "اقرأ" 📖',
-      body: 'تفقد إحصائيات قراءتك هذا الأسبوع، وواصل تقدمك في ختمتك الحالية لرفع رصيدك من الحسنات ✨',
-      schedule: { at: reminderDate, allowWhileIdle: true },
-      smallIcon: 'ic_notification',
-      actionTypeId: 'OPEN_PRAYERS',
-    });
-
-    if (notifications.length > 0) {
-      await LocalNotifications.schedule({ notifications });
-      console.log(`✅ [PRAYERS] تم جدولة ${notifications.length} إشعار بـ exact time لـ 7 أيام قادمة`);
+        if (notifications.length > 0) {
+            await LocalNotifications.schedule({ notifications });
+            console.log(`✅ [PRAYER] تم جدولة ${notifications.length} إشعار دقيق.`);
+        }
+    } catch (e) {
+        console.error('❌ [PRAYER] خطأ في جدولة الإشعارات:', e);
     }
-  } catch (error) {
-    console.error('❌ خطأ في جدولة إشعارات الصلاة:', error);
-  }
 };
 
 export function loadPrayers() {
@@ -2268,8 +2324,9 @@ export function loadPrayers() {
           const lastScheduledTime = lastScheduled ? new Date(lastScheduled).getTime() : 0;
           const daysSinceLastSchedule = (Date.now() - lastScheduledTime) / (1000 * 60 * 60 * 24);
           
-          if (daysSinceLastSchedule >= 6) {
-              await scheduleAllPrayers(cachedData.timings);
+          if (daysSinceLastSchedule >= 1) {
+              await scheduleAllPrayers({ timings: cachedData.timings, rawTimestamps: cachedData.rawTimestamps });
+
               await localforage.setItem('prayers_last_scheduled', new Date().toISOString());
           }
         }
@@ -2326,7 +2383,9 @@ export function loadPrayers() {
               <span class="badge bg-success rounded-pill" style="font-family: sans-serif">${value}</span>
             </div>`);
         }
-        await localforage.setItem('offline_prayers', { timings, hijri, cityName, savedAt: Date.now() });
+      //  const hijri = res.data.data.hijri;
+const rawTimestamps = res.data.data.rawTimestamps;
+await localforage.setItem('offline_prayers', { timings, rawTimestamps, hijri, cityName, savedAt: Date.now() });
         
         // 🔥 التحقق الذكي (كل 6 أيام) في وضع الأونلاين
         if (Capacitor.isNativePlatform()) {
@@ -2334,8 +2393,8 @@ export function loadPrayers() {
           const lastScheduledTime = lastScheduled ? new Date(lastScheduled).getTime() : 0;
           const daysSinceLastSchedule = (Date.now() - lastScheduledTime) / (1000 * 60 * 60 * 24);
           
-          if (daysSinceLastSchedule >= 6) {
-              await scheduleAllPrayers(timings);
+          if (daysSinceLastSchedule >= 1) {
+              await scheduleAllPrayers({ timings, rawTimestamps: res.data.data.rawTimestamps });
               await localforage.setItem('prayers_last_scheduled', new Date().toISOString());
           }
         }
@@ -2386,53 +2445,153 @@ export const initBookmarksSearch = () => {
   });
 };
 
+// ─── تطبيع النص العربي للبحث الذكي ───────────────────────────────────────────
+// نفس المنطق بالضبط زي الـ Backend عشان النتائج تتطابق
 const stripTashkeel = (text) => {
   if (!text) return '';
   return text
+    // إزالة التشكيل والحركات كاملاً (تنوين، شدة، مد، وصلة...)
     .replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED\u0640]/g, '')
+    // توحيد أشكال الألف (أ، إ، آ، ٱ) → ا
     .replace(/[أإآٱ]/g, 'ا')
+    // توحيد الألف المقصورة → ي
     .replace(/ى/g, 'ي')
-    .replace(/ة/g, 'ه')
+    // توحيد الواو بهمزة → و
     .replace(/ؤ/g, 'و')
+    // توحيد الياء بهمزة → ي
     .replace(/ئ/g, 'ي')
+    // إزالة علامة الوقف
     .replace(/۩/g, '')
     .trim();
+  // ⚠️ لا نوحّد ة→ه عمدًا: "الرحمة" و"الرحمه" كلمتان مختلفتان
 };
 
+// ─── متغير لحفظ الفهرس في الذاكرة العشوائية عشان السرعة الصاروخية ───
+let globalSearchIndex = null;
+
+const loadSearchIndex = async () => {
+  if (globalSearchIndex) return globalSearchIndex; // لو متحمل قبل كده، هاته من الميموري
+
+  // 1. ندور عليه في الـ Local Storage
+  const cachedIndex = await localforage.getItem('quran_search_index');
+  if (cachedIndex) {
+    globalSearchIndex = cachedIndex;
+    return cachedIndex;
+  }
+
+  // 2. لو مش موجود خالص، نحمله مرة واحدة بس من السيرفر
+  try {
+    console.log('⏳ جاري تحميل فهرس البحث لأول مرة...');
+    const res = await fetch('/assets/quran_search_index.json');
+    const data = await res.json();
+    
+    // نحفظه عشان منكلمش السيرفر تاني أبداً
+    await localforage.setItem('quran_search_index', data);
+    globalSearchIndex = data;
+    return data;
+  } catch (err) {
+    console.error('❌ فشل تحميل فهرس البحث', err);
+    return null;
+  }
+};
+
+// ─── البحث في الفهرس (أوفلاين - صاروخ) ────────
 const searchInCachedPages = async (query) => {
-  const _cacheGet = window['cacheGet'];
-  if (!_cacheGet) return [];
+  const normalizedQuery = stripTashkeel(query);
+  if (!normalizedQuery) return [];
+
+  // جلب الفهرس
+  const index = await loadSearchIndex();
+  if (!index) return [];
 
   const results = [];
-  const q = stripTashkeel(query); // تجريد كلمة البحث من التشكيل
 
-  for (let page = 1; page <= 604; page++) {
-    const pageData = await _cacheGet(page);
-    if (!pageData || !pageData.ayahs) continue;
+  // الدوران داخل مصفوفة الفهرس في الميموري (بياخد 2 مللي ثانية بالظبط)
+  for (const ayah of index) {
+    const cleanText = stripTashkeel(ayah.t);
 
-    for (const ayah of pageData.ayahs) {
-      const text = ayah.text || ayah.ayahText || '';
-      const cleanText = stripTashkeel(text); // تجريد الآية المحفوظة لتطابق كلمة البحث
+    if (cleanText.includes(normalizedQuery)) {
+      results.push({
+        text: ayah.t,
+        surahNameAr: ayah.s,
+        surahNumber: ayah.sn,
+        ayahNumber: ayah.an,
+        page: ayah.p,
+      });
 
-      if (cleanText.includes(q)) {
-        results.push({
-          text, // نرجع النص الأصلي بالتشكيل عشان يظهر بشكل جميل
-          surahNameAr: ayah.surahNameAr || (ayah.surah?.name) || '',
-          surahNumber: ayah.surahNumber || ayah.surah?.number || 0,
-          ayahNumber:  ayah.numberInSurah || ayah.ayahNumber || 0,
-          page:        ayah.page || page,
-        });
-        if (results.length >= 30) return results; // زودناها لـ 30 عشان تدي نتائج كافية
-      }
+      // لو لقينا 30 نتيجة، نوقف بحث عشان الأداء
+      if (results.length >= 30) break;
     }
   }
+
+  // ترتيب النتائج عشان اللي بتبدأ بالكلمة تظهر الأول
+  results.sort((a, b) => {
+    const aIdx = stripTashkeel(a.text).indexOf(normalizedQuery);
+    const bIdx = stripTashkeel(b.text).indexOf(normalizedQuery);
+    if (aIdx !== bIdx) return aIdx - bIdx;
+    return (a.surahNumber - b.surahNumber) || (a.ayahNumber - b.ayahNumber);
+  });
+
   return results;
+};
+
+// ─── تلوين كلمة البحث في النص (يشتغل حتى مع وجود تشكيل) ────────────────────
+const highlightQuery = (originalText, query) => {
+  if (!query || !originalText) return originalText;
+
+  const normalizedQuery = stripTashkeel(query);
+  if (!normalizedQuery) return originalText;
+
+  // نبني خريطة: index في النص المطبّع (بدون تشكيل) → index في النص الأصلي
+  const cleanChars = [];  // الأحرف الحقيقية فقط بعد التطبيع
+  const indexMap   = [];  // indexMap[i] = موضع الحرف i في النص الأصلي
+
+  for (let j = 0; j < originalText.length; j++) {
+    const c = stripTashkeel(originalText[j]);
+    if (c.length > 0) {   // حرف حقيقي (مش تشكيل/حركة)
+      cleanChars.push(c);
+      indexMap.push(j);
+    }
+  }
+
+  const cleanText = cleanChars.join('');
+
+  // نجمع كل مواضع ظهور الـ query في النص المطبّع
+  const ranges = [];
+  let from = 0;
+  while (from <= cleanText.length - normalizedQuery.length) {
+    const idx = cleanText.indexOf(normalizedQuery, from);
+    if (idx === -1) break;
+
+    const origStart = indexMap[idx];
+    const lastClean = idx + normalizedQuery.length - 1;
+    // نهاية النطاق = بداية الحرف المطبّع التالي (يشمل أي تشكيل لاحق)
+    const origEnd = lastClean + 1 < indexMap.length
+      ? indexMap[lastClean + 1]
+      : originalText.length;
+
+    ranges.push({ start: origStart, end: origEnd });
+    from = idx + normalizedQuery.length;
+  }
+
+  if (ranges.length === 0) return originalText;
+
+  // نبني النص النهائي بإدخال mark tags
+  let result = '';
+  let cursor = 0;
+  for (const { start, end } of ranges) {
+    result += originalText.slice(cursor, start);
+    result += `<mark class="search-highlight">${originalText.slice(start, end)}</mark>`;
+    cursor = end;
+  }
+  result += originalText.slice(cursor);
+  return result;
 };
 
 const renderSearchResults = (ayahs, resultsContainer, searchInput) => {
   resultsContainer.innerHTML = '';
   if (ayahs.length === 0) {
-    resultsContainer.innerHTML = '<div class="list-group-item text-center text-muted">لا توجد نتائج</div>';
+    resultsContainer.innerHTML = '<div class="list-group-item text-center text-muted py-3"><i class="fas fa-search me-2"></i>لا توجد نتائج</div>';
     return;
   }
   
@@ -2440,19 +2599,31 @@ const renderSearchResults = (ayahs, resultsContainer, searchInput) => {
   
   ayahs.forEach(ayah => {
     const item        = document.createElement('a');
-    item.className    = 'list-group-item list-group-item-action';
+    item.className    = 'list-group-item list-group-item-action search-result-item';
     item.style.cursor = 'pointer';
     const realAyahNum = ayah.ayahNumber || ayah.numberInSurah;
 
-    // تلوين كلمة البحث باللون الأخضر (اختياري)
-    const highlightText = ayah.text.replace(new RegExp(query, 'gi'), match => `<span class="text-success fw-bold">${match}</span>`);
+    // تلوين ذكي يشتغل حتى لو البحث بدون تشكيل والنص بالتشكيل
+// 🌟 تنظيف النص وإضافة الكشيدة قبل التلوين
+    let cleanText = ayah.text || '';
+    cleanText = cleanText.replace(/\s+/g, ' ').trim();
+    if (typeof UTHMANI_FIXES !== 'undefined' && UTHMANI_FIXES) {
+      Object.entries(UTHMANI_FIXES).forEach(([wrong, correct]) => {
+        cleanText = cleanText.split(wrong).join(correct);
+      });
+    }
 
+    // تلوين ذكي للنص النظيف
+    const highlightedText = highlightQuery(cleanText, query);
     item.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center">
-        <span class="fw-bold text-success small">${ayah.surahNameAr} - آية ${realAyahNum}</span>
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <span class="fw-bold text-success small">
+          <i class="fas fa-book-open me-1" style="font-size:0.75em;"></i>
+          ${ayah.surahNameAr} - آية ${realAyahNum}
+        </span>
         <span class="badge bg-light text-dark border">ص ${ayah.page}</span>
       </div>
-      <p class="mb-0 mt-1 small text-muted text-end" style="font-family: 'Amiri'; font-size: 1.1em;">${highlightText}...</p>
+     <p class="mb-0 small text-end quran-result-text" style="font-family: 'KFGQPC', 'Amiri Quran', serif; font-size: 1.3em; line-height: 1.8;">${highlightedText}</p>
     `;
 
     item.addEventListener('click', (e) => {
@@ -2479,65 +2650,59 @@ export const initSearch = () => {
 
   let timeoutId;
 
-  searchInput.addEventListener('input', (e) => {
+  // ─── دالة البحث الأوفلاين الداخلية ─────────────────────────────────────────
+ const doOfflineSearch = async (query) => {
+    try {
+      const ayahs = await searchInCachedPages(query);
+
+      if (ayahs.length === 0) {
+        resultsContainer.innerHTML = '<div class="list-group-item text-center text-muted py-3"><i class="fas fa-search me-2"></i>لا توجد نتائج مطابقة</div>';
+      } else {
+        // لو لقى نتايج، هيبعتها للدالة اللي بتنظف النص وترسمه (اللي ظبطناها المرة اللي فاتت)
+        renderSearchResults(ayahs, resultsContainer, searchInput);
+      }
+    } catch (err) {
+      console.error('[SEARCH] خطأ في البحث المحلي:', err);
+      resultsContainer.innerHTML = '<div class="list-group-item text-danger text-center">حدث خطأ أثناء البحث</div>';
+    }
+  };
+
+ searchInput.addEventListener('input', (e) => {
     const query = e.target.value.trim();
-    if (query.length < 2) { resultsContainer.classList.add('d-none'); resultsContainer.innerHTML = ''; return; }
+
+    // مسح النتائج لو المستخدم مسح الكتابة
+    if (query.length < 2) {
+      resultsContainer.classList.add('d-none');
+      resultsContainer.innerHTML = '';
+      return;
+    }
 
     clearTimeout(timeoutId);
+    
+    // تقليل الـ debounce لـ 200ms عشان سرعة الاستجابة
     timeoutId = setTimeout(async () => {
-      resultsContainer.innerHTML = '<div class="list-group-item text-center">جاري البحث...</div>';
+      resultsContainer.innerHTML = '<div class="list-group-item text-center"><div class="spinner-border spinner-border-sm text-success me-2" role="status"></div>جاري البحث...</div>';
       resultsContainer.classList.remove('d-none');
 
-      const doOfflineSearch = async () => {
-        try {
-          resultsContainer.innerHTML = '<div class="list-group-item text-center text-muted small">🔌 وضع أوفلاين - البحث في المصحف المحفوظ...</div>';
-          const ayahs = await searchInCachedPages(query);
-
-          if (ayahs.length === 0) {
-            const lastSearch = await localforage.getItem('last_search_results');
-            if (lastSearch && lastSearch.query === query && lastSearch.ayahs?.length > 0) {
-              resultsContainer.innerHTML = '<div class="list-group-item text-center text-warning small">📦 نتائج محفوظة مسبقاً</div>';
-              renderSearchResults(lastSearch.ayahs, resultsContainer, searchInput);
-            } else {
-              resultsContainer.innerHTML = '<div class="list-group-item text-center text-muted">لا توجد نتائج في المصحف المحفوظ</div>';
-            }
-          } else {
-            renderSearchResults(ayahs, resultsContainer, searchInput);
-          }
-        } catch (err) {
-          console.error('[SEARCH OFFLINE] خطأ:', err);
-          resultsContainer.innerHTML = '<div class="list-group-item text-danger text-center">حدث خطأ في البحث المحلي</div>';
-        }
-      };
-
-    if (navigator.onLine) {
-        try {
-           const res = await axios.get(`/api/v1/quran/search?q=${encodeURIComponent(query)}`, { timeout: 5000 });
-          const ayahs = res.data.data.ayahs;
-          
-          if (!ayahs || ayahs.length === 0) {
-             console.log('لم يجد السيرفر نتائج، جاري التشغيل البحث المحلي الذكي...');
-             await doOfflineSearch();
-          } else {
-             await localforage.setItem('last_search_results', { query, ayahs, cachedAt: Date.now() });
-             renderSearchResults(ayahs, resultsContainer, searchInput);
-          }
-        } catch (err) {
-          // 2. لو السيرفر واقع أو فيه خطأ
-          console.warn('⚠️ فشل البحث أونلاين، جاري التحويل للبحث الأوفلاين...');
-          await doOfflineSearch();
-        }
-      } else {
-        // 3. لو الجهاز عارف إنه أوفلاين من البداية
-        resultsContainer.innerHTML = '<div class="list-group-item text-center text-muted small">🔌 وضع أوفلاين - البحث في المصحف المحفوظ...</div>';
-        await doOfflineSearch();
-      }
-    }, 500);
+      // 🌟 الاعتماد الكلي على البحث المحلي (أوفلاين) وتجاهل الـ API تماماً
+      await doOfflineSearch(query);
+      
+    }, 200);
   });
 
+  // إغلاق النتائج عند الضغط خارجها
   document.addEventListener('click', (e) => {
     if (!searchInput.contains(e.target) && !resultsContainer.contains(e.target)) {
       resultsContainer.classList.add('d-none');
+    }
+  });
+
+  // مسح البحث عند الضغط على Escape
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      searchInput.value = '';
+      resultsContainer.classList.add('d-none');
+      resultsContainer.innerHTML = '';
     }
   });
 };
@@ -3776,7 +3941,28 @@ const processOfflineQueue = async () => {
       } else if (action.type === 'DELETE_KHATMAH') {
         await axios.delete('/api/v1/khatmah');
         console.log('✅ [OFFLINE QUEUE] تم حذف الختمة من السيرفر');
-      }
+      }else if (action.type === 'ADD_BOOKMARK') {
+  await axios.post('/api/v1/bookmarks', {
+    surahNumber: action.payload.surahNumber,
+    ayahNumber:  action.payload.ayahNumber,
+    note:        action.payload.note || ''
+  });
+  const bookmarksRes = await axios.get('/api/v1/bookmarks');
+  const freshBookmarks = bookmarksRes.data.data.bookmarks;
+  await localforage.setItem('offline_bookmarks', freshBookmarks);
+  console.log('✅ [OFFLINE QUEUE] تم مزامنة العلامة المضافة');
+
+} else if (action.type === 'DELETE_BOOKMARK') {
+  const bookmarks = await localforage.getItem('offline_bookmarks') || [];
+  const target = bookmarks.find(
+    b => parseInt(b.surah) === parseInt(action.payload.surah) && 
+         parseInt(b.ayah)  === parseInt(action.payload.ayah)
+  );
+  if (target?._id) {
+    await axios.delete(`/api/v1/bookmarks/${target._id}`);
+    console.log('✅ [OFFLINE QUEUE] تم مزامنة حذف العلامة');
+  }
+}
 
     } catch (err) {
       if (err.response) {
@@ -3955,7 +4141,7 @@ window.loadMyRecitations = async function() {
                 <div class="text-center w-100 py-5">
                     <i class="fas fa-microphone-slash fa-3x text-muted mb-3 opacity-50"></i>
                     <p class="text-muted fw-bold">لا توجد تسجيلات بعد</p>
-                    <p class="text-muted small">سجّل تلاوتك من تاب "فحص جديد" وستحفظ هنا تلقائياً</p>
+                    <p class="text-muted small">سجّل تلاوتك من تاب "تسميع جديد" وستحفظ هنا تلقائياً</p>
                 </div>`;
             return;
         }
@@ -4032,31 +4218,27 @@ window.playRecitationAudio = function(id, url, btn) {
         return;
     }
 
-    // دالة داخلية لإيقاف وإخفاء أي مشغل صوت كان شغال قبل كده
     const stopExistingPlayer = () => {
         if (window.currentPlayingAudio) {
             window.currentPlayingAudio.pause();
             window.currentPlayingAudio = null;
         }
         if (window.currentPlayingContainer) {
-            window.currentPlayingContainer.remove(); // مسح المشغل من الشاشة
+            window.currentPlayingContainer.remove();
             window.currentPlayingContainer = null;
         }
         if (window.currentPlayingBtn) {
-            window.currentPlayingBtn.style.display = 'inline-block'; // إرجاع الزرار القديم
+            window.currentPlayingBtn.style.display = 'inline-block';
             window.currentPlayingBtn = null;
         }
-        // إيقاف العداد
         if (window.currentPlayingTimer) {
             clearInterval(window.currentPlayingTimer);
             window.currentPlayingTimer = null;
         }
     };
 
-    // تنفيذ الإيقاف لو فيه حاجة شغالة
     stopExistingPlayer();
 
-    // تنظيف الرابط وتحديده (Local ولا Live)
     let cleanUrl = url.replace(/^\/public\//, '/');
     if (!cleanUrl.startsWith('/')) cleanUrl = '/' + cleanUrl;
     
@@ -4065,7 +4247,6 @@ window.playRecitationAudio = function(id, url, btn) {
     const baseURL = isLocal ? 'http://127.0.0.1:3000' : 'https://aqraapp.com';
     const finalUrl = cleanUrl.startsWith('http') ? cleanUrl : baseURL + cleanUrl;
 
-    // 🌟 1. إنشاء الـ HTML بتاع مشغل الصوت الشيك والبسيط 🌟
     const playerContainer = document.createElement('div');
     playerContainer.className = 'aqra-player-container';
     
@@ -4073,14 +4254,12 @@ window.playRecitationAudio = function(id, url, btn) {
         <button class="aqra-player-btn" id="aqra-player-play-pause">
             <i class="fas fa-play"></i> </button>
         <input type="range" class="aqra-player-seekbar" id="aqra-player-seekbar" value="0" min="0" max="100">
-        <span class="aqra-player-timer" id="aqra-player-timer">0:00</span>
+        <span class="aqra-player-timer" id="aqra-player-timer">0:00 / 0:00</span>
     `;
 
-    // إخفاء زرار "تشغيل" المربع وإظهار المشغل مكانه
     btn.style.display = 'none';
     btn.parentNode.insertBefore(playerContainer, btn.nextSibling);
 
-    // 🌟 2. ربط الـ HTML بالصوت برمجياً (The Logic) 🌟
     const audio = new Audio(finalUrl);
     audio.crossOrigin = 'anonymous';
 
@@ -4088,65 +4267,58 @@ window.playRecitationAudio = function(id, url, btn) {
     const seekbar = playerContainer.querySelector('#aqra-player-seekbar');
     const timer = playerContainer.querySelector('#aqra-player-timer');
     
-    // حفظ المراجع العالمية عشان نقفلهم لو شغل آية تانية
     window.currentPlayingAudio = audio;
     window.currentPlayingContainer = playerContainer;
     window.currentPlayingBtn = btn;
 
-    // دالة مساعدة لتنسيق الوقت (الثواني -> دقايق:ثواني)
     const formatTime = (seconds) => {
-        if (isNaN(seconds)) return "0:00";
+        if (isNaN(seconds) || seconds === Infinity) return "0:00";
         const minutes = Math.floor(seconds / 60);
-        seconds = Math.floor(seconds % 60);
-        return minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+        const secs = Math.floor(seconds % 60);
+        return minutes + ":" + (secs < 10 ? "0" : "") + secs;
     };
 
-    // تشغيل الصوت لأول مرة
+    // 🌟 تحديث الوقت الكلي بمجرد تحميل بيانات الملف 🌟
+    audio.onloadedmetadata = () => {
+        timer.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
+    };
+
     audio.play().catch(e => {
-        // Fallback للمطورين (لو الملف مش ع اللوكال هاته من السيرفر المباشر)
         if (isLocal && !finalUrl.includes('aqraapp.com')) {
-            console.warn("ملف غير موجود محلياً، جاري جلبه من السيرفر المباشر...");
             audio.src = 'https://aqraapp.com' + cleanUrl;
             audio.play().catch(finalError => {
-                console.error("Audio Play Error:", finalError);
-                stopExistingPlayer(); // إخفاء المشغل وإرجاع الزرار في حالة الفشل النهائي
+                stopExistingPlayer();
             });
             return;
         }
-        console.error("Audio Play Error:", e);
         stopExistingPlayer(); 
     });
 
-    // 🌟 3. التعامل مع أحداث المشغل (Events) 🌟
-    
-    // عند التشغيل: تغيير الأيقونة وإظهار الوقت الإجمالي
     audio.onplay = () => {
-        playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>'; // زر الإيقاف المؤقت
+        playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
     };
 
-    // عند الإيقاف المؤقت: تغيير الأيقونة
     audio.onpause = () => {
-        playPauseBtn.innerHTML = '<i class="fas fa-play"></i>'; // زر التشغيل
+        playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
     };
 
-    // زر التشغيل والإيقاف المؤقت
     playPauseBtn.onclick = () => {
         if (audio.paused) audio.play();
         else audio.pause();
     };
 
-    // تحديث شريط التقديم وعداد الوقت أثناء العمل
     audio.ontimeupdate = () => {
-        // عداد الثواني الحالي
-        timer.textContent = formatTime(audio.currentTime);
-        // مؤشر شريط التقديم
+        // 🌟 التعديل هنا لعرض الوقت الحالي والوقت الكلي معاً 🌟
+        const current = formatTime(audio.currentTime);
+        const total = formatTime(audio.duration);
+        timer.textContent = `${current} / ${total}`;
+
         if (audio.duration) {
             const progress = (audio.currentTime / audio.duration) * 100;
             seekbar.value = progress;
         }
     };
 
-    // المستخدم بيقدم ويأخر من شريط التقديم
     seekbar.oninput = () => {
         if (audio.duration) {
             const seekTo = (seekbar.value / 100) * audio.duration;
@@ -4154,8 +4326,260 @@ window.playRecitationAudio = function(id, url, btn) {
         }
     };
 
-    // لما الصوت يخلص: تنظيف الشاشة وإرجاع الزرار
     audio.onended = () => {
         stopExistingPlayer();
     };
+};
+
+
+
+// ─── المسابقة اليومية ──────────────────────────────────────────────────────────
+export const loadDailyQuiz = async () => {
+  const container = document.getElementById('quiz-container');
+  if (!container) return;
+
+  // 🌟 التعديل هنا: جلب التاريخ بالتوقيت المحلي للمستخدم (عشان تتحدث 12 بليل بالظبط عنده)
+  const d = new Date();
+  const today = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+  // 1. التأكد من اكتمال المسابقة اليوم
+  const isCompleted = localStorage.getItem(`quiz_completed_${today}`);
+  const savedScore = localStorage.getItem(`quiz_score_${today}`);
+
+  if (isCompleted === 'true') {
+    container.innerHTML = `
+      <div class="text-center py-5 fade-in">
+        <div style="font-size:4.5rem; margin-bottom:15px; text-shadow: 0 4px 15px rgba(25,135,84,0.3);">🌟</div>
+        <h3 class="fw-bold text-success mb-3">لقد أتممت مسابقة اليوم!</h3>
+        <div class="d-inline-block bg-light rounded-pill px-4 py-2 border mb-3">
+            <span class="text-muted fs-6">نتيجتك كانت: </span>
+            <strong class="text-dark fs-5">${savedScore}</strong>
+        </div>
+        <div class="alert alert-success bg-success bg-opacity-10 border-0 rounded-4 mx-auto" style="max-width: 400px;">
+            <p class="small text-dark fw-bold mb-0"><i class="fas fa-clock me-2 text-success"></i>تتجدد الأسئلة يومياً في منتصف الليل، ننتظرك غداً!</p>
+        </div>
+        <button class="btn btn-success px-4 mt-3 rounded-pill shadow-sm" onclick="showSection('home')">
+            <i class="fas fa-home me-2"></i>العودة للرئيسية
+        </button>
+      </div>`;
+    return; 
+  }
+
+  // 2. جلب الأسئلة
+  const cached = await localforage.getItem(`daily_quiz_${today}`);
+  if (cached) return renderQuiz(cached, container, today);
+
+  if (navigator.onLine) {
+    try {
+      const res = await axios.get('/api/v1/quiz/today');
+      const quiz = res.data.data.quiz;
+      await localforage.setItem(`daily_quiz_${today}`, quiz);
+      renderQuiz(quiz, container, today);
+    } catch (err) {
+      if (!cached) container.innerHTML = `
+        <div class="text-center py-5 text-muted">
+          <i class="fas fa-question-circle fa-4x mb-3 text-success opacity-50"></i>
+          <h5 class="fw-bold">لا تتوفر أسئلة اليوم</h5>
+          <p class="small">الرجاء التأكد من اتصالك بالإنترنت للمزامنة.</p>
+        </div>`;
+    }
+  } else if (!cached) {
+      container.innerHTML = `
+        <div class="text-center py-5 text-muted">
+          <i class="fas fa-wifi-slash fa-4x mb-3 text-secondary opacity-50"></i>
+          <h5 class="fw-bold">أنت في وضع عدم الاتصال</h5>
+          <p class="small">يجب الاتصال بالإنترنت لتحميل مسابقة اليوم لأول مرة.</p>
+        </div>`;
+  }
+};
+
+const renderQuiz = (quiz, container, todayStr) => {
+  let score = 0;
+  let answered = 0;
+
+  // 🌟 استرجاع الإجابات المحفوظة جزئياً
+  let savedAnswers = {};
+  try {
+      savedAnswers = JSON.parse(localStorage.getItem(`quiz_answers_${todayStr}`)) || {};
+  } catch(e) {}
+
+  const html = `
+    <div class="quiz-header text-center mb-4">
+      <div class="d-inline-flex align-items-center justify-content-center p-3 rounded-circle bg-success bg-opacity-10 mb-2">
+        <i class="fas fa-star text-warning fa-2x"></i>
+      </div>
+      <h4 class="fw-bold text-success mb-1">المسابقة الدينية</h4>
+      <p class="text-muted small mb-2">${new Date().toLocaleDateString('ar-EG', { weekday:'long', day:'numeric', month:'long' })}</p>
+      <span class="badge bg-light text-success border rounded-pill px-3 py-2 shadow-sm"><i class="fas fa-sync-alt me-1"></i> تتجدد الأسئلة يومياً منتصف الليل</span>
+    </div>
+    
+    <div id="quiz-questions">
+      ${quiz.questions.map((q, qi) => `
+        <div class="card mb-4 border-0 shadow-sm rounded-4 overflow-hidden" id="q-card-${qi}">
+          <div class="card-body p-4">
+            <h5 class="fw-bold mb-4 text-dark" style="font-family:'Amiri', serif; line-height: 1.6;">
+              <span class="text-success me-1">${qi + 1}.</span> ${q.question}
+            </h5>
+            <div class="d-grid gap-3">
+              ${q.options.map((opt, oi) => `
+                <button class="btn btn-light text-end rounded-3 quiz-option border p-3 fw-semibold"
+                  data-q="${qi}" data-o="${oi}" data-correct="${q.correctAnswer}"
+                  data-explanation="${q.explanation || ''}" id="btn-opt-${qi}-${oi}">
+                  ${opt}
+                </button>
+              `).join('')}
+            </div>
+            <div id="explanation-${qi}" class="mt-3 d-none"></div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    
+    <div id="quiz-result" class="d-none text-center py-4 mb-4"></div>`;
+
+  container.innerHTML = html;
+
+  const handleAnswer = (btn, isRestoring = false) => {
+      const qi = parseInt(btn.dataset.q);
+      const oi = parseInt(btn.dataset.o);
+      const correct = parseInt(btn.dataset.correct);
+      const card = document.getElementById(`q-card-${qi}`);
+
+      if (card.getAttribute('data-answered') === 'true') return;
+
+      card.setAttribute('data-answered', 'true');
+      card.querySelectorAll('.quiz-option').forEach(b => {
+          b.disabled = true;
+          b.classList.remove('btn-light', 'border'); 
+      });
+
+      if (oi === correct) {
+        btn.classList.add('btn-success', 'text-white');
+        score++;
+      } else {
+        btn.classList.add('btn-danger', 'text-white');
+        card.querySelectorAll('.quiz-option')[correct].classList.add('btn-success', 'text-white');
+      }
+
+      const expDiv = document.getElementById(`explanation-${qi}`);
+      if (btn.dataset.explanation) {
+        expDiv.innerHTML = `
+          <div class="alert alert-success border-0 bg-success bg-opacity-10 small text-end rounded-3 mb-0">
+            <i class="fas fa-lightbulb text-warning me-2"></i><strong>توضيح: </strong>${btn.dataset.explanation}
+          </div>`;
+        expDiv.classList.remove('d-none');
+      }
+
+      answered++;
+
+      if (!isRestoring) {
+          savedAnswers[qi] = oi;
+          localStorage.setItem(`quiz_answers_${todayStr}`, JSON.stringify(savedAnswers));
+      }
+
+      if (answered === quiz.questions.length) {
+        const result = document.getElementById('quiz-result');
+        const pct = Math.round((score / quiz.questions.length) * 100);
+        let icon, msg, bgClass;
+        
+        if (pct >= 80) { icon = '🏆'; msg = 'ممتاز! معلوماتك الدينية رائعة'; bgClass = 'bg-success text-white'; }
+        else if (pct >= 50) { icon = '👍'; msg = 'جيد! واصل التعلم'; bgClass = 'bg-info text-white'; }
+        else { icon = '📚'; msg = 'لا بأس، راجع وحاول مجدداً غداً'; bgClass = 'bg-light text-dark'; }
+
+        localStorage.setItem(`quiz_completed_${todayStr}`, 'true');
+        localStorage.setItem(`quiz_score_${todayStr}`, `${score} / ${quiz.questions.length}`);
+        
+        localStorage.removeItem(`quiz_answers_${todayStr}`);
+
+        result.innerHTML = `
+          <div class="card border-0 shadow rounded-4 ${bgClass}">
+            <div class="card-body p-4">
+              <div style="font-size:3.5rem" class="mb-2">${icon}</div>
+              <h2 class="fw-bold mb-1">${score} / ${quiz.questions.length}</h2>
+              <p class="mb-3 fs-5">${msg}</p>
+              <div class="p-2 rounded bg-white bg-opacity-25 d-inline-block">
+                 <small><i class="fas fa-clock me-1"></i> تتجدد الأسئلة منتصف الليل، نراك غداً!</small>
+              </div>
+            </div>
+          </div>`;
+        
+        result.classList.remove('d-none');
+        if (!isRestoring) {
+           setTimeout(() => result.scrollIntoView({ behavior: 'smooth', block: 'end' }), 300);
+        }
+      }
+  };
+
+  container.querySelectorAll('.quiz-option').forEach(btn => {
+    btn.addEventListener('click', () => handleAnswer(btn, false));
+  });
+
+  Object.keys(savedAnswers).forEach(qi => {
+      const oi = savedAnswers[qi];
+      const targetBtn = document.getElementById(`btn-opt-${qi}-${oi}`);
+      if (targetBtn) {
+          handleAnswer(targetBtn, true);
+      }
+  });
+};
+
+
+// ─── 🌟 إشعار المسابقة الدينية اليومية - Daily Quiz Notification ───
+export const scheduleDailyQuizNotification = async () => {
+  try {
+    if (!Capacitor.isNativePlatform()) return;
+
+    const pending = await LocalNotifications.getPending();
+    const quizNotifs = pending.notifications.filter(n => n.id >= 10000 && n.id <= 10030);
+
+    // التحقق من الرصيد المتبقي
+    if (quizNotifs.length > 10) {
+        console.log(`⏳ [QUIZ NOTIF] متبقي ${quizNotifs.length} إشعار للمسابقة، لا حاجة لإعادة الجدولة الآن.`);
+        return; 
+    }
+
+    if (quizNotifs.length > 0) {
+        await LocalNotifications.cancel({ notifications: quizNotifs.map(n => ({ id: n.id })) });
+    }
+
+    const messages = [
+      { title: '🕌 مسابقة اليوم الدينية جاهزة!', body: 'اختبر معلوماتك الإسلامية وسجّل أعلى نتيجة.. هل أنت مستعد؟' },
+      { title: '📖 سؤال ديني ينتظرك!', body: 'أسئلة جديدة في المسابقة الدينية.. شارك واحرص على ثوابك 🌙' },
+      { title: '🌟 حان وقت المسابقة الدينية!', body: 'أسئلة جديدة تُجدَّد كل يوم.. ادخل وجاوب الآن!' },
+      { title: '✨ مسابقتك اليومية بدأت!', body: 'عُدّلت الأسئلة الدينية للجديدة.. جرّب حظك واربح أجراً 🤲' },
+    ];
+
+    const notifications = [];
+    const now = new Date();
+
+    // الجدولة لـ 30 يوم
+    for (let i = 0; i <= 30; i++) {
+      // 🌟 التعديل هنا: 20 تعني 8:00 مساءً (نظام 24 ساعة) بالتوقيت المحلي لبلد المستخدم 🌟
+      const notifTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 20, 0, 0, 0);
+      notifTime.setDate(notifTime.getDate() + i);
+
+      // لو الوقت ده فات النهاردة (مثلاً المستخدم فتح التطبيق الساعة 9 بالليل)، هنتجاهله ونكمل بتاع بكرة
+      if (notifTime.getTime() <= now.getTime()) continue;
+
+      const msg = messages[i % messages.length];
+
+      notifications.push({
+        id: 10000 + i, 
+        title: msg.title,
+        body: msg.body,
+        schedule: { at: notifTime, allowWhileIdle: true },
+        channelId: 'azan-channel',
+        smallIcon: 'ic_notification',
+        extra: { target: 'quiz' }
+      });
+    }
+
+    if (notifications.length > 0) {
+        await LocalNotifications.schedule({ notifications });
+        console.log(`✅ [QUIZ NOTIF] تم تجديد رصيد إشعارات المسابقة لـ ${notifications.length} يوم (الساعة 8:00 مساءً)`);
+    }
+
+  } catch (err) {
+    console.error('❌ [QUIZ NOTIF] خطأ في جدولة إشعار المسابقة:', err);
+  }
 };

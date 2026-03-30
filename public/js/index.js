@@ -16,7 +16,7 @@ import {
   loadSurahs, startSurahReading, manageKhatmah, createKhatmah, updateKhatmahProgress,
   checkRecitation, loadReciters, loadPrayers, loadBookmarks, loadQuranPage,
   toggleBookmark, deleteBookmark, deleteKhatmah, initSearch, initBookmarksSearch,scheduleFridayKahfNotification,scheduleDuhaNotification,scheduleAllPrayers,checkAndPromptNotifications,
-  shareAyah, scheduleIslamicEvents
+  shareAyah, scheduleIslamicEvents,loadDailyQuiz,scheduleDailyQuizNotification
 } from './features';
 import './insights';
 
@@ -46,7 +46,8 @@ const OFFLINE_HANDLED_URLS = [
   '/api/v1/quran',
   '/api/v1/prayers',
   '/api/v1/users/me',
-  '/api/v1/prayers/get-location'
+  '/api/v1/prayers/get-location',
+  '/api/v1/quiz/today'
 ];
 axios.interceptors.response.use(
   (response) => response,
@@ -155,17 +156,34 @@ const processOfflineQueue = async () => {
     console.error('❌ [OFFLINE QUEUE] خطأ في المعالجة:', e);
   }
 };
+ const clearExpiredNotifications = async () => {
+    if (!Capacitor.isNativePlatform()) return;
+    try {
+      const { LocalNotifications } = await import('@capacitor/local-notifications');
+      const pending = await LocalNotifications.getPending();
+      const now = Date.now();
+      
+      // العثور على الإشعارات المجدولة التي مر وقتها بالفعل
+      const expired = pending.notifications
+        .filter(n => n.schedule && n.schedule.at && new Date(n.schedule.at).getTime() <= now)
+        .map(n => ({ id: n.id }));
+        
+      if (expired.length > 0) {
+        await LocalNotifications.cancel({ notifications: expired });
+        console.log(`🧹 [NOTIFICATIONS] تم مسح ${expired.length} إشعار قديم فات وقته لمنع الإزعاج.`);
+      }
+    } catch (e) {
+      console.warn('Error clearing expired notifications:', e);
+    }
+  };
 
-window.addEventListener('online', () => {
+window.addEventListener('online', async () => {
   Swal.fire({
-    toast: true,
-    position: 'top',
-    icon: 'success',
+    toast: true, position: 'top', icon: 'success',
     title: '✅ عاد الاتصال بالإنترنت',
-    showConfirmButton: false,
-    timer: 3000,
-    timerProgressBar: true
+    showConfirmButton: false, timer: 3000, timerProgressBar: true
   });
+  await clearExpiredNotifications();
   setTimeout(() => processOfflineQueue(), 2000);
 });
 
@@ -454,9 +472,36 @@ window.downloadEntireTafseerOffline = async () => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+  window.loadDailyQuiz = loadDailyQuiz;
     // setTimeout(() => { downloadEntireQuranOffline(); }, 3000);
     setTimeout(() => { window.downloadEntireTafseerOffline(); }, 10000);
     setTimeout(() => { checkAndPromptNotifications(); }, 2000);
+    // ─── تنظيف الإشعارات القديمة لمنع ظاهرة (انفجار الإشعارات) ─────────────────
+ 
+
+  // // تنفيذ التنظيف عند الاتصال بالإنترنت
+  // window.addEventListener('online', async () => {
+  //   console.log('🌐 [NETWORK] Online again, clearing old notifications...');
+  //   await clearExpiredNotifications();
+  //   setTimeout(() => {
+  //       if (typeof processOfflineQueue === 'function') processOfflineQueue();
+  //   }, 2000);
+  // });
+
+ // تنفيذ التنظيف عندما يعود التطبيق للواجهة (App Resume)
+  if (Capacitor.isNativePlatform()) {
+    App.addListener('appStateChange', async ({ isActive }) => {
+      if (isActive) {
+        console.log('📱 [APP] Resumed, clearing old notifications...');
+        await clearExpiredNotifications();
+        
+        // 🌟 الإضافة هنا: تشييك سريع على رصيد إشعارات المسابقة وتجديدها لو لزم الأمر
+        if (typeof scheduleDailyQuizNotification === 'function') {
+            await scheduleDailyQuizNotification();
+        }
+      }
+    });
+  }
 
     // التأكد إننا على تطبيق موبايل عشان الإشعارات متعملش إيرور على الويب
     if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
@@ -466,9 +511,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const notification = action.notification;
             const extraData = notification.extra || {}; // جلب البيانات الإضافية إن وجدت
 
-            // ==========================================
+            
             // 1. حالة الضغط على إشعار "الورد اليومي للختمة"
-            // ==========================================
+            
             if (notification.id === 999 || notification.actionTypeId === 'OPEN_KHATMAH') {
                 const khatmahNavBtn = document.getElementById('bnav-khatmah'); // تأكد من الـ ID
                 if (khatmahNavBtn) {
@@ -479,9 +524,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // ==========================================
+            
             // 2. حالة الضغط على إشعار "سورة الكهف يوم الجمعة"
-            // ==========================================
+            
             else if (extraData.target === 'kahf') {
                 // توجيه المستخدم لقسم المصحف
                 if (typeof window.showSection === 'function') {
@@ -503,9 +548,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, 1000);
             }
             
-            // ==========================================
-            // 3. يمكن إضافة حالات أخرى هنا مستقبلاً (مثل الأذكار)
-            // ==========================================
+            
+            // 🌟 3. الحالة الجديدة: الضغط على إشعار التحديث الجديد 🌟
+            
+            else if (extraData.type === 'update' && extraData.url) {
+                try {
+                    // فتح رابط التحديث (جوجل بلاي) مباشرة
+                    if (typeof Browser !== 'undefined') {
+                        await Browser.open({ url: extraData.url });
+                    } else {
+                        window.open(extraData.url, '_system');
+                    }
+                } catch (e) {
+                    console.error("فشل فتح رابط التحديث:", e);
+                }
+              }else if (extraData && extraData.target === 'quiz') {
+        if (typeof window.showSection === 'function') {
+            window.showSection('quiz'); // تأكد إن الـ ID في الـ HTML هو quiz-section
+        }
+        // تأخير بسيط للتأكد من تحميل الشاشة
+        setTimeout(() => {
+            if (typeof loadDailyQuiz === 'function') {
+                loadDailyQuiz();
+            }
+        }, 300);
+    }
             
         });
     }
@@ -1222,6 +1289,39 @@ function startChunkLoop() {
     }, 4000); 
 }
 
+window.stopLiveTracking = function() {
+    console.log("🛑 جاري إيقاف التتبع وإغلاق الميكروفون...");
+    
+    // 1. إيقاف حالة التتبع
+    if (typeof isLiveTracking !== 'undefined') {
+        isLiveTracking = false;
+    }
+    
+    // 2. إيقاف مسجل الـ Chunks
+    if (typeof chunkRecorder !== 'undefined' && chunkRecorder && chunkRecorder.state !== 'inactive') {
+        chunkRecorder.stop();
+    }
+    if (typeof chunkTimeout !== 'undefined') {
+        clearTimeout(chunkTimeout);
+    }
+
+    // 🌟 3. السحر هنا: إغلاق الميكروفون تماماً 🌟
+    if (typeof liveStream !== 'undefined' && liveStream) {
+        liveStream.getTracks().forEach(track => {
+            track.stop(); // إيقاف إجباري لكل قناة صوتية (يغلق اللمبة الحمراء)
+        });
+        liveStream = null; // تفريغ المتغير
+    }
+
+    // 4. إعادة تعيين الواجهة (UI)
+    if (typeof resetUIButtons === 'function') {
+        resetUIButtons(); 
+    }
+    
+    // إخفاء مؤشر التحميل/التسجيل إن وجد
+    const statusEl = document.getElementById('live-status-indicator');
+    if (statusEl) statusEl.textContent = '';
+};
 // ─── دالة التظليل والاستئناف كلمة بكلمة ──────────────────────
 function highlightWordByWord(aiFeedback) {
     const { lastCorrectWordIndex, hasMistake } = aiFeedback;
@@ -1374,18 +1474,14 @@ window.loadLiveAyahs = async () => {
 
       container.insertAdjacentHTML('beforeend', `
         <div class="live-ayah-item" data-clean="${cleanText}" data-ayah-id="${s}${a}">
-          <button id="${btnId}" class="btn live-play-btn btn-outline-success rounded-circle ms-3"
-            style="width:45px;height:45px;padding:0;flex-shrink:0"
+          <button id="${btnId}" class="btn live-play-btn"
             onclick="playLiveAudio('${audioUrl}','${btnId}')">
             <i class="fas fa-play"></i>
           </button>
           
-          <div class="live-ayah-text" id="text-${btnId}"
-            style="flex-grow:1; text-align:right; margin-left:15px;
-                  font-family:'Amiri Quran', 'Amiri', serif; font-size:28px;
-                   line-height:2.4; transition:all 0.3s ease; direction: rtl;">
+          <div class="live-ayah-text" id="text-${btnId}">
             ${wordSpansHTML}
-            <span class="badge bg-light text-dark ms-2 rounded-circle border" style="font-family: sans-serif; font-size: 0.9rem; vertical-align: middle;">
+            <span class="badge ms-1">
               ${ayah.numberInSurah}
             </span>
           </div>
@@ -1482,8 +1578,14 @@ window.stopSheikhFollowAlong = function() {
     el.classList.remove('ayah-active');
     const td = el.querySelector('.live-ayah-text');
     if (td) { td.style.backgroundColor = ''; td.style.color = ''; td.style.padding = ''; }
+    
     const isBlur = document.getElementById('memorize-mode')?.checked;
     el.querySelectorAll('.live-word').forEach(span => {
+        // 🌟 تصفير كل تأثيرات التتبع 🌟
+        span.style.color = '';
+        span.style.fontWeight = 'normal';
+        span.style.borderBottom = '';
+        
         if (isBlur) span.classList.add('blurred-text');
         else span.classList.remove('blurred-text');
     });
@@ -1504,6 +1606,68 @@ window.stopSheikhFollowAlong = function() {
   if (statusEl) statusEl.textContent = '';
 };
 
+// ─── مساعد: تتبع الكلمات أثناء تشغيل الصوت ───────────────────────────────────
+function _attachWordTracking(audioEl, ayahIndex, skipBasmala) {
+  // skipBasmala = true لما الآية الأولى في سورة غير الفاتحة
+  // عشان كلمات البسملة (W0-W3) موجودة في الـ HTML بس الشيخ مش بيقولها في الـ MP3
+  const BASMALA_WORD_COUNT = 4; // بسم + الله + الرحمن + الرحيم
+
+  const handler = () => {
+    if (!audioEl || audioEl !== _sheikCurrentAudio) return;
+    if (!audioEl.duration || isNaN(audioEl.duration)) return;
+
+    const progress = audioEl.currentTime / audioEl.duration;
+    const currentAyahEl = document.querySelectorAll('.live-ayah-item')[ayahIndex];
+    if (!currentAyahEl) return;
+
+    const wordSpans = currentAyahEl.querySelectorAll('.live-word');
+    const totalWords = wordSpans.length;
+
+    // لو فيه بسملة نتخطاها: نحسب الـ progress على الكلمات الحقيقية بس
+    const startWord = skipBasmala ? BASMALA_WORD_COUNT : 0;
+    const realWords = totalWords - startWord;
+    if (realWords <= 0) return;
+
+    let activeRealIndex = Math.floor(progress * realWords);
+    if (activeRealIndex >= realWords) activeRealIndex = realWords - 1;
+
+    const activeWordIndex = startWord + activeRealIndex;
+
+    wordSpans.forEach((span, i) => {
+      if (i < startWord) {
+        // كلمات البسملة: خليها بلونها العادي ومتلمعش
+        span.style.color = '';
+        span.style.fontWeight = 'normal';
+        span.style.borderBottom = '';
+      } else if (i === activeWordIndex) {
+        span.style.color = '#198754';
+        span.style.fontWeight = 'bold';
+        span.style.borderBottom = '3px solid #198754';
+      } else if (i < activeWordIndex) {
+        span.style.color = '#4a5568';
+        span.style.fontWeight = 'normal';
+        span.style.borderBottom = '';
+      } else {
+        span.style.color = '';
+        span.style.fontWeight = 'normal';
+        span.style.borderBottom = '';
+      }
+    });
+  };
+  audioEl.addEventListener('timeupdate', handler);
+}
+
+// ─── مساعد: تصفير ألوان كلمات آية معينة ─────────────────────────────────────
+function _resetAyahWordStyles(ayahIndex) {
+  const el = document.querySelectorAll('.live-ayah-item')[ayahIndex];
+  if (!el) return;
+  el.querySelectorAll('.live-word').forEach(span => {
+    span.style.color = '';
+    span.style.fontWeight = 'normal';
+    span.style.borderBottom = '';
+  });
+}
+
 function _playSheikhAyah(index) {
   if (!_sheikPlaybackActive || _sheikIsPaused) return;
 
@@ -1516,53 +1680,79 @@ function _playSheikhAyah(index) {
   }
 
   const ayah = ayahs[index];
-  const audioUrl = `https://everyayah.com/data/Husary_128kbps/${ayah.surah}${ayah.ayah}.mp3`;
   const isBlur = document.getElementById('memorize-mode')?.checked;
 
+  // ─── تمييز الآية النشطة في الواجهة ──────────────────────────────────────────
   document.querySelectorAll('.live-ayah-item').forEach((el, i) => {
     const textContainer = el.querySelector('.live-ayah-text');
     const wordSpans = el.querySelectorAll('.live-word');
-    
+
     if (i === index) {
       el.classList.add('ayah-active');
       if (textContainer) {
-          textContainer.style.backgroundColor = '#f8fdfa';
-          textContainer.style.borderRadius = '12px';
-          textContainer.style.padding = '10px';
+        textContainer.style.backgroundColor = '#f8fdfa';
+        textContainer.style.borderRadius = '12px';
+        textContainer.style.padding = '10px';
       }
-      wordSpans.forEach(span => span.classList.remove('blurred-text'));
+      wordSpans.forEach(span => {
+        span.classList.remove('blurred-text');
+        span.style.color = '';
+        span.style.fontWeight = 'normal';
+        span.style.borderBottom = '';
+      });
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } else {
       el.classList.remove('ayah-active');
       if (textContainer) {
-          textContainer.style.backgroundColor = '';
-          textContainer.style.padding = '';
+        textContainer.style.backgroundColor = '';
+        textContainer.style.padding = '';
       }
-      if (isBlur && i > index) {
-        wordSpans.forEach(span => span.classList.add('blurred-text'));
-      }
+      wordSpans.forEach(span => {
+        span.style.color = '';
+        span.style.fontWeight = 'normal';
+        span.style.borderBottom = '';
+        if (isBlur && i > index) span.classList.add('blurred-text');
+      });
     }
   });
 
   const statusEl = document.getElementById('sheikh-status');
-  if (statusEl) statusEl.innerHTML = `<span class="text-success small"><i class="fas fa-volume-up fa-pulse me-1"></i> الآية ${ayah.num} من ${ayahs.length}</span>`;
 
-  _sheikCurrentAudio = new Audio(audioUrl);
-  _sheikCurrentAudio.play().catch(() => {});
+  // ─── منطق البسملة ────────────────────────────────────────────────────────────
+  const surahNum = parseInt(ayah.surah);
+  // البسملة في الـ HTML موجودة كـ W0-W3 فقط في الآية رقم 1 من السورة
+  // الشيخ في الـ MP3 مش بيقولها -> نخبر الـ tracking يتخطاها
+  // الشرط: رقم الآية الفعلي = 1، والسورة مش الفاتحة (1) ولا التوبة (9)
+  const isActualFirstAyah = parseInt(ayah.ayah) === 1;
+  const skipBasmala = isActualFirstAyah && surahNum !== 1 && surahNum !== 9;
 
-  _sheikCurrentAudio.onended = () => {
+  const playMainAyah = () => {
     if (!_sheikPlaybackActive) return;
-    _sheikCurrentIndex = index + 1;
-    const pauseSlider = document.getElementById('sheikh-pause-slider');
-    const pauseMs = pauseSlider ? parseFloat(pauseSlider.value) * 1000 : 2000;
-    setTimeout(() => { if (_sheikPlaybackActive && !_sheikIsPaused) _playSheikhAyah(_sheikCurrentIndex); }, pauseMs);
+
+    const audioUrl = `https://everyayah.com/data/Husary_128kbps/${ayah.surah}${ayah.ayah}.mp3`;
+    if (statusEl) statusEl.innerHTML = `<span class="text-success small"><i class="fas fa-volume-up fa-pulse me-1"></i> الآية ${ayah.num} من ${ayahs.length}</span>`;
+
+    _sheikCurrentAudio = new Audio(audioUrl);
+    _attachWordTracking(_sheikCurrentAudio, index, skipBasmala);
+    _sheikCurrentAudio.play().catch(() => {});
+
+    _sheikCurrentAudio.onended = () => {
+      _resetAyahWordStyles(index);
+      if (!_sheikPlaybackActive) return;
+      _sheikCurrentIndex = index + 1;
+      const pauseSlider = document.getElementById('sheikh-pause-slider');
+      const pauseMs = pauseSlider ? parseFloat(pauseSlider.value) * 1000 : 2000;
+      setTimeout(() => { if (_sheikPlaybackActive && !_sheikIsPaused) _playSheikhAyah(_sheikCurrentIndex); }, pauseMs);
+    };
+
+    _sheikCurrentAudio.onerror = () => {
+      if (!_sheikPlaybackActive) return;
+      _sheikCurrentIndex = index + 1;
+      setTimeout(() => { if (_sheikPlaybackActive && !_sheikIsPaused) _playSheikhAyah(_sheikCurrentIndex); }, 300);
+    };
   };
 
-  _sheikCurrentAudio.onerror = () => {
-    if (!_sheikPlaybackActive) return;
-    _sheikCurrentIndex = index + 1;
-    setTimeout(() => { if (_sheikPlaybackActive && !_sheikIsPaused) _playSheikhAyah(_sheikCurrentIndex); }, 300);
-  };
+  playMainAyah();
 }
 
 // ─── 13. التبديل لوضع الحفظ (Memorize Mode) ──────────────────────────────────
@@ -2558,9 +2748,11 @@ const initNativeFeatures = async () => {
       await scheduleFridayKahfNotification();
       await scheduleDuhaNotification();
       await scheduleIslamicEvents();
+      await scheduleDailyQuizNotification();
       const savedPrayers = await localforage.getItem('offline_prayers');
       if (savedPrayers && savedPrayers.timings) {
-          await scheduleAllPrayers(savedPrayers.timings);
+         await scheduleAllPrayers({ timings: savedPrayers.timings, rawTimestamps: savedPrayers.rawTimestamps });
+
       } else {
           console.log('⚠️ [PRAYERS] لا توجد مواقيت محفوظة، سيتم الجدولة عند فتح صفحة الصلاة');
       }
@@ -2585,6 +2777,21 @@ const checkForUpdates = async () => {
 
     if (serverBuild <= currentBuild) return; // التطبيق محدث بالفعل
 
+    // 🌟 إضافة: إرسال إشعار للنظام (مرة واحدة فقط لهذا الإصدار)
+    const lastNotifiedVersion = localStorage.getItem('last_notified_update');
+    if (lastNotifiedVersion !== String(serverBuild)) {
+      await LocalNotifications.schedule({
+        notifications: [{
+          title: "تحديث جديد متاح! 🎉",
+          body: `إصدار ${data.version} متوفر الآن بمميزات جديدة. اضغط للتحميل.`,
+          id: 102, // معرف فريد لإشعارات التحديث
+          extra: { type: 'update',url: data.downloadUrl }
+        }]
+      });
+      localStorage.setItem('last_notified_update', String(serverBuild));
+    }
+
+    // إظهار الرسالة (Modal) داخل التطبيق كما هي
     const isForce = data.forceUpdate;
     const modalHtml = `
       <div class="modal fade" id="modal-update" tabindex="-1" data-bs-backdrop="${isForce ? 'static' : 'true'}" dir="rtl">
@@ -4106,15 +4313,34 @@ liveStream = await navigator.mediaDevices.getUserMedia({
     });
 
     btnStopLive.addEventListener('click', () => {
-      // إيقاف المايك والصوتيات
+      // 1. إيقاف المايك والصوتيات (هذا هو السحر) 🌟
       if (typeof stopAllMedia === 'function') stopAllMedia();
       
-      // تبديل الأزرار
+      // إيقاف الـ Recorder والـ Timer
+      if (typeof chunkRecorder !== 'undefined' && chunkRecorder && chunkRecorder.state !== 'inactive') {
+          chunkRecorder.stop();
+      }
+      if (typeof chunkTimeout !== 'undefined') {
+          clearTimeout(chunkTimeout);
+      }
+
+      // إغلاق سلك الميكروفون تماماً (لإخفاء اللمبة)
+      if (typeof liveStream !== 'undefined' && liveStream) {
+          liveStream.getTracks().forEach(track => track.stop());
+          liveStream = null;
+      }
+      
+      isLiveTracking = false; // تصفير المتغير
+
+      // 2. تبديل الأزرار
       btnStartLive.classList.remove('d-none');
       btnStopLive.classList.add('d-none');
-      if (liveStatus) { liveStatus.innerText = 'تم التوقف.'; liveStatus.className = 'text-muted small mt-1'; }
+      if (liveStatus) { 
+          liveStatus.innerText = 'تم التوقف.'; 
+          liveStatus.className = 'text-muted small mt-1'; 
+      }
       
-      // 👇 🌟 التعديل السحري لتنظيف الشاشة وتصفير العدادات بدلاً من الكود القديم 🌟 👇
+      // 3. تنظيف الشاشة وتصفير العدادات
       if (typeof resetAyahsUI === 'function') resetAyahsUI();
       searchStartIndex = 0; 
       currentWordIndex = 0; 

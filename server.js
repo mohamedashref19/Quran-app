@@ -4,7 +4,7 @@ const monitorMemory = require('./utils/memoryMonitor');
 // dotenv.config({ path: "./config.env" });
 dotenv.config({ path: "./.env" });
 
-const app = require("./index");
+const app = require("./app");
 
 const DB = process.env.DATABASE.replace(
   "<db_password>",

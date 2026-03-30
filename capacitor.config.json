@@ -1,10 +1,10 @@
 {
-    "appId": "com.aqra.app",
+    "appId": "com.mohamedashraf.aqra",
     "appName": "Aqra",
     "webDir": "public",
     "bundledWebRuntime": false,
     "server": {
-        "androidScheme": "http", 
+        "androidScheme": "https", 
         "cleartext": true,
         "allowNavigation": [
             "aqraapp.com",

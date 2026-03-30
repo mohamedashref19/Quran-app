@@ -17,6 +17,7 @@ const audioRoutes = require("./routes/audioRoutes")
 const khatmahRoutes = require("./routes/khatmahRoutes")
 const prayerRoutes = require("./routes/prayerRoutes")
 const viewRoutes = require("./routes/viewRoutes")
+const quizRoutes = require('./routes/quizRoutes');
 const AppError = require("./utils/appError");
 const globalErrorHandler = require("./controllers/errorControllers");
 
@@ -234,6 +235,7 @@ app.use("/api/v1/bookmarks", bookmarkRoutes);
 app.use("/api/v1/audio", audioRoutes); 
 app.use("/api/v1/khatmah", khatmahRoutes); 
 app.use("/api/v1/prayers", prayerRoutes); 
+app.use('/api/v1/quiz', quizRoutes);
 
 // 10. Handle Unhandled Routes
 app.all(/(.*)/, (req, res, next) => {

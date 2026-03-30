@@ -292,6 +292,26 @@ exports.stream_check = catchAsync(async (req, res, next) => {
         return res.status(400).json({ error: "No audio file" });
     }
 
+    // 🌟 1. حل مشكلة Groq Error (الملفات الفارغة/الصمت) 🌟
+    if (fs.existsSync(req.file.path)) {
+        const stats = fs.statSync(req.file.path);
+        // لو حجم الملف أقل من 1.5 كيلوبايت، ده ملف WebM فارغ (المستخدم لم يتحدث)
+        if (stats.size < 1500) {
+            fs.unlinkSync(req.file.path); // امسحه فوراً
+            return res.status(200).json({
+                status: 'success',
+                text: "",
+                wordByWordResult: {
+                    expectedSent: req.body.expectedContext || "",
+                    lastCorrectWordIndex: -1,
+                    hasMistake: false,
+                    expectedWordIfMistake: "",
+                    userWrongWord: ""
+                }
+            });
+        }
+    }
+
     try {
         const startTime = Date.now();
         const expectedContext = req.body.expectedContext || ""; 
@@ -312,27 +332,11 @@ exports.stream_check = catchAsync(async (req, res, next) => {
         
         let text = normalization(transcription.text); 
 
-        // 🌟 التعديل 1: التسامح مع البسملة والاستعاذة 🌟
-        const expectedNorm = normalization(expectedContext);
-        
-        // مسح الاستعاذة دائماً
-        const aouzuList = ["اعوذ بالله من الشيطان الرجيم", "اعوذ بالله السميع العليم من الشيطان الرجيم"];
-        aouzuList.forEach(a => {
-            text = text.replace(new RegExp(normalization(a), 'g'), " ").trim();
-        });
-
-        // مسح البسملة (فقط إذا كان النص المتوقع لا يحتوي عليها)
-        if (!expectedNorm.includes(normalization("بسم الله"))) {
-            const basmalaList = ["بسم الله الرحمن الرحيم", "بسم الله"];
-            basmalaList.forEach(b => {
-                text = text.replace(new RegExp(normalization(b), 'g'), " ").trim();
-            });
-        }
-
+        // 🌟 2. تنظيف هلوسات الذكاء الاصطناعي 🌟
         const hallucinations = [
             "اشترك في القناة", "رابط القناة", "سيدي محمد رسول الله", 
             "شرح", "تفسير", "السياق الحالي", "المترجم", "يتبع", "صلى الله عليه وسلم",
-            "صدق الله العظيم"
+            "صدق الله العظيم", "شكرا لكم", "والسلام عليكم ورحمة الله وبركاته"
         ];
         hallucinations.forEach(h => {
             const cleanH = normalization(h);
@@ -340,12 +344,25 @@ exports.stream_check = catchAsync(async (req, res, next) => {
                 text = text.replace(new RegExp(cleanH, 'g'), " ").trim(); 
             }
         });
+
+        // 🌟 3. التسامح المطلق مع الاستعاذة والبسملة 🌟
+        // أ. مسحهم من كلام المستخدم تماماً (عشان لو قالهم متتحسبش غلط)
+        const aouzuList = ["اعوذ بالله من الشيطان الرجيم", "اعوذ بالله السميع العليم من الشيطان الرجيم"];
+        aouzuList.forEach(a => {
+            text = text.replace(new RegExp(normalization(a), 'g'), " ").trim();
+        });
+
+        const basmalaList = ["بسم الله الرحمن الرحيم", "بسم الله"];
+        basmalaList.forEach(b => {
+            text = text.replace(new RegExp(normalization(b), 'g'), " ").trim();
+        });
         
         text = text.replace(/\s+/g, ' ').trim(); // تنظيف المسافات الزائدة
 
         if (req.file.path && fs.existsSync(req.file.path)) fs.unlink(req.file.path, () => {});
 
-        // 🌟 التعديل 2: المقارنة كلمة بكلمة 🌟
+        // ب. تجهيز المصفوفات للمقارنة
+        const expectedNorm = normalization(expectedContext);
         const expectedWords = expectedNorm.split(" ").filter(Boolean);
         const userWords = text.split(" ").filter(Boolean);
 
@@ -354,10 +371,29 @@ exports.stream_check = catchAsync(async (req, res, next) => {
         let expectedWordIfMistake = "";
         let userWrongWord = "";        
 
+        let eIdx = 0; 
         let uIdx = 0; 
-        
-        for (let eIdx = 0; eIdx < expectedWords.length; eIdx++) {
-            if (uIdx >= userWords.length) break; 
+
+        // ج. التخطي الذكي للبسملة لو كانت موجودة في "النص المتوقع" والمستخدم لم يقلها
+        if (expectedWords.length >= 4 &&
+            isPhoneticallyClose(expectedWords[0], "بسم") &&
+            isPhoneticallyClose(expectedWords[1], "الله") &&
+            isPhoneticallyClose(expectedWords[2], "الرحمن") &&
+            isPhoneticallyClose(expectedWords[3], "الرحيم")
+        ) {
+            lastCorrectWordIndex = 3; // نعتبر أول 4 كلمات صح تلقائياً
+            eIdx = 4;                 // نبدأ المقارنة من الكلمة الخامسة (الآية الفعلية)
+        } else if (expectedWords.length >= 2 &&
+            isPhoneticallyClose(expectedWords[0], "بسم") &&
+            isPhoneticallyClose(expectedWords[1], "الله")
+        ) {
+            lastCorrectWordIndex = 1;
+            eIdx = 2;
+        }
+
+        // 🌟 4. المقارنة كلمة بكلمة 🌟
+        for (; eIdx < expectedWords.length; eIdx++) {
+            if (uIdx >= userWords.length) break; // سكت أو المقطع انتهى
 
             const eWord = expectedWords[eIdx];
             const uWord = userWords[uIdx];
@@ -366,6 +402,7 @@ exports.stream_check = catchAsync(async (req, res, next) => {
                 lastCorrectWordIndex = eIdx; 
                 uIdx++; 
             } else {
+                // التسامح مع نسيان كلمة (Lookahead)
                 if (eIdx + 1 < expectedWords.length && isPhoneticallyClose(uWord, expectedWords[eIdx + 1])) {
                     hasMistake = true;
                     expectedWordIfMistake = eWord; 
@@ -393,7 +430,7 @@ exports.stream_check = catchAsync(async (req, res, next) => {
         });
 
     } catch (error) {
-        if (req.file && fs.existsSync(req.file.path)) fs.unlink(req.file.path, () => {});
+        if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
         console.error("Stream Error:", error);
         if (error.message.includes('ضغط عالي')) {
             return res.status(429).json({ message: error.message });
