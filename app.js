@@ -40,6 +40,7 @@ app.use(cors({
 // 1. Security Middleware (Helmet)
 app.use(
   helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
@@ -157,7 +158,7 @@ if (process.env.NODE_ENV === "development") {
 app.set('view engine', 'pug');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/audio/uploads', express.static(path.join(__dirname, 'audio', 'uploads')));
+app.use('/audio/uploads', cors(), express.static(path.join(__dirname, 'audio', 'uploads')));
 
 app.use('/.well-known', express.static(path.join(__dirname, 'public', '.well-known'), {
     setHeaders: (res, path) => {
