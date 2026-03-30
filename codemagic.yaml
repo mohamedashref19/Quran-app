@@ -6,7 +6,6 @@ workflows:
     environment:
       node: latest
       xcode: latest
-      cocoapods: default
     scripts:
       - name: Install dependencies
         script: |
@@ -17,11 +16,7 @@ workflows:
       - name: Capacitor Sync
         script: |
           npx cap sync ios
-      - name: Install CocoaPods
-        script: |
-          cd ios/App
-          pod install --repo-update
       - name: Test iOS Build (Without Code Signing)
         script: |
           cd ios/App
-          xcodebuild build -workspace App.xcworkspace -scheme App -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
+          xcodebuild build -project App.xcodeproj -scheme App -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
