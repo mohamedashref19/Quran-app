@@ -1575,6 +1575,33 @@ window.playCorrectAudio = function(surah, ayah, btnElement) {
   };
 };
 
+window.playUserRecitation = function(audioUrl, btnElement) {
+  if (typeof stopAllMedia === 'function') stopAllMedia();
+
+  if (window.currentUserRecitationAudio && !window.currentUserRecitationAudio.paused) {
+    window.currentUserRecitationAudio.pause();
+    btnElement.innerHTML = '<i class="fas fa-play me-2"></i> تشغيل التلاوة';
+    btnElement.classList.replace('btn-danger', 'btn-outline-success');
+    return;
+  }
+
+  window.currentUserRecitationAudio = new Audio(audioUrl);
+
+  window.currentUserRecitationAudio.play().then(() => {
+    btnElement.innerHTML = '<i class="fas fa-stop me-2"></i> إيقاف التلاوة';
+    btnElement.classList.replace('btn-outline-success', 'btn-danger');
+  }).catch((err) => {
+    console.error("خطأ في تشغيل صوت المستخدم:", err);
+    showAlert('error', 'عذراً، تعذر تشغيل التسجيل الصوتي على جهازك.');
+  });
+
+  window.currentUserRecitationAudio.onended = function() {
+    btnElement.innerHTML = '<i class="fas fa-play me-2"></i> تشغيل التلاوة';
+    btnElement.classList.replace('btn-danger', 'btn-outline-success');
+    window.currentUserRecitationAudio = null;
+  };
+};
+
 export async function checkRecitation(file, surah, startAyah, endAyah, userAudioUrl) {
   const formData = new FormData();
   formData.append('audio', file);
@@ -1601,7 +1628,11 @@ export async function checkRecitation(file, surah, startAyah, endAyah, userAudio
       <div class="text-center mb-3">
         <div class="d-inline-block p-3 rounded-4" style="background: rgba(25,135,84,0.06); border: 1px solid rgba(25,135,84,0.12);">
           <p class="small text-success fw-bold mb-2"><i class="fas fa-play-circle me-1"></i> استمع إلى تلاوتك:</p>
-          ${userAudioUrl ? `<audio controls src="${userAudioUrl}" class="custom-audio-player" style="height: 35px; width: 100%;"></audio>` : '<p class="text-muted small mb-0">لا يوجد تسجيل صوتي</p>'}
+         ${userAudioUrl ? `
+  <button id="btn-play-user-recitation" class="btn btn-outline-success btn-sm rounded-pill w-100" onclick="window.playUserRecitation('${userAudioUrl}', this)">
+    <i class="fas fa-play me-2"></i> تشغيل التلاوة
+  </button>
+` : '<p class="text-muted small mb-0">لا يوجد تسجيل صوتي</p>'}
         </div>
         <div id="volume-control-ai" class="d-none mt-3 text-center">
           <label class="form-label fw-bold text-muted small"><i class="fas fa-volume-up me-1"></i> مستوى الصوت</label>
@@ -1664,8 +1695,12 @@ function resetRecitationUI() {
   const resultContainer = document.getElementById('result-container');
   feedbackElem.innerHTML = '';
   resultContainer.classList.add('d-none');
-  const audioPlayer = document.querySelector('audio');
-  if (audioPlayer) { audioPlayer.pause(); audioPlayer.src = ''; }
+  // const audioPlayer = document.querySelector('audio');
+  // if (audioPlayer) { audioPlayer.pause(); audioPlayer.src = ''; }
+  if (window.currentUserRecitationAudio) {
+    window.currentUserRecitationAudio.pause();
+    window.currentUserRecitationAudio = null;
+}
   const fileInput = document.querySelector('input[type="file"]');
   if (fileInput) fileInput.value = '';
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -4260,8 +4295,12 @@ window.playRecitationAudio = function(id, url, btn) {
     btn.style.display = 'none';
     btn.parentNode.insertBefore(playerContainer, btn.nextSibling);
 
+    // const audio = new Audio(finalUrl);
+    // audio.crossOrigin = 'anonymous';
     const audio = new Audio(finalUrl);
+if (!isNative) {
     audio.crossOrigin = 'anonymous';
+}
 
     const playPauseBtn = playerContainer.querySelector('#aqra-player-play-pause');
     const seekbar = playerContainer.querySelector('#aqra-player-seekbar');

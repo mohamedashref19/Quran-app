@@ -1,11 +1,11 @@
-const CACHE_NAME = 'aqra-cache-v30'; 
+const CACHE_NAME = 'aqra-cache-v31'; 
 
 const ASSETS_TO_CACHE = [
   '/',                
   '/index.html',      
   '/offline.html',
   '/css/style.css',
-  '/js/bundle.js',
+ '/dist/index.js',
   '/manifest.json',
   '/icons/icon-192.webp',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css',
@@ -103,7 +103,7 @@ self.addEventListener('fetch', (event) => {
 
   // ج. JS/CSS (Network First)
   if (
-    requestUrl.pathname.includes('/js/bundle.js') ||
+     requestUrl.pathname.includes('/dist/index.js') ||
     requestUrl.pathname.includes('/css/style.css')
   ) {
     event.respondWith(
