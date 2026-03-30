@@ -4607,7 +4607,7 @@ export const scheduleDailyQuizNotification = async () => {
         title: msg.title,
         body: msg.body,
         schedule: { at: notifTime, allowWhileIdle: true },
-        channelId: 'azan-channel',
+        channelId: 'khatmah-channel',
         smallIcon: 'ic_notification',
         extra: { target: 'quiz' }
       });
