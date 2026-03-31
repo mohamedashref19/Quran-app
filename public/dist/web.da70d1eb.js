@@ -1,0 +1,2 @@
+(()=>{var e=globalThis.parcelRequire30f2;(0,e.register)("bfS98",function(n,s){Object.defineProperty(n.exports,"BrowserWeb",{get:()=>i,set:void 0,enumerable:!0,configurable:!0});var o=e("bNLeC");class i extends o.WebPlugin{constructor(){super(),this._lastWindow=null}async open(e){this._lastWindow=window.open(e.url,e.windowName||"_blank")}async close(){return new Promise((e,n)=>{null!=this._lastWindow?(this._lastWindow.close(),this._lastWindow=null,e()):n("No active window to close!")})}}new i})})();
+//# sourceMappingURL=web.da70d1eb.js.map
