@@ -1,0 +1,2 @@
+(()=>{var e=globalThis.parcelRequire30f2;(0,e.register)("9QnGZ",function(a,r){Object.defineProperty(a.exports,"ShareWeb",{get:()=>i,set:void 0,enumerable:!0,configurable:!0});var t=e("bNLeC");class i extends t.WebPlugin{async canShare(){return"u"<typeof navigator||!navigator.share?{value:!1}:{value:!0}}async share(e){if("u"<typeof navigator||!navigator.share)throw this.unavailable("Share API not available in this browser");return await navigator.share({title:e.title,text:e.text,url:e.url}),{}}}})})();
+//# sourceMappingURL=web.cf31fa0f.js.map
