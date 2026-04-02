@@ -1762,10 +1762,9 @@ export async function loadReciters() {
     // 1. إضافة الشيخ عبد الرحمن الزواوي
     recitersList.push({
       name: "Abdelrahman Elzwawy",
-      server: "https://pub-3e14c7ef9a93492591728d0d064407c2.r2.dev" 
+      server: "https://audio.aqraapp.com" 
     });
 
-    // 2. 🌟 إضافة الشيخ ياسر الدوسري (برابط شغال) 🌟
     recitersList.push({
       name: "Yasser Al-Dosari",
       server: "https://server11.mp3quran.net/yasser" 
@@ -1776,15 +1775,14 @@ export async function loadReciters() {
       return;
     }
 
-    // 3. 🌟 نظام الترتيب المخصص (تقدر تغير الترتيب هنا براحتك) 🌟
     const desiredOrder = [
-      "Mahmoud Khalil Al-Hussary",  // 1. الحصري
-      "Abdelbasset Abdessamad",     // 2. عبد الباسط
-      "Abdelrahman Elzwawy",        // 3. الزواوي
-      "Yasser Al-Dosari",           // 4. الدوسري
-      "Maher Al Muaiqly",           // 5. المعيقلي
-      "Saud Al-Shuraim",            // 6. الشريم
-      "Mishary Rashid Alafasy"      // 7. العفاسي
+      "Mahmoud Khalil Al-Hussary",  
+      "Abdelbasset Abdessamad",     
+      "Abdelrahman Elzwawy",        
+      "Yasser Al-Dosari",          
+      "Maher Al Muaiqly",           
+      "Saud Al-Shuraim",            
+      "Mishary Rashid Alafasy"     
     ];
 
     // ترتيب المصفوفة بناءً على القائمة اللي فوق
