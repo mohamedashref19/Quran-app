@@ -87,3 +87,31 @@ exports.getBankStats = catchAsync(async (req, res, next) => {
     }
   });
 });
+
+// ─── 4. جلب كل الأسئلة من البنك (للأدمن فقط) ───
+exports.getAllBank = catchAsync(async (req, res, next) => {
+  const questions = await QuestionBank.find().sort({ createdAt: -1 });
+  res.status(200).json({
+    status: 'success',
+    data: { questions }
+  });
+});
+
+// ─── 5. تعديل سؤال من البنك ───
+exports.updateBankQuestion = catchAsync(async (req, res, next) => {
+  const { question, options, correctAnswer, explanation } = req.body;
+  const updated = await QuestionBank.findByIdAndUpdate(
+    req.params.id,
+    { question, options, correctAnswer, explanation },
+    { new: true, runValidators: true }
+  );
+  if (!updated) return res.status(404).json({ status: 'fail', message: 'السؤال مش موجود' });
+  res.status(200).json({ status: 'success', data: { question: updated } });
+});
+
+// ─── 6. حذف سؤال من البنك ───
+exports.deleteBankQuestion = catchAsync(async (req, res, next) => {
+  const deleted = await QuestionBank.findByIdAndDelete(req.params.id);
+  if (!deleted) return res.status(404).json({ status: 'fail', message: 'السؤال مش موجود' });
+  res.status(200).json({ status: 'success', message: 'تم حذف السؤال بنجاح' });
+});
