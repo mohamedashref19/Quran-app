@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aqra-cache-v32'; 
+const CACHE_NAME = 'aqra-cache-v33'; 
 
 const ASSETS_TO_CACHE = [
   '/',                
@@ -8,6 +8,13 @@ const ASSETS_TO_CACHE = [
  '/dist/index.js',
   '/manifest.json',
   '/icons/icon-192.webp',
+'/img/reciters/hussary.jpg',
+  '/img/reciters/abdelbasset.jpg',
+  '/img/reciters/elzwawy.jpg',
+  '/img/reciters/dosari.jpg',
+  '/img/reciters/maher.jpg',
+  '/img/reciters/shuraim.jpg',
+  '/img/reciters/mishary.jpg',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css',
   'https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Amiri:ital,wght@0,400;0,700;1,400&family=Tajawal:wght@300;400;500;700;900&display=swap',
