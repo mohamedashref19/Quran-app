@@ -2397,9 +2397,10 @@ body.fullscreen-reading nav#main-navbar {
 
         <div id="azkar-detail-section" class="d-none">
             <div class="d-flex align-items-center mb-3 sticky-top bg-white pt-2 pb-2 shadow-sm px-2" style="top: 60px; z-index: 100; border-radius: 10px;">
-                <button class="btn btn-sm btn-secondary me-3" onclick="stopAzkarAudio(); showSection('azkar')"><i class="fas fa-arrow-right"></i></button>
-                <h3 class="flex-grow-1 text-center m-0 text-success fw-bold" id="azkar-detail-title" style="font-family: 'Amiri';">الأذكار</h3>
-            </div>
+    <button class="btn btn-sm btn-secondary me-3" onclick="stopAzkarAudio(); showSection('azkar')"><i class="fas fa-arrow-right"></i></button>
+    <h3 class="flex-grow-1 text-center m-0 text-success fw-bold" id="azkar-detail-title" style="font-family: 'Amiri';">الأذكار</h3>
+  <button class="btn btn-sm btn-outline-danger ms-3" id="reset-azkar-btn-top" title="إعادة تعيين الأذكار" onclick="document.getElementById('reset-azkar-btn')?.click()"><i class="fas fa-redo-alt"></i></button>
+</div>
 
            <div id="azkar-audio-box" class="card border-0 shadow-sm mb-4 d-none" style="border-radius: 16px; background: linear-gradient(135deg, #ffffff, #f1f8e9); border-bottom: 3px solid #198754 !important;">
                 <div class="card-body p-3">

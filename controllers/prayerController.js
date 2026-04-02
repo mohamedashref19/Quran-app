@@ -12,9 +12,8 @@ exports.getPrayerTimes = catchAsync(async (req, res, next) => {
   }
 
   const coordinates = new Coordinates(parseFloat(lat), parseFloat(lng));
-  const dateObj = date ? new Date(date) : new Date();
-
-  // 1. تحديد المنطقة الزمنية من الإحداثيات
+  // const dateObj = date ? new Date(date) : new Date();
+   // 1. تحديد المنطقة الزمنية من الإحداثيات
   let userTimeZone = "Africa/Cairo"; 
   try {
     const tzArray = find(parseFloat(lat), parseFloat(lng));
@@ -24,6 +23,25 @@ exports.getPrayerTimes = catchAsync(async (req, res, next) => {
   } catch (err) {
     console.error("Timezone error:", err);
   }
+  let dateObj;
+if (date) {
+  dateObj = new Date(date);
+} else {
+  // تحويل الوقت الحالي لتوقيت المستخدم بطريقة أضمن
+  const now = new Date();
+  const offsetStr = new Intl.DateTimeFormat('en-US', {
+    timeZone: userTimeZone,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false
+  }).formatToParts(now);
+  
+  const p = {};
+  offsetStr.forEach(({ type, value }) => { p[type] = value; });
+  dateObj = new Date(`${p.year}-${p.month}-${p.day}T${p.hour === '24' ? '00' : p.hour}:${p.minute}:${p.second}`);
+}
+
+ 
 
   // 2. الاختيار الذكي لطريقة الحساب بناءً على المنطقة إذا لم يحددها المستخدم
   let params;

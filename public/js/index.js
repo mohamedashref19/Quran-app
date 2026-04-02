@@ -2667,8 +2667,10 @@ const initNativeFeatures = async () => {
     const appInfo = await App.getInfo();
     const currentVersion = appInfo.version;
 
-    if (savedVersion && savedVersion !== currentVersion) {
-      console.log(`🔄 [UPDATE] تم تحديث التطبيق إلى ${currentVersion} — جاري مسح الكاش القديم`);
+    if (savedVersion !== currentVersion) {
+      console.log(`🔄 [UPDATE] تم تحديث التطبيق إلى ${currentVersion} — جاري مسح الكاش والـ channels القديمة`);
+      
+      // مسح كاش السيرفر وركر
       if ('serviceWorker' in navigator) {
         const regs = await navigator.serviceWorker.getRegistrations();
         for (let r of regs) await r.unregister();
@@ -2681,37 +2683,34 @@ const initNativeFeatures = async () => {
           }
         }
       }
+
+      // ✅ مسح الـ notification channels القديمة عند كل تحديث
+      try { await LocalNotifications.deleteChannel({ id: 'khatmah-channel' }); } catch(e) {}
+      try { await LocalNotifications.deleteChannel({ id: 'azan-channel' }); } catch(e) {}
     }
+
     localStorage.setItem('app_version', currentVersion);
 
-    // 🔔 إعدادات الإشعارات ويوم الجمعة
+    // 🔔 إعدادات الإشعارات
     await LocalNotifications.cancel({ notifications: [{ id: 101 }] });
     await App.removeAllListeners();
     await App.addListener('backButton', ({ canGoBack }) => {
-      
-      // 1. هل في رسالة تنبيه (SweetAlert) مفتوحة؟ نقفلها
       if (typeof Swal !== 'undefined' && Swal.isVisible()) {
         Swal.close();
         return; 
       }
-
-      // 2. هل في نافذة (Modal) زي "الإضاءات" أو التحديثات مفتوحة؟ نقفلها
       const openModal = document.querySelector('.modal.show');
       if (openModal) {
         const modalInstance = bootstrap.Modal.getInstance(openModal);
         if (modalInstance) modalInstance.hide();
         return;
       }
-
-      // 3. هل في القائمة السفلية (Bottom Sheet) بتاعة الآيات مفتوحة؟ نقفلها
       const openOffcanvas = document.querySelector('.offcanvas.show');
       if (openOffcanvas) {
         const offcanvasInstance = bootstrap.Offcanvas.getInstance(openOffcanvas);
         if (offcanvasInstance) offcanvasInstance.hide();
         return;
       }
-
-      // 4. لو مفيش أي نوافذ مفتوحة، نفذ سلوك الرجوع الطبيعي
       const home = document.getElementById('home-section');
       if (home && !home.classList.contains('d-none')) {
         stopAllMedia();
@@ -2722,8 +2721,7 @@ const initNativeFeatures = async () => {
       }
     });
 
-    // ✅ التقاط الرابط لو المستخدم فتح التطبيق من الإيميل
-   await App.addListener('appUrlOpen', ({ url }) => {
+    await App.addListener('appUrlOpen', ({ url }) => {
       try {
         const urlObj = new URL(url);
         if (urlObj.pathname === '/resetPassword' || urlObj.pathname === '/reset-password.html') {
@@ -2739,12 +2737,12 @@ const initNativeFeatures = async () => {
       }
     });
 
-   const notifs = await LocalNotifications.requestPermissions();
+    const notifs = await LocalNotifications.requestPermissions();
     if (notifs.display === 'granted') {
+      // إنشاء الـ channels (بعد المسح اللي اتعمل فوق لو في تحديث)
       await LocalNotifications.createChannel({ id: 'azan-channel', name: 'تنبيهات الصلاة', importance: 5, sound: 'azan_short.mp3', visibility: 1, vibration: true });
       await LocalNotifications.createChannel({ id: 'khatmah-channel', name: 'تنبيهات الورد', importance: 4, visibility: 1, vibration: true });
       
-      // ✅ الحفاظ على تنبيه سورة الكهف وصلاة الضحى
       await scheduleFridayKahfNotification();
       await scheduleDuhaNotification();
       await scheduleIslamicEvents();
@@ -2752,11 +2750,9 @@ const initNativeFeatures = async () => {
       const savedPrayers = await localforage.getItem('offline_prayers');
       if (savedPrayers && savedPrayers.timings) {
          await scheduleAllPrayers({ timings: savedPrayers.timings, rawTimestamps: savedPrayers.rawTimestamps });
-
       } else {
           console.log('⚠️ [PRAYERS] لا توجد مواقيت محفوظة، سيتم الجدولة عند فتح صفحة الصلاة');
       }
-
       console.log('✅ [NOTIFICATIONS] تم جدولة تنبيهات الكهف والضحى والصلوات بنجاح');
     }
     try { await Geolocation.requestPermissions(); } catch (e) { console.log('Geo permission:', e); }
@@ -4567,13 +4563,13 @@ function setWelcomeGreeting() {
   if (userName && userName !== 'null' && userName !== 'undefined') {
     let firstName = userName.trim().split(/\s+/)[0]; 
     firstName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
-    greetingEl.innerHTML = `${timeGreeting}، <span style="color:#d4af37; font-family: sans-serif;">${firstName}</span>`;
+    greetingEl.innerHTML = `${timeGreeting} <span style="color:#d4af37; font-family: sans-serif;">${firstName}</span>`;
     
   } else if (userEmail) {
     let emailName = userEmail.split('@')[0];
     let firstName = emailName.split(/[\.\-_]/)[0]; 
     firstName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
-    greetingEl.innerHTML = `${timeGreeting}، <span style="color:#d4af37; font-family: sans-serif;">${firstName}</span>`;
+    greetingEl.innerHTML = `${timeGreeting} <span style="color:#d4af37; font-family: sans-serif;">${firstName}</span>`;
     
   } else {
     greetingEl.innerHTML = `السلام عليكم ورحمة الله 🌿`; 

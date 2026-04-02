@@ -49,11 +49,7 @@
     z-index: 100;
   }
 
-  .header-brand {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-  }
+  .header-brand { display: flex; align-items: center; gap: 14px; }
 
   .header-icon {
     width: 48px; height: 48px;
@@ -65,22 +61,50 @@
     color: var(--gold);
   }
 
-  .header-title h1 {
-    font-family: 'Amiri', serif;
-    font-size: 1.4rem;
-    font-weight: 700;
-  }
+  .header-title h1 { font-family: 'Amiri', serif; font-size: 1.4rem; font-weight: 700; }
+  .header-title p { font-size: 0.8rem; opacity: 0.7; margin-top: 2px; }
 
-  .header-title p {
-    font-size: 0.8rem;
-    opacity: 0.7;
-    margin-top: 2px;
-  }
+  .header-actions { display: flex; gap: 10px; align-items: center; }
 
-  .header-actions {
+  /* ─── Tabs ─── */
+  .tabs-bar {
+    background: white;
+    border-bottom: 2px solid var(--border);
     display: flex;
-    gap: 10px;
+    gap: 0;
+    padding: 0 32px;
+    position: sticky;
+    top: 88px;
+    z-index: 99;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+
+  .tab-btn {
+    padding: 16px 28px;
+    border: none;
+    background: none;
+    font-family: 'Tajawal', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+    display: flex;
     align-items: center;
+    gap: 8px;
+  }
+
+  .tab-btn:hover { color: var(--green-main); }
+  .tab-btn.active { color: var(--green-main); border-bottom-color: var(--green-main); }
+  .tab-btn .tab-count {
+    background: var(--green-pale);
+    color: var(--green-main);
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 700;
   }
 
   /* ─── Layout ─── */
@@ -93,12 +117,11 @@
     margin: 0 auto;
   }
 
+  .tab-content { display: none; }
+  .tab-content.active { display: contents; }
+
   /* ─── Sidebar ─── */
-  .sidebar {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
+  .sidebar { display: flex; flex-direction: column; gap: 16px; }
 
   .card {
     background: var(--card);
@@ -120,7 +143,6 @@
   }
 
   .card-header i { color: var(--green-main); }
-
   .card-body { padding: 20px; }
 
   .btn {
@@ -138,13 +160,7 @@
     transition: all 0.2s;
   }
 
-  .btn-primary {
-    background: var(--green-main);
-    color: white;
-    width: 100%;
-    margin-top: 10px;
-  }
-
+  .btn-primary { background: var(--green-main); color: white; width: 100%; margin-top: 10px; }
   .btn-primary:hover { background: var(--green-dark); transform: translateY(-1px); }
 
   .btn-gold {
@@ -152,33 +168,21 @@
     color: var(--green-dark);
     font-weight: 700;
   }
-
   .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(212,175,55,0.4); }
 
-  .btn-outline {
-    background: transparent;
-    border: 2px solid var(--border);
-    color: var(--text-muted);
-  }
-
+  .btn-outline { background: transparent; border: 2px solid var(--border); color: var(--text-muted); }
   .btn-outline:hover { border-color: var(--green-main); color: var(--green-main); }
 
-  .btn-danger {
-    background: #ffeaea;
-    color: var(--danger);
-    border: 1px solid #ffd0d0;
-  }
-
+  .btn-danger { background: #ffeaea; color: var(--danger); border: 1px solid #ffd0d0; }
   .btn-danger:hover { background: var(--danger); color: white; }
+
+  .btn-warning { background: #fff8e1; color: #b45309; border: 1px solid #fde68a; }
+  .btn-warning:hover { background: #f59e0b; color: white; }
 
   .btn-sm { padding: 7px 14px; font-size: 0.85rem; border-radius: 8px; }
 
   /* Stats */
-  .stat-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
   .stat-item {
     background: var(--green-pale);
@@ -188,23 +192,12 @@
     border: 1px solid var(--border);
   }
 
-  .stat-num {
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: var(--green-main);
-    font-family: 'Amiri', serif;
-  }
+  .stat-num { font-size: 1.6rem; font-weight: 700; color: var(--green-main); font-family: 'Amiri', serif; }
+  .stat-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
 
-  .stat-label {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    margin-top: 2px;
-  }
-
-  /* ─── Main Content ─── */
+  /* Content */
   .content-area { display: flex; flex-direction: column; gap: 20px; }
 
-  /* Quiz Form Header */
   .quiz-form-header {
     display: flex;
     align-items: center;
@@ -255,13 +248,7 @@
     justify-content: space-between;
   }
 
-  .q-num {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-weight: 700;
-    font-size: 0.95rem;
-  }
+  .q-num { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 0.95rem; }
 
   .q-num-badge {
     width: 32px; height: 32px;
@@ -274,7 +261,6 @@
   }
 
   .q-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
-
   .form-group { display: flex; flex-direction: column; gap: 8px; }
 
   .form-label {
@@ -285,7 +271,6 @@
     align-items: center;
     gap: 6px;
   }
-
   .form-label i { color: var(--green-main); font-size: 0.8rem; }
 
   .form-control {
@@ -308,24 +293,9 @@
     background: white;
   }
 
-  /* Options Grid */
-  .options-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-
-  .option-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .option-input-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+  .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .option-wrap { display: flex; flex-direction: column; gap: 6px; }
+  .option-input-row { display: flex; align-items: center; gap: 8px; }
 
   .option-label-badge {
     width: 30px; height: 30px;
@@ -341,16 +311,8 @@
   .opt-c { background: #fff3e0; color: #e65100; }
   .opt-d { background: #e8f5e9; color: #2e7d32; }
 
-  /* Correct Answer Radio */
-  .correct-answer-row {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-
-  .correct-radio {
-    display: none;
-  }
+  .correct-answer-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .correct-radio { display: none; }
 
   .correct-label {
     display: flex;
@@ -371,25 +333,11 @@
     color: var(--green-dark);
   }
 
-  .correct-label .dot {
-    width: 10px; height: 10px;
-    border-radius: 50%;
-    border: 2px solid currentColor;
-  }
+  .correct-label .dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid currentColor; }
+  .correct-radio:checked + .correct-label .dot { background: var(--green-main); border-color: var(--green-main); }
 
-  .correct-radio:checked + .correct-label .dot {
-    background: var(--green-main);
-    border-color: var(--green-main);
-  }
+  .explanation-area textarea { min-height: 70px; font-family: 'Amiri', serif; font-size: 1rem; }
 
-  /* Explanation */
-  .explanation-area textarea {
-    min-height: 70px;
-    font-family: 'Amiri', serif;
-    font-size: 1rem;
-  }
-
-  /* Add Question Button */
   .add-q-btn {
     display: flex;
     align-items: center;
@@ -408,19 +356,9 @@
     width: 100%;
   }
 
-  .add-q-btn:hover {
-    background: var(--green-pale);
-    border-color: var(--green-main);
-    transform: translateY(-1px);
-  }
+  .add-q-btn:hover { background: var(--green-pale); border-color: var(--green-main); transform: translateY(-1px); }
 
-  /* Action Bar */
-  .action-bar {
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-    flex-wrap: wrap;
-  }
+  .action-bar { display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap; }
 
   /* Toast */
   .toast-wrap {
@@ -453,15 +391,8 @@
   .toast.error { background: var(--danger); }
   .toast.warning { background: #d4781a; }
 
-  @keyframes toastIn {
-    from { opacity: 0; transform: translateY(-16px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  @keyframes toastOut {
-    from { opacity: 1; }
-    to   { opacity: 0; }
-  }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
 
   /* Loading overlay */
   .loading-overlay {
@@ -518,10 +449,7 @@
     animation: modalIn 0.3s ease;
   }
 
-  @keyframes modalIn {
-    from { opacity: 0; transform: scale(0.95); }
-    to   { opacity: 1; transform: scale(1); }
-  }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
   .modal-header {
     padding: 20px 24px;
@@ -544,19 +472,8 @@
     border: 1px solid var(--border);
   }
 
-  .preview-q-text {
-    font-family: 'Amiri', serif;
-    font-size: 1.1rem;
-    font-weight: 700;
-    margin-bottom: 12px;
-    color: var(--green-dark);
-  }
-
-  .preview-options {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
+  .preview-q-text { font-family: 'Amiri', serif; font-size: 1.1rem; font-weight: 700; margin-bottom: 12px; color: var(--green-dark); }
+  .preview-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
   .preview-opt {
     padding: 8px 12px;
@@ -566,18 +483,12 @@
     background: white;
   }
 
-  .preview-opt.correct {
-    background: #e8f5e9;
-    border-color: var(--green-main);
-    color: var(--green-dark);
-    font-weight: 700;
-  }
+  .preview-opt.correct { background: #e8f5e9; border-color: var(--green-main); color: var(--green-dark); font-weight: 700; }
 
   .scrollbar::-webkit-scrollbar { width: 6px; }
   .scrollbar::-webkit-scrollbar-track { background: var(--bg); }
   .scrollbar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-  /* Config section */
   .config-row {
     display: flex;
     align-items: center;
@@ -588,7 +499,6 @@
   }
 
   .config-row:last-child { border-bottom: none; }
-
   .toggle-wrap { display: flex; align-items: center; gap: 8px; }
 
   .toggle {
@@ -616,9 +526,124 @@
   .toggle.on { background: var(--green-main); }
   .toggle.on::after { transform: translateX(-20px); }
 
+  /* ─── Edit Tab Styles ─── */
+  .edit-toolbar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 16px 20px;
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+  }
+
+  .search-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px 16px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    font-family: 'Tajawal', sans-serif;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-input:focus { border-color: var(--green-main); }
+
+  .edit-card {
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    animation: slideIn 0.25s ease;
+  }
+
+  .edit-card-header {
+    background: linear-gradient(135deg, #2d3748, #4a5568);
+    color: white;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .edit-card-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+
+  .edit-card-actions { display: flex; gap: 8px; }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+  }
+
+  .empty-state i { font-size: 3rem; margin-bottom: 16px; opacity: 0.4; }
+  .empty-state p { font-size: 1rem; }
+
+  .edit-questions-list { display: flex; flex-direction: column; gap: 16px; }
+
+  .pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px;
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+  }
+
+  .page-btn {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    border: 2px solid var(--border);
+    background: none;
+    font-family: 'Tajawal', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all 0.15s;
+  }
+
+  .page-btn:hover { border-color: var(--green-main); color: var(--green-main); }
+  .page-btn.active { background: var(--green-main); color: white; border-color: var(--green-main); }
+  .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .edit-sidebar-info {
+    background: linear-gradient(135deg, #1a4a2e, #1e5f31);
+    color: white;
+    border-radius: var(--radius);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .edit-sidebar-info h4 { font-family: 'Amiri', serif; font-size: 1.1rem; margin-bottom: 4px; }
+
+  .edit-info-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+    opacity: 0.85;
+  }
+
+  .edit-info-item i { width: 18px; color: var(--gold); }
+
   @media (max-width: 900px) {
     .main-layout { grid-template-columns: 1fr; }
     .options-grid { grid-template-columns: 1fr; }
+    .tabs-bar { padding: 0 16px; }
+    .admin-header { padding: 16px 20px; }
   }
 </style>
 </head>
@@ -626,11 +651,12 @@
 
 <div class="loading-overlay" id="loadingOverlay">
   <div class="spinner"></div>
-  <span id="loadingText">جاري الحفظ...</span>
+  <span id="loadingText">جاري التحميل...</span>
 </div>
 
 <div class="toast-wrap" id="toastWrap"></div>
 
+<!-- Preview Modal -->
 <div class="modal-overlay" id="previewModal">
   <div class="modal-box scrollbar">
     <div class="modal-header">
@@ -646,161 +672,286 @@
   </div>
 </div>
 
+<!-- Edit Modal -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-box scrollbar" style="max-width:680px;">
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <i class="fas fa-edit"></i>
+        <span>تعديل السؤال</span>
+      </div>
+      <button onclick="closeEditModal()" style="background:none;border:none;color:white;font-size:1.2rem;cursor:pointer;">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body" id="editModalBody"></div>
+  </div>
+</div>
+
 <header class="admin-header">
   <div class="header-brand">
     <div class="header-icon"><i class="fas fa-database"></i></div>
     <div class="header-title">
       <h1>إدارة بنك الأسئلة</h1>
-      <p>إضافة أسئلة دينية لقاعدة البيانات · تطبيق اقرأ</p>
+      <p>إضافة وتعديل الأسئلة الدينية · تطبيق اقرأ</p>
     </div>
   </div>
   <div class="header-actions">
-    <button class="btn btn-outline btn-sm" onclick="openPreview()">
+    <button class="btn btn-outline btn-sm" onclick="openPreview()" id="previewBtn">
       <i class="fas fa-eye"></i> معاينة
     </button>
-    <button class="btn btn-gold" onclick="saveQuiz()">
+    <button class="btn btn-gold" onclick="saveQuiz()" id="saveBtn">
       <i class="fas fa-save"></i> إضافة للبنك
     </button>
   </div>
 </header>
 
-<div class="main-layout">
-
-  <aside class="sidebar">
-
-    <div class="card">
-      <div class="card-header">
-        <i class="fas fa-chart-bar"></i>
-        إحصائيات الإضافة الحالية
-      </div>
-      <div class="card-body">
-        <div class="stat-grid">
-          <div class="stat-item">
-            <div class="stat-num" id="statQCount">0</div>
-            <div class="stat-label">الأسئلة الحالية</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-num" id="statComplete">0%</div>
-            <div class="stat-label">الاكتمال</div>
-          </div>
-          
-          <div class="stat-item" style="background-color: #e3f2fd; border-color: #bbdefb;">
-            <div class="stat-num" id="statTotalDb" style="color: #1565c0;">0</div>
-            <div class="stat-label">إجمالي البنك</div>
-          </div>
-          <div class="stat-item" style="background-color: #fff3e0; border-color: #ffe0b2;">
-            <div class="stat-num" id="statUnusedDb" style="color: #e65100;">0</div>
-            <div class="stat-label">لم يُستخدم</div>
-          </div>
-
-          <div class="stat-item">
-            <div class="stat-num" id="statSaved">—</div>
-            <div class="stat-label">آخر إضافة</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-num" id="statStatus">مسودة</div>
-            <div class="stat-label">الحالة</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <i class="fas fa-cog"></i>
-        إعدادات النماذج
-      </div>
-      <div class="card-body" style="padding:16px 20px;">
-        <div class="config-row">
-          <span>عدد الأسئلة للنموذج</span>
-          <select id="maxQCount" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-family:'Tajawal',sans-serif;">
-            <option value="5" selected>5 أسئلة</option>
-            <option value="10">10 أسئلة</option>
-            <option value="15">15 سؤال</option>
-            <option value="20">20 سؤال</option>
-          </select>
-        </div>
-        <div class="config-row">
-          <span>إظهار الشرح</span>
-          <button class="toggle on" id="showExplanation" onclick="this.classList.toggle('on')"></button>
-        </div>
-      </div>
-    </div>
-
-  </aside>
-
-  <main class="content-area">
-
-    <div class="card" style="padding:20px 24px;">
-      <div class="quiz-form-header">
-        <div>
-          <h2 style="font-family:'Amiri',serif;font-size:1.3rem;color:var(--green-dark);">
-            <i class="fas fa-plus-circle me-2" style="color:var(--green-main)"></i>
-            إضافة أسئلة للبنك
-          </h2>
-          <p style="color:var(--text-muted);font-size:0.85rem;margin-top:4px;">
-            أضف حتى <span id="maxLabel">5</span> أسئلة في الدفعة الواحدة. التطبيق سيقوم بسحبها برمجياً.
-          </p>
-        </div>
-        <div class="quiz-date-badge">
-          <i class="fas fa-server" style="color:var(--green-main)"></i>
-          <span>حفظ مباشر في قاعدة البيانات</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="questions-list" id="questionsList"></div>
-
-    <button class="add-q-btn" onclick="addQuestion()" id="addQBtn">
-      <i class="fas fa-plus-circle" style="font-size:1.2rem;"></i>
-      إضافة سؤال إضافي للنموذج
-    </button>
-
-    <div class="card">
-      <div class="card-body" style="padding:16px 24px;">
-        <div class="action-bar">
-          <button class="btn btn-outline" onclick="clearAll()">
-            <i class="fas fa-trash-alt"></i> مسح الخانات
-          </button>
-          <button class="btn btn-outline" onclick="loadTemplate()">
-            <i class="fas fa-magic"></i> قالب 5 أسئلة
-          </button>
-          <button class="btn btn-primary" style="min-width:160px;" onclick="saveQuiz()">
-            <i class="fas fa-cloud-upload-alt"></i> حفظ في بنك الأسئلة
-          </button>
-        </div>
-      </div>
-    </div>
-
-  </main>
+<!-- Tabs -->
+<div class="tabs-bar">
+  <button class="tab-btn active" id="tab-add-btn" onclick="switchTab('add')">
+    <i class="fas fa-plus-circle"></i>
+    إضافة أسئلة جديدة
+  </button>
+  <button class="tab-btn" id="tab-edit-btn" onclick="switchTab('edit')">
+    <i class="fas fa-edit"></i>
+    تعديل الأسئلة الموجودة
+    <span class="tab-count" id="editTabCount">0</span>
+  </button>
 </div>
 
+<div class="main-layout">
+
+  <!-- ═══════════════ TAB: ADD ═══════════════ -->
+  <div class="tab-content active" id="tab-add">
+
+    <aside class="sidebar">
+      <div class="card">
+        <div class="card-header">
+          <i class="fas fa-chart-bar"></i>
+          إحصائيات الإضافة الحالية
+        </div>
+        <div class="card-body">
+          <div class="stat-grid">
+            <div class="stat-item">
+              <div class="stat-num" id="statQCount">0</div>
+              <div class="stat-label">الأسئلة الحالية</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-num" id="statComplete">0%</div>
+              <div class="stat-label">الاكتمال</div>
+            </div>
+            <div class="stat-item" style="background-color:#e3f2fd;border-color:#bbdefb;">
+              <div class="stat-num" id="statTotalDb" style="color:#1565c0;">0</div>
+              <div class="stat-label">إجمالي البنك</div>
+            </div>
+            <div class="stat-item" style="background-color:#fff3e0;border-color:#ffe0b2;">
+              <div class="stat-num" id="statUnusedDb" style="color:#e65100;">0</div>
+              <div class="stat-label">لم يُستخدم</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-num" id="statSaved">—</div>
+              <div class="stat-label">آخر إضافة</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-num" id="statStatus">مسودة</div>
+              <div class="stat-label">الحالة</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <i class="fas fa-cog"></i>
+          إعدادات النماذج
+        </div>
+        <div class="card-body" style="padding:16px 20px;">
+          <div class="config-row">
+            <span>عدد الأسئلة للنموذج</span>
+            <select id="maxQCount" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-family:'Tajawal',sans-serif;">
+              <option value="5" selected>5 أسئلة</option>
+              <option value="10">10 أسئلة</option>
+              <option value="15">15 سؤال</option>
+              <option value="20">20 سؤال</option>
+            </select>
+          </div>
+          <div class="config-row">
+            <span>إظهار الشرح</span>
+            <button class="toggle on" id="showExplanation" onclick="this.classList.toggle('on')"></button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="content-area">
+      <div class="card" style="padding:20px 24px;">
+        <div class="quiz-form-header">
+          <div>
+            <h2 style="font-family:'Amiri',serif;font-size:1.3rem;color:var(--green-dark);">
+              <i class="fas fa-plus-circle" style="color:var(--green-main);margin-left:8px;"></i>
+              إضافة أسئلة للبنك
+            </h2>
+            <p style="color:var(--text-muted);font-size:0.85rem;margin-top:4px;">
+              أضف حتى <span id="maxLabel">5</span> أسئلة في الدفعة الواحدة. التطبيق سيقوم بسحبها برمجياً.
+            </p>
+          </div>
+          <div class="quiz-date-badge">
+            <i class="fas fa-server" style="color:var(--green-main)"></i>
+            <span>حفظ مباشر في قاعدة البيانات</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="questions-list" id="questionsList"></div>
+
+      <button class="add-q-btn" onclick="addQuestion()" id="addQBtn">
+        <i class="fas fa-plus-circle" style="font-size:1.2rem;"></i>
+        إضافة سؤال إضافي للنموذج
+      </button>
+
+      <div class="card">
+        <div class="card-body" style="padding:16px 24px;">
+          <div class="action-bar">
+            <button class="btn btn-outline" onclick="clearAll()">
+              <i class="fas fa-trash-alt"></i> مسح الخانات
+            </button>
+            <button class="btn btn-outline" onclick="loadTemplate()">
+              <i class="fas fa-magic"></i> قالب 5 أسئلة
+            </button>
+            <button class="btn btn-primary" style="min-width:160px;width:auto;margin-top:0;" onclick="saveQuiz()">
+              <i class="fas fa-cloud-upload-alt"></i> حفظ في بنك الأسئلة
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+  </div><!-- end tab-add -->
+
+  <!-- ═══════════════ TAB: EDIT ═══════════════ -->
+  <div class="tab-content" id="tab-edit">
+
+    <aside class="sidebar">
+      <div class="edit-sidebar-info">
+        <h4><i class="fas fa-info-circle" style="color:var(--gold);margin-left:8px;"></i> تعديل الأسئلة</h4>
+        <div class="edit-info-item"><i class="fas fa-search"></i> ابحث باسم السؤال</div>
+        <div class="edit-info-item"><i class="fas fa-edit"></i> اضغط "تعديل" لتغيير السؤال</div>
+        <div class="edit-info-item"><i class="fas fa-trash"></i> اضغط "حذف" لإزالته من البنك</div>
+        <div class="edit-info-item"><i class="fas fa-save"></i> التعديل يُحفظ فوراً في السيرفر</div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><i class="fas fa-chart-bar"></i> إحصائيات البنك</div>
+        <div class="card-body">
+          <div class="stat-grid">
+            <div class="stat-item" style="background:#e3f2fd;border-color:#bbdefb;">
+              <div class="stat-num" id="editStatTotal" style="color:#1565c0;">0</div>
+              <div class="stat-label">إجمالي البنك</div>
+            </div>
+            <div class="stat-item" style="background:#fff3e0;border-color:#ffe0b2;">
+              <div class="stat-num" id="editStatUnused" style="color:#e65100;">0</div>
+              <div class="stat-label">لم يُستخدم</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-num" id="editStatFiltered">0</div>
+              <div class="stat-label">نتائج البحث</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-num" id="editStatPage">1</div>
+              <div class="stat-label">الصفحة الحالية</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-outline" style="width:100%;justify-content:center;" onclick="loadEditQuestions()">
+        <i class="fas fa-sync-alt"></i> تحديث القائمة
+      </button>
+    </aside>
+
+    <main class="content-area">
+      <!-- Toolbar -->
+      <div class="edit-toolbar">
+        <input type="text" class="search-input" id="editSearchInput" placeholder="🔍 ابحث في الأسئلة..." oninput="filterEditQuestions()">
+        <select id="editFilterUsed" style="padding:10px 14px;border:2px solid var(--border);border-radius:10px;font-family:'Tajawal',sans-serif;font-size:0.9rem;outline:none;" onchange="filterEditQuestions()">
+          <option value="all">كل الأسئلة</option>
+          <option value="unused">لم تُستخدم فقط</option>
+          <option value="used">المستخدمة فقط</option>
+        </select>
+        <button class="btn btn-outline btn-sm" onclick="loadEditQuestions()">
+          <i class="fas fa-sync-alt"></i> تحديث
+        </button>
+      </div>
+
+      <!-- Questions List -->
+      <div class="edit-questions-list" id="editQuestionsList">
+        <div class="empty-state">
+          <i class="fas fa-database"></i>
+          <p>اضغط "تحديث القائمة" لتحميل الأسئلة من البنك</p>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination-bar" id="paginationBar" style="display:none;">
+        <button class="page-btn" id="prevPageBtn" onclick="changePage(-1)"><i class="fas fa-chevron-right"></i></button>
+        <div id="pageNumbers" style="display:flex;gap:6px;"></div>
+        <button class="page-btn" id="nextPageBtn" onclick="changePage(1)"><i class="fas fa-chevron-left"></i></button>
+      </div>
+
+    </main>
+
+  </div><!-- end tab-edit -->
+
+</div><!-- end main-layout -->
+
 <script>
-// ─── Config 
-// const API_BASE = 'http://127.0.0.1:3000';
-const API_BASE ='https://aqraapp.com'
+// ─── Config ───
+ //const API_BASE = 'http://127.0.0.1:3000';
+const API_BASE = 'https://aqraapp.com';
 const AUTH_TOKEN = localStorage.getItem('auth_token') || '';
 
-// ─── State ─
+// ─── State ───
 let questions = [];
 let lastSaved = null;
 
-// ─── Init ──
+// Edit tab state
+let allBankQuestions = [];
+let filteredQuestions = [];
+let currentPage = 1;
+const PAGE_SIZE = 10;
+let editingId = null;
+
+// ─── Tabs ───
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById(`tab-${tab}-btn`).classList.add('active');
+  document.getElementById(`tab-${tab}`).classList.add('active');
+
+  if (tab === 'add') {
+    document.getElementById('previewBtn').style.display = '';
+    document.getElementById('saveBtn').style.display = '';
+  } else {
+    document.getElementById('previewBtn').style.display = 'none';
+    document.getElementById('saveBtn').style.display = 'none';
+    if (allBankQuestions.length === 0) loadEditQuestions();
+  }
+}
+
+// ─── Init ───
 window.addEventListener('DOMContentLoaded', () => {
-  addQuestion(); // سؤال أول افتراضي
+  addQuestion();
   updateStats();
   fetchBankStats();
 });
 
-// ─── Questions CRUD ───────────────────────────────────────────────────────────
+// ─── ADD TAB: Questions CRUD ───
 function addQuestion() {
   const max = parseInt(document.getElementById('maxQCount').value);
   if (questions.length >= max) return showToast(`الحد الأقصى ${max} أسئلة في الدفعة`, 'warning');
-
   questions.push({ question:'', options:['','','',''], correctAnswer:0, explanation:'' });
   renderQuestions();
   updateStats();
-  
   setTimeout(() => {
     const cards = document.querySelectorAll('.question-card');
     cards[cards.length-1]?.scrollIntoView({ behavior:'smooth', block:'center' });
@@ -826,7 +977,7 @@ function getFormData() {
   });
   return result;
 }
-// ─── جلب إحصائيات البنك من الداتا بيز ───
+
 async function fetchBankStats() {
   try {
     const res = await fetch(`${API_BASE}/api/v1/quiz/bank/stats`, {
@@ -836,17 +987,16 @@ async function fetchBankStats() {
       const data = await res.json();
       document.getElementById('statTotalDb').textContent = data.data.total;
       document.getElementById('statUnusedDb').textContent = data.data.unused;
+      document.getElementById('editStatTotal').textContent = data.data.total;
+      document.getElementById('editStatUnused').textContent = data.data.unused;
+      document.getElementById('editTabCount').textContent = data.data.total;
     }
-  } catch (err) {
-    console.log('فشل جلب إحصائيات البنك');
-  }
+  } catch (err) { console.log('فشل جلب إحصائيات البنك'); }
 }
+
 function renderQuestions() {
   const list = document.getElementById('questionsList');
-  if (questions.length === 0) {
-    list.innerHTML = '';
-    return;
-  }
+  if (questions.length === 0) { list.innerHTML = ''; return; }
 
   list.innerHTML = questions.map((q, i) => `
     <div class="question-card" data-idx="${i}">
@@ -863,12 +1013,10 @@ function renderQuestions() {
         </div>
       </div>
       <div class="q-body">
-
         <div class="form-group">
           <label class="form-label"><i class="fas fa-question-circle"></i> نص السؤال</label>
           <textarea class="form-control q-text" rows="2" placeholder="اكتب السؤال الديني هنا..." oninput="syncQ(${i}, 'question', this.value)">${q.question}</textarea>
         </div>
-
         <div class="form-group">
           <label class="form-label"><i class="fas fa-list-ul"></i> الخيارات الأربعة</label>
           <div class="options-grid">
@@ -884,7 +1032,6 @@ function renderQuestions() {
             `).join('')}
           </div>
         </div>
-
         <div class="form-group">
           <label class="form-label"><i class="fas fa-check-circle"></i> الإجابة الصحيحة</label>
           <div class="correct-answer-row">
@@ -897,26 +1044,17 @@ function renderQuestions() {
             `).join('')}
           </div>
         </div>
-
         <div class="form-group explanation-area">
           <label class="form-label"><i class="fas fa-lightbulb"></i> شرح الإجابة (اختياري)</label>
           <textarea class="form-control exp-input" rows="2" placeholder="اكتب شرحاً مختصراً للإجابة الصحيحة..." oninput="syncQ(${i}, 'explanation', this.value)">${q.explanation}</textarea>
         </div>
-
       </div>
     </div>
   `).join('');
 }
 
-function syncQ(idx, field, val) {
-  if (questions[idx]) questions[idx][field] = val;
-  updateStats();
-}
-
-function syncOpt(idx, oi, val) {
-  if (questions[idx]) questions[idx].options[oi] = val;
-  updateStats();
-}
+function syncQ(idx, field, val) { if (questions[idx]) questions[idx][field] = val; updateStats(); }
+function syncOpt(idx, oi, val) { if (questions[idx]) questions[idx].options[oi] = val; updateStats(); }
 
 function moveUp(idx) {
   if (idx <= 0) return;
@@ -924,33 +1062,23 @@ function moveUp(idx) {
   renderQuestions();
 }
 
-// ─── Save ──
 async function saveQuiz() {
   const data = getFormData();
-
-  // Validate
   for (let i = 0; i < data.length; i++) {
     const q = data[i];
     if (!q.question) return showToast(`❌ السؤال ${i+1} فاضي`, 'error');
-    const emptyOpts = q.options.filter(o => !o).length;
-    if (emptyOpts > 0) return showToast(`❌ السؤال ${i+1} فيه خيارات فاضية`, 'error');
+    if (q.options.filter(o => !o).length > 0) return showToast(`❌ السؤال ${i+1} فيه خيارات فاضية`, 'error');
   }
-
   showLoading('جاري الإضافة لبنك الأسئلة...');
-
   try {
     const res = await fetch(`${API_BASE}/api/v1/quiz/bank`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${AUTH_TOKEN}`
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${AUTH_TOKEN}` },
       body: JSON.stringify({ questions: data })
     });
-
     if (res.ok) {
       lastSaved = new Date();
-      questions = []; // تفريغ بعد النجاح
+      questions = [];
       renderQuestions();
       addQuestion();
       updateStats();
@@ -960,30 +1088,21 @@ async function saveQuiz() {
       const err = await res.json();
       showToast(err.message || 'فشل الحفظ', 'error');
     }
-  } catch {
-    showToast('فشل الاتصال بالسيرفر', 'error');
-  }
-
+  } catch { showToast('فشل الاتصال بالسيرفر', 'error'); }
   hideLoading();
 }
 
-// ─── Helpers 
 function updateStats() {
   const data = questions;
   const total = data.length;
-  const complete = data.filter(q =>
-    q.question && q.options.every(o => o)
-  ).length;
+  const complete = data.filter(q => q.question && q.options.every(o => o)).length;
   const pct = total === 0 ? 0 : Math.round((complete / total) * 100);
-
   document.getElementById('statQCount').textContent = total;
   document.getElementById('statComplete').textContent = pct + '%';
   document.getElementById('statSaved').textContent = lastSaved
-    ? lastSaved.toLocaleTimeString('ar-EG', { hour:'2-digit', minute:'2-digit' })
-    : '—';
+    ? lastSaved.toLocaleTimeString('ar-EG', { hour:'2-digit', minute:'2-digit' }) : '—';
   document.getElementById('statStatus').textContent = pct === 100 ? 'جاهز للإرسال' : 'مسودة';
   document.getElementById('maxLabel').textContent = document.getElementById('maxQCount').value;
-
   const max = parseInt(document.getElementById('maxQCount').value);
   document.getElementById('addQBtn').style.display = total >= max ? 'none' : 'flex';
 }
@@ -998,47 +1117,21 @@ function clearAll() {
 
 function loadTemplate() {
   questions = [
-    {
-      question: 'كم عدد أركان الإسلام؟',
-      options: ['أربعة', 'خمسة', 'ستة', 'سبعة'],
-      correctAnswer: 1,
-      explanation: 'أركان الإسلام خمسة: الشهادتان، والصلاة، والزكاة، والصوم، والحج.'
-    },
-    {
-      question: 'ما هي أول سورة نزلت من القرآن الكريم؟',
-      options: ['الفاتحة', 'البقرة', 'العلق', 'المدثر'],
-      correctAnswer: 2,
-      explanation: 'أول ما نزل من القرآن الكريم هو الآيات الأولى من سورة العلق (اقرأ باسم ربك الذي خلق).'
-    },
-    {
-      question: 'في أي شهر فُرض صيام رمضان؟',
-      options: ['السنة الأولى', 'السنة الثانية', 'السنة الثالثة', 'السنة الرابعة'],
-      correctAnswer: 1,
-      explanation: 'فُرض صيام رمضان في السنة الثانية من الهجرة.'
-    },
-    {
-      question: 'ما هو اسم والد النبي إبراهيم عليه السلام؟',
-      options: ['عمران', 'آزر', 'تارح', 'ناحور'],
-      correctAnswer: 1,
-      explanation: 'اسم والد إبراهيم عليه السلام هو آزر كما ذكر في القرآن الكريم.'
-    },
-    {
-      question: 'كم مرة ذُكرت كلمة "الصلاة" في القرآن الكريم تقريباً؟',
-      options: ['57 مرة', '67 مرة', '77 مرة', '99 مرة'],
-      correctAnswer: 2,
-      explanation: 'ذُكرت الصلاة في القرآن الكريم نحو 77 مرة مما يدل على أهميتها في الإسلام.'
-    }
+    { question:'كم عدد أركان الإسلام؟', options:['أربعة','خمسة','ستة','سبعة'], correctAnswer:1, explanation:'أركان الإسلام خمسة: الشهادتان، والصلاة، والزكاة، والصوم، والحج.' },
+    { question:'ما هي أول سورة نزلت من القرآن الكريم؟', options:['الفاتحة','البقرة','العلق','المدثر'], correctAnswer:2, explanation:'أول ما نزل من القرآن الكريم هو الآيات الأولى من سورة العلق.' },
+    { question:'في أي شهر فُرض صيام رمضان؟', options:['السنة الأولى','السنة الثانية','السنة الثالثة','السنة الرابعة'], correctAnswer:1, explanation:'فُرض صيام رمضان في السنة الثانية من الهجرة.' },
+    { question:'ما هو اسم والد النبي إبراهيم عليه السلام؟', options:['عمران','آزر','تارح','ناحور'], correctAnswer:1, explanation:'اسم والد إبراهيم عليه السلام هو آزر كما ذكر في القرآن الكريم.' },
+    { question:'كم مرة ذُكرت كلمة "الصلاة" في القرآن الكريم تقريباً؟', options:['57 مرة','67 مرة','77 مرة','99 مرة'], correctAnswer:2, explanation:'ذُكرت الصلاة في القرآن الكريم نحو 77 مرة.' }
   ];
   renderQuestions();
   updateStats();
   showToast('✅ تم تحميل قالب الـ 5 أسئلة');
 }
 
-// ─── Preview 
+// ─── Preview ───
 function openPreview() {
   const data = getFormData();
   if (data.length === 0) return showToast('لا توجد أسئلة للمعاينة', 'warning');
-
   const body = document.getElementById('previewBody');
   body.innerHTML = data.map((q, i) => `
     <div class="preview-q">
@@ -1054,22 +1147,250 @@ function openPreview() {
       ${q.explanation ? `<div style="margin-top:10px;font-size:0.85rem;color:var(--text-muted);background:white;padding:8px 12px;border-radius:8px;"><i class="fas fa-lightbulb" style="color:var(--gold);margin-left:4px;"></i>${q.explanation}</div>` : ''}
     </div>
   `).join('');
-
   document.getElementById('previewModal').classList.add('active');
 }
 
-function closePreview() {
-  document.getElementById('previewModal').classList.remove('active');
+function closePreview() { document.getElementById('previewModal').classList.remove('active'); }
+
+// ─── EDIT TAB ───
+async function loadEditQuestions() {
+  showLoading('جاري تحميل الأسئلة من البنك...');
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/quiz/bank`, {
+      headers: { Authorization: `Bearer ${AUTH_TOKEN}` }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      allBankQuestions = data.data.questions || data.data || [];
+      currentPage = 1;
+      filterEditQuestions();
+      fetchBankStats();
+      showToast(`✅ تم تحميل ${allBankQuestions.length} سؤال`);
+    } else {
+      showToast('فشل تحميل الأسئلة', 'error');
+    }
+  } catch { showToast('فشل الاتصال بالسيرفر', 'error'); }
+  hideLoading();
 }
 
+function filterEditQuestions() {
+  const search = document.getElementById('editSearchInput').value.trim().toLowerCase();
+  const filter = document.getElementById('editFilterUsed').value;
+
+  filteredQuestions = allBankQuestions.filter(q => {
+    const matchSearch = !search || q.question.toLowerCase().includes(search);
+    const matchFilter = filter === 'all'
+      || (filter === 'unused' && !q.usedAt)
+      || (filter === 'used' && q.usedAt);
+    return matchSearch && matchFilter;
+  });
+
+  currentPage = 1;
+  document.getElementById('editStatFiltered').textContent = filteredQuestions.length;
+  renderEditQuestions();
+}
+
+function renderEditQuestions() {
+  const list = document.getElementById('editQuestionsList');
+  const pagBar = document.getElementById('paginationBar');
+
+  if (filteredQuestions.length === 0) {
+    list.innerHTML = `<div class="empty-state"><i class="fas fa-search"></i><p>${allBankQuestions.length === 0 ? 'اضغط "تحديث القائمة" لتحميل الأسئلة' : 'لا توجد أسئلة تطابق البحث'}</p></div>`;
+    pagBar.style.display = 'none';
+    return;
+  }
+
+  const totalPages = Math.ceil(filteredQuestions.length / PAGE_SIZE);
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = filteredQuestions.slice(start, start + PAGE_SIZE);
+
+  document.getElementById('editStatPage').textContent = currentPage;
+
+  list.innerHTML = pageItems.map((q, idx) => {
+    const globalIdx = start + idx + 1;
+    const isUsed = !!q.usedAt;
+    return `
+      <div class="edit-card">
+        <div class="edit-card-header">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="background:rgba(255,255,255,0.2);padding:3px 10px;border-radius:6px;font-size:0.8rem;">#${globalIdx}</span>
+            <span style="font-family:'Amiri',serif;font-size:0.95rem;max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${q.question}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            ${isUsed ? '<span style="background:rgba(255,255,255,0.15);padding:3px 10px;border-radius:6px;font-size:0.75rem;"><i class="fas fa-check-circle" style="color:#a3e635;margin-left:4px;"></i>مستخدم</span>' : '<span style="background:rgba(255,165,0,0.3);padding:3px 10px;border-radius:6px;font-size:0.75rem;">لم يُستخدم</span>'}
+            <div class="edit-card-actions">
+              <button class="btn btn-warning btn-sm" onclick="openEditModal('${q._id}')">
+                <i class="fas fa-edit"></i> تعديل
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="deleteQuestion('${q._id}', this)">
+                <i class="fas fa-trash"></i> حذف
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="edit-card-body">
+          <div style="font-family:'Amiri',serif;font-size:1.05rem;color:var(--green-dark);line-height:1.7;">${q.question}</div>
+          <div class="options-grid" style="margin-top:4px;">
+            ${(q.options || []).map((opt, oi) => `
+              <div style="padding:8px 12px;border-radius:8px;font-size:0.9rem;border:2px solid ${oi === q.correctAnswer ? 'var(--green-main)' : 'var(--border)'};background:${oi === q.correctAnswer ? 'var(--green-pale)' : 'var(--bg)'};color:${oi === q.correctAnswer ? 'var(--green-dark)' : 'var(--text-muted)'};font-weight:${oi === q.correctAnswer ? '700' : '400'};">
+                <span style="margin-left:6px;">${['أ','ب','ج','د'][oi]}.</span> ${opt}
+                ${oi === q.correctAnswer ? '<i class="fas fa-check" style="float:left;color:var(--green-main);margin-top:2px;"></i>' : ''}
+              </div>
+            `).join('')}
+          </div>
+          ${q.explanation ? `<div style="padding:10px 14px;background:#fffbeb;border-radius:8px;font-size:0.85rem;color:#92400e;border:1px solid #fde68a;"><i class="fas fa-lightbulb" style="color:#f59e0b;margin-left:6px;"></i>${q.explanation}</div>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Pagination
+  if (totalPages > 1) {
+    pagBar.style.display = 'flex';
+    const nums = document.getElementById('pageNumbers');
+    nums.innerHTML = '';
+    for (let p = 1; p <= totalPages; p++) {
+      if (p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1) {
+        const btn = document.createElement('button');
+        btn.className = `page-btn${p === currentPage ? ' active' : ''}`;
+        btn.textContent = p;
+        btn.onclick = () => { currentPage = p; renderEditQuestions(); };
+        nums.appendChild(btn);
+      } else if (Math.abs(p - currentPage) === 2) {
+        const dots = document.createElement('span');
+        dots.textContent = '…';
+        dots.style.cssText = 'color:var(--text-muted);padding:0 4px;line-height:36px;';
+        nums.appendChild(dots);
+      }
+    }
+    document.getElementById('prevPageBtn').disabled = currentPage === 1;
+    document.getElementById('nextPageBtn').disabled = currentPage === totalPages;
+  } else {
+    pagBar.style.display = 'none';
+  }
+}
+
+function changePage(dir) {
+  const total = Math.ceil(filteredQuestions.length / PAGE_SIZE);
+  currentPage = Math.max(1, Math.min(total, currentPage + dir));
+  renderEditQuestions();
+  document.getElementById('editQuestionsList').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ─── Edit Modal ───
+function openEditModal(id) {
+  const q = allBankQuestions.find(q => q._id === id);
+  if (!q) return;
+  editingId = id;
+
+  document.getElementById('editModalBody').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="form-group">
+        <label class="form-label"><i class="fas fa-question-circle"></i> نص السؤال</label>
+        <textarea class="form-control" id="em-question" rows="3" style="resize:vertical;">${q.question}</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label"><i class="fas fa-list-ul"></i> الخيارات الأربعة</label>
+        <div class="options-grid">
+          ${['أ','ب','ج','د'].map((letter, oi) => `
+            <div class="option-input-row">
+              <div class="option-label-badge opt-${['a','b','c','d'][oi]}">${letter}</div>
+              <input type="text" class="form-control em-opt" data-oi="${oi}" value="${q.options[oi] || ''}">
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label"><i class="fas fa-check-circle"></i> الإجابة الصحيحة</label>
+        <div class="correct-answer-row">
+          ${['أ','ب','ج','د'].map((letter, oi) => `
+            <input type="radio" class="correct-radio" name="em_correct" id="em_correct_${oi}" value="${oi}" ${q.correctAnswer === oi ? 'checked' : ''}>
+            <label class="correct-label" for="em_correct_${oi}"><span class="dot"></span> الخيار ${letter}</label>
+          `).join('')}
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label"><i class="fas fa-lightbulb"></i> شرح الإجابة (اختياري)</label>
+        <textarea class="form-control" id="em-explanation" rows="2">${q.explanation || ''}</textarea>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
+        <button class="btn btn-outline" onclick="closeEditModal()">إلغاء</button>
+        <button class="btn btn-gold" onclick="saveEditQuestion()"><i class="fas fa-save"></i> حفظ التعديلات</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('editModal').classList.add('active');
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').classList.remove('active');
+  editingId = null;
+}
+
+async function saveEditQuestion() {
+  const question = document.getElementById('em-question').value.trim();
+  const options = [...document.querySelectorAll('.em-opt')].map(i => i.value.trim());
+  const correctAnswer = parseInt(document.querySelector('input[name="em_correct"]:checked')?.value ?? 0);
+  const explanation = document.getElementById('em-explanation').value.trim();
+
+  if (!question) return showToast('نص السؤال فاضي', 'error');
+  if (options.some(o => !o)) return showToast('في خيارات فاضية', 'error');
+
+  showLoading('جاري حفظ التعديلات...');
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/quiz/bank/${editingId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${AUTH_TOKEN}` },
+      body: JSON.stringify({ question, options, correctAnswer, explanation })
+    });
+    if (res.ok) {
+      // تحديث الكاش المحلي
+      const idx = allBankQuestions.findIndex(q => q._id === editingId);
+      if (idx !== -1) allBankQuestions[idx] = { ...allBankQuestions[idx], question, options, correctAnswer, explanation };
+      filterEditQuestions();
+      closeEditModal();
+      showToast('✅ تم حفظ التعديلات بنجاح');
+    } else {
+      const err = await res.json();
+      showToast(err.message || 'فشل الحفظ', 'error');
+    }
+  } catch { showToast('فشل الاتصال بالسيرفر', 'error'); }
+  hideLoading();
+}
+
+async function deleteQuestion(id, btnEl) {
+  if (!confirm('هل أنت متأكد من حذف هذا السؤال نهائياً؟')) return;
+  btnEl.disabled = true;
+  btnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/quiz/bank/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${AUTH_TOKEN}` }
+    });
+    if (res.ok) {
+      allBankQuestions = allBankQuestions.filter(q => q._id !== id);
+      filterEditQuestions();
+      fetchBankStats();
+      showToast('✅ تم حذف السؤال');
+    } else {
+      showToast('فشل الحذف', 'error');
+      btnEl.disabled = false;
+      btnEl.innerHTML = '<i class="fas fa-trash"></i> حذف';
+    }
+  } catch {
+    showToast('فشل الاتصال بالسيرفر', 'error');
+    btnEl.disabled = false;
+    btnEl.innerHTML = '<i class="fas fa-trash"></i> حذف';
+  }
+}
+
+// ─── Helpers ───
 function showLoading(text = 'جاري التحميل...') {
   document.getElementById('loadingText').textContent = text;
   document.getElementById('loadingOverlay').classList.add('active');
 }
 
-function hideLoading() {
-  document.getElementById('loadingOverlay').classList.remove('active');
-}
+function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
 
 function showToast(msg, type = 'success') {
   const wrap = document.getElementById('toastWrap');
