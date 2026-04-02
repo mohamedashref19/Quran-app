@@ -1940,7 +1940,7 @@ async function renderReciters(recitersList, container) {
     "Mahmoud Khalil Al-Hussary": "/img/reciters/hussary.jpg",
     "Abdelbasset Abdessamad": "/img/reciters/abdelbasset.jpg",
     "Abdelrahman Elzwawy": "/img/reciters/elzwawy.jpg",
-    "Yasser Al-Dosari": "/img/reciters/dosari.jpg", // <-- محتاج تحط صورته هنا
+    "Yasser Al-Dosari": "/img/reciters/dosari.jpg", 
     "Maher Al Muaiqly": "/img/reciters/maher.jpg",
     "Saud Al-Shuraim": "/img/reciters/shuraim.jpg",
     "Mishary Rashid Alafasy": "/img/reciters/mishary.jpg",
