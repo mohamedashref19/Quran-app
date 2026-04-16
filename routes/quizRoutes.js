@@ -5,7 +5,8 @@ const authControllers = require('../controllers/authControllers');
 const router = express.Router();
 
 router.get('/today', quizControllers.getTodayQuiz);
-
+router.post('/leaderboard', quizControllers.submitScore);
+router.get('/leaderboard', quizControllers.getDailyLeaderboard);
 router.use(authControllers.proctect); 
 router.use(authControllers.restrictTO('admin'));
 

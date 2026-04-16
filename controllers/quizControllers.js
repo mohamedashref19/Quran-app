@@ -1,10 +1,16 @@
 const DailyQuiz = require('../models/DailyQuiz');
+const Leaderboard = require('../models/leaderboardModel');
 const QuestionBank = require('../models/QuestionBank');
 const catchAsync = require('../utils/catchAsync');
 
 // ─── 1. جلب مسابقة اليوم (بشكل ذكي وعشوائي) ───
 exports.getTodayQuiz = catchAsync(async (req, res, next) => {
-  const today = new Date().toISOString().split('T')[0];
+   const tz = req.query.tz || 'UTC';
+  
+  // السيرفر يحسب التاريخ بناءً على timezone المستخدم
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: tz });
+  // النتيجة: "2026-04-13" بتوقيت المستخدم الفعلي
+
   let quiz = await DailyQuiz.findOne({ date: today });
 
   if (!quiz) {
@@ -114,4 +120,62 @@ exports.deleteBankQuestion = catchAsync(async (req, res, next) => {
   const deleted = await QuestionBank.findByIdAndDelete(req.params.id);
   if (!deleted) return res.status(404).json({ status: 'fail', message: 'السؤال مش موجود' });
   res.status(200).json({ status: 'success', message: 'تم حذف السؤال بنجاح' });
+});
+
+// 1. تسجيل نتيجة جديدة
+exports.submitScore = catchAsync(async (req, res, next) => {
+  const { name, score, total, date } = req.body;
+
+  if (!name || score === undefined || !total || !date) {
+    return next(new AppError('بيانات غير مكتملة', 400));
+  }
+
+  // حفظ النتيجة في الداتابيز
+  const newEntry = await Leaderboard.create({
+    name,
+    score,
+    total,
+    date
+  });
+
+  res.status(201).json({
+    status: 'success',
+    data: {
+      entry: newEntry
+    }
+  });
+});
+
+// 2. جلب لوحة الشرف ليوم معين
+exports.getDailyLeaderboard = catchAsync(async (req, res, next) => {
+  const { date } = req.query;
+
+  if (!date) {
+    return next(new AppError('يرجى تحديد التاريخ', 400));
+  }
+
+  // نجيب أفضل 10 متسابقين لليوم ده
+  // الترتيب: -score (الأعلى أولاً)، ثم createdAt (الأقدم/الأسرع أولاً في حالة التعادل)
+  const leaders = await Leaderboard.find({ date })
+    .sort({ score: -1, createdAt: 1 })
+    .limit(10)
+    .select('name score total createdAt -_id'); // بنجيب الحقول دي بس عشان نوفر داتا
+
+  // تنسيق الوقت عشان يظهر للفرونت إيند زي (10:00 ص)
+  const formattedLeaders = leaders.map(leader => {
+    return {
+      name: leader.name,
+      score: leader.score,
+      total: leader.total,
+      time: leader.createdAt.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
+    };
+  });
+
+  res.status(200).json({
+    status: 'success',
+    results: formattedLeaders.length,
+    data: {
+      leaders: formattedLeaders
+    }
+  });
 });

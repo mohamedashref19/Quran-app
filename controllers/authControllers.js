@@ -96,12 +96,66 @@ exports.login = catchAsync(async (req, res, next) => {
     return next(new AppError("البريد الإلكتروني أو كلمة المرور خاطئة", 401));
   }
   if (!user.verified) {
-    return next(new AppError("يرجى التحقق من بريدك الإلكتروني أولاً", 401));
+    return res.status(403).json({
+      status: "fail",
+      message: "حسابك غير مفعل، يرجى إدخال كود التحقق.",
+      actionRequired: "VERIFY_OTP", 
+      email: user.email 
+    });
   }
 
   createandsentToken(user, 200, res);
 });
 
+exports.resendOTP = catchAsync(async (req, res, next) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return next(new AppError("يرجى توفير البريد الإلكتروني", 400));
+  }
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    return next(new AppError("لا يوجد مستخدم بهذا البريد الإلكتروني", 404));
+  }
+
+  if (user.verified) {
+    return res.status(400).json({
+      status: "fail",
+      message: "هذا الحساب مفعل بالفعل، يمكنك تسجيل الدخول."
+    });
+  }
+
+  // ١. توليد OTP مكون من 6 أرقام
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  
+  // ٢. حفظ الكود في قاعدة البيانات
+  user.otp = otp; 
+  user.otpExpires = Date.now() + 10 * 60 * 1000; 
+  await user.save({ validateBeforeSave: false });
+
+  // ٣. إرسال الكود عبر الإيميل
+  try {
+    // 🌟 تم التعديل هنا: استخدام sendOTP الموجودة في كلاس Email
+    await new Email(user, "").sendOTP(otp);
+    
+    res.status(200).json({
+      status: "success",
+      message: "تم إرسال كود تحقق جديد إلى بريدك الإلكتروني",
+      email: user.email,
+    });
+  } catch (err) {
+    console.error("--- 📧 EMAIL SENDING FAILED! ---", err);
+    
+    // تصفير البيانات في حال فشل الإرسال حتى لا يبقى كود وهمي في الداتابيز
+    user.otp = undefined;
+    user.otpExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+    
+    return next(new AppError("حدث خطأ في الخادم أثناء إرسال البريد الإلكتروني، يرجى المحاولة لاحقاً", 500));
+  }
+});
 exports.proctect = catchAsync(async (req, res, next) => {
   let token;
   if (
