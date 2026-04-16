@@ -18,6 +18,7 @@ const khatmahRoutes = require("./routes/khatmahRoutes")
 const prayerRoutes = require("./routes/prayerRoutes")
 const viewRoutes = require("./routes/viewRoutes")
 const quizRoutes = require('./routes/quizRoutes');
+const radioRoutes = require('./routes/radioRoutes');
 const AppError = require("./utils/appError");
 const globalErrorHandler = require("./controllers/errorControllers");
 
@@ -95,6 +96,7 @@ app.use(
           "https:", 
           "data:", 
           "blob:",
+          "https://audio.aqraapp.com",
           "https://*.mp3quran.net",
           "https://everyayah.com",        
           "https://archive.org",          
@@ -103,12 +105,17 @@ app.use(
           "https://*.radiojar.com",
           "https://qurango.net",
           "https://*.qurango.net",
-          "https://*.r2.dev"
+          "https://*.r2.dev",
+          "https://*.holol.com",
+          "https://*.itworkscdn.net",
+           "https://*.akamaized.net",
+  "https://*.edgenextcdn.net"
         ], 
         
         connectSrc: [
           "'self'",
            "data:",
+           "https://audio.aqraapp.com",
             "https://static.cloudflareinsights.com", 
           "https://aqraapp.com",
           "https://www.aqraapp.com",
@@ -138,12 +145,16 @@ app.use(
           "http://localhost",
           "ws://127.0.0.1:*", 
           "http://127.0.0.1:3000",
-          "https://*.r2.dev"
+          "https://*.r2.dev",
+          "https://*.holol.com",
+          "https://*.itworkscdn.net",
+           "https://*.akamaized.net",
+  "https://*.edgenextcdn.net"
         ],
         
         workerSrc: ["'self'", "blob:"], 
         childSrc: ["blob:"],
-        frameSrc: ["'none'"],   
+        frameSrc: ["'self'", "https://www.youtube.com"],   
         objectSrc: ["'none'"],
       },
     },
@@ -237,6 +248,7 @@ app.use("/api/v1/audio", audioRoutes);
 app.use("/api/v1/khatmah", khatmahRoutes); 
 app.use("/api/v1/prayers", prayerRoutes); 
 app.use('/api/v1/quiz', quizRoutes);
+app.use('/api/v1/radio', radioRoutes);
 
 // 10. Handle Unhandled Routes
 app.all(/(.*)/, (req, res, next) => {

@@ -11,7 +11,10 @@
             "api.alquran.cloud",
             "everyayah.com",
             "*.radiojar.com",
-            "*.qurango.net"
+            "*.qurango.net",
+            "*.holol.com",
+      "*.itworkscdn.net",
+      "*.akamaized.net"
         ]
     },
     "plugins": {

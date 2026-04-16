@@ -9,12 +9,40 @@ export const showAlert = (type, msg) => {
   window.setTimeout(() => { const alert = document.querySelector('.alert'); if (alert) alert.remove(); }, 3000);
 };
 
+export const resendOTP = async (emailToResend) => {
+  try {
+    let email = emailToResend;
+    
+    // إذا لم يتم تمرير إيميل، نحاول استرجاعه من التخزين المؤقت
+    if (!email) {
+      if (Capacitor.isNativePlatform()) {
+        const stored = await Preferences.get({ key: 'verify_email' });
+        email = stored.value;
+      } else {
+        email = sessionStorage.getItem('verify_email');
+      }
+    }
+
+    if (!email) {
+      showAlert('error', 'لا يوجد بريد إلكتروني مسجل لإرسال الكود');
+      return;
+    }
+
+    const res = await axios({ method: 'POST', url: '/api/v1/users/resendOTP', data: { email } });
+    if (res.data.status === 'success') {
+      showAlert('success', 'تم إرسال كود تحقق جديد إلى بريدك الإلكتروني!');
+    }
+  } catch (err) {
+    showAlert('error', err.response?.data?.message || 'خطأ في إعادة إرسال الكود');
+  }
+};
+
 export const login = async (email, password) => {
   try {
     const res = await axios({ method: 'POST', url: '/api/v1/users/login', data: { email, password } });
     const token = res.data.token;
 
-   if (token) {
+    if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
       if (Capacitor.isNativePlatform()) {
@@ -43,7 +71,36 @@ export const login = async (email, password) => {
       }, 1000);
     }
   } catch (err) {
-    showAlert('error', err.response?.data?.message || 'خطأ في تسجيل الدخول');
+    // 🌟 التعديل هنا: التقاط حالة الحساب غير المفعل (403)
+    if (err.response?.status === 403 && err.response?.data?.actionRequired === "VERIFY_OTP") {
+      const pendingEmail = err.response.data.email || email;
+
+      // 1. حفظ الإيميل مؤقتاً للخطوات القادمة
+      if (Capacitor.isNativePlatform()) {
+        Preferences.set({ key: 'verify_email', value: pendingEmail });
+      } else {
+        sessionStorage.setItem('verify_email', pendingEmail);
+      }
+
+      showAlert('warning', 'حسابك غير مفعل، سيتم تحويلك لإدخال كود التحقق.');
+
+      // 2. إرسال كود جديد تلقائياً
+      resendOTP(pendingEmail);
+
+      // 3. توجيه المستخدم لصفحة التحقق
+      window.setTimeout(() => {
+        if (Capacitor.isNativePlatform()) {
+          const emailInput = document.getElementById('verify-email');
+          if (emailInput) emailInput.value = pendingEmail;
+          window.showSection('verify-otp');
+        } else {
+          location.assign('/verify-otp.html');
+        }
+      }, 2000);
+
+    } else {
+      showAlert('error', err.response?.data?.message || 'خطأ في تسجيل الدخول');
+    }
   }
 };
 
@@ -52,6 +109,14 @@ export const signup = async (name, email, password, passwordConfirm) => {
     const res = await axios({ method: 'POST', url: '/api/v1/users/signup', data: { name, email, password, passwordConfirm } });
     if (res.data.status === 'success') {
       showAlert('success', 'تم إنشاء الحساب! تفقد بريدك لتفعيل الحساب.');
+      
+      // 🌟 التعديل هنا: حفظ الإيميل مؤقتاً عشان لو طلب إعادة إرسال الكود
+      if (Capacitor.isNativePlatform()) {
+        await Preferences.set({ key: 'verify_email', value: email });
+      } else {
+        sessionStorage.setItem('verify_email', email);
+      }
+
       window.setTimeout(() => {
         if (Capacitor.isNativePlatform()) {
           const emailInput = document.getElementById('verify-email');
@@ -69,9 +134,27 @@ export const signup = async (name, email, password, passwordConfirm) => {
 
 export const verifyOTP = async (email, otp) => {
   try {
+    // محاولة جلب الإيميل من التخزين إذا لم يتم تمريره مباشرة
+    if (!email) {
+      if (Capacitor.isNativePlatform()) {
+        const stored = await Preferences.get({ key: 'verify_email' });
+        email = stored.value;
+      } else {
+        email = sessionStorage.getItem('verify_email');
+      }
+    }
+
     const res = await axios({ method: 'POST', url: '/api/v1/users/verifyOTP', data: { email, otp } });
     if (res.data.status === 'success') {
       showAlert('success', 'تم التفعيل!');
+      
+      // تنظيف الإيميل المؤقت
+      if (Capacitor.isNativePlatform()) {
+        Preferences.remove({ key: 'verify_email' });
+      } else {
+        sessionStorage.removeItem('verify_email');
+      }
+
       window.setTimeout(() => {
         if (Capacitor.isNativePlatform()) {
           window.showSection('login');
@@ -210,10 +293,8 @@ export const forgotPassword = async (email) => {
       window.setTimeout(() => {
         if (Capacitor.isNativePlatform()) {
           window.showSection('reset-password');
-
         } else {
           location.assign('/reset-password.html');
-
         }
       }, 1500);
     }

@@ -7,7 +7,7 @@
     --gold: #d4af37;
     --dark-text: #2c3e50;
     --light-bg: #f8f9fa;
-    --quran-bg-image: url('/img/cream-paper2.png');
+    --quran-bg-image: url('/img/back.png');
     --quran-border-color: #d4af37;
 
 }
@@ -24,7 +24,6 @@ body {
     background-color: #f8f9fa;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     overflow-x: hidden;
- padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 /* =========================================
@@ -67,20 +66,20 @@ body {
    3. حاوية المصحف (Quran Container)
    ========================================= */
 #ayahs-container {
-    background-color: #fff;
+    background-color:  #fff;
     background-image: url('https://www.transparenttextures.com/patterns/cream-paper.png');
     padding: 50px;
     border: 1px solid #dcdcdc;
-    /* تأثير الكتاب */
     border-right: 5px solid #eee; 
     border-left: 2px solid #eee;
     box-shadow: 0 10px 30px rgba(0,0,0,0.08) !important;
     border-radius: 8px;
     position: relative;
-    min-height: 600px;
+        min-height: 600px;
     margin-top: 30px;
     margin-bottom: 50px;
 }
+
 
 /* إطار داخلي جمالي */
 #ayahs-container::before {
@@ -124,27 +123,44 @@ body {
     background-color: rgba(30, 95, 49, 0.08);
 }
 
-/* رقم الآية والأيقونات */
+/* 🔥 إصلاح استقامة العلامات (الختمة والمرجعية) لمنع كسر السطر 🔥 */
 .ayah-end-wrapper {
-    display: inline-flex;
-    align-items: center;
-    white-space: nowrap; /* منع فصل الرقم عن الأيقونة */
-    margin: 0 5px;
-    user-select: none;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    vertical-align: baseline !important;
+    white-space: nowrap !important;
+    margin: 0 5px !important;
+    user-select: none !important;
+    pointer-events: none !important; /* يمنع اللمس المباشر على الأيقونات */
+     line-height: normal !important;
+}
+/* 🔥 منع العلامات من تعطيل أحداث السحب (Touch Events) 🔥 */
+.ayah-end-wrapper, 
+.ayah-end-wrapper * {
+    pointer-events: none !important; /* يمنع اللمس على الأيقونات نفسها */
+}
+
+/* لضمان استمرار عمل الضغط على الآية (لتسجيل العلامة)، نضمن أن الغلاف الأساسي يقبل اللمس */
+.verse-wrapper {
+    pointer-events: auto !important;
 }
 
 .ayah-end-symbol {
-    font-family: sans-serif;
-    font-size: 0.75em !important;
-    color: var(--gold);
-    border: 1px solid var(--gold);
-    border-radius: 50%;
-    width: 30px;
-    height: 30px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    margin-left: 5px;
+    font-family: Arial, Helvetica, sans-serif !important; /* خط حديث لضبط الأرقام */
+    font-size: 0.7em !important; /* حجم نسبي ليتناسب مع التكبير والتصغير */
+    color: #d4af37 !important; /* لون ذهبي */
+    border: 1.5px solid #d4af37 !important;
+    border-radius: 50% !important;
+    width: 2.1em !important;
+    height: 2.1em !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding-top: 1px !important; /* ضبط توسيط الأرقام العربية بصرياً */
+    margin: 0 2px !important;
+    line-height: 1 !important; /* يمنع هبوط الرقم للأسفل */
+    background-color: transparent !important;
 }
 
 /* =========================================
@@ -766,8 +782,7 @@ footer {
 .quran-container {
     font-family: 'Amiri', serif;
     direction: rtl;
-    text-align: justify;
-    text-align-last: center;
+    text-align: center;
     line-height: 2.8;
     font-size: 32px;
     background-color: #ffffff;
@@ -848,29 +863,56 @@ footer {
     --input-text: #fff;
     --quran-bg-image: url('/img/dark-paper.png');
     --quran-border-color: #555;
-    /* تعديل لون الجولد ليكون أسطع */
-    --gold: #f1c40f;            
+    --gold: #f1c40f;
+    --ayahs-bg: #1a1a1a;
+}
+
+/* إجبار html وكل المساحات على الـ dark bg */
+/* data-theme بيتحط على body — فنحتاج body[data-theme] مش [data-theme] html */
+body[data-theme="dark"],
+body[data-theme="dark"] ~ *,
+[data-theme="dark"] html,
+html[data-theme="dark"] {
+    background-color: #121212 !important;
+}
+
+/* إجبار html على نفس لون الـ body في dark mode */
+body[data-theme="dark"] {
+    background-color: #121212 !important;
+}
+
+/* الحيلة: نخلي html يورث من body */
+html:has(body[data-theme="dark"]) {
+    background-color: #121212 !important;
 }
 
 /* =========================================
    9. إعدادات الـ Body وتطبيق المتغيرات (دعم iOS Notch)
    ========================================= */
+html {
+    min-height: 100%;
+    background-color: var(--bg-color, #f8f9fa);
+}
+
+html, body {
+    background-color: var(--bg-color, #f8f9fa) !important;
+}
+
 body {
     margin-top: 0 !important;
     overflow-x: hidden;
-    font-family: 'Tajawal', 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* يفضل استخدام الخطوط العربية اللي حملتها الأول */
+    font-family: 'Tajawal', 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     
-    /* 🌟 دعم الـ Safe Area للآيفون من جميع الاتجاهات 🌟 */
+    /* 🌟 دعم الـ Safe Area للآيفون 🌟 */
     padding-top: env(safe-area-inset-top, 0px) !important;
     padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
     padding-left: env(safe-area-inset-left, 0px) !important;
     padding-right: env(safe-area-inset-right, 0px) !important;
 
-    /* المتغيرات والتأثيرات (الوضع الليلي والنهاري) */
+    /* المتغيرات والتأثيرات */
     background-color: var(--bg-color, #f8f9fa) !important;
     color: var(--text-color, #333) !important;
     transition: background-color 0.3s ease, color 0.3s ease;
-    background-clip: padding-box !important;
 }
 
 /* العناوين والنصوص المهمة */
@@ -1468,10 +1510,12 @@ test*/
 }
 
 /* ─── تحسين رقم الآية في الدارك مود ─── */
-[data-theme="dark"] .ayah-end-symbol {
+/* الوضع الليلي للدائرة الذهبية */
+[data-theme="dark"] .ayah-end-symbol,
+[data-reading="night"] .ayah-end-symbol {
     color: #f1c40f !important;
     border-color: #f1c40f !important;
-    background-color: rgba(241, 196, 15, 0.08);
+    background-color: rgba(241, 196, 15, 0.08) !important;
 }
 
 /* ─── إصلاح لون الـ blur (الكلمات المخفية في وضع الحفظ) ─── */
@@ -1487,6 +1531,12 @@ test*/
 }
 
 /* ─── إصلاح النص جوّا المصحف (span, .ayah-clickable) ─── */
+[data-theme="dark"] #ayahs-container,
+[data-reading="night"] #ayahs-container {
+    background-color: #1a1a1a !important;
+    background-image: none !important;
+    border-color: #333 !important;
+}
 [data-theme="dark"] #ayahs-container span,
 [data-theme="dark"] #ayahs-container .ayah-clickable,
 [data-theme="dark"] .quran-text span {
@@ -1980,4 +2030,1470 @@ p.zikr-text {
     font-weight: bold;
     border-radius: 4px;
     padding: 0 2px;
+}
+
+/* =========================================
+   ─── Swipe Flash Animation (تقليب سريع) ───
+   ========================================= */
+
+/* أنيميشن فوري يحس المستخدم إن الجهاز استجاب */
+@keyframes _swipe-left {
+  0%   { transform: translateX(0);    opacity: 1; }
+  40%  { transform: translateX(-18px); opacity: 0.6; }
+  100% { transform: translateX(0);    opacity: 1; }
+}
+@keyframes _swipe-right {
+  0%   { transform: translateX(0);    opacity: 1; }
+  40%  { transform: translateX(18px);  opacity: 0.6; }
+  100% { transform: translateX(0);    opacity: 1; }
+}
+
+#quran-book.swipe-left-flash {
+  animation: _swipe-left 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  will-change: transform, opacity;
+}
+#quran-book.swipe-right-flash {
+  animation: _swipe-right 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  will-change: transform, opacity;
+}
+
+/* تسريع rendering للمصحف في وضع الشاشة الكاملة */
+body.fullscreen-reading #quran-book {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* ======================================================
+   ─── Horizontal Swipe Navigation (THE FINAL FIX V8) ───────
+   ====================================================== */
+
+body.swipe-nav-active {
+    overscroll-behavior-y: none;
+}
+
+/* 🔥 الشاشة الكاملة 🔥 */
+body.fullscreen-reading div#quran-book {
+    overflow: hidden !important;
+    display: block !important; 
+    height: 100dvh !important; 
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+}
+
+/* في وضع المصحف المصور (fullscreen): إخفاء حاوية النص وإظهار حاوية الصور */
+body.fullscreen-reading.swipe-nav-active div#ayahs-container,
+body.fullscreen-reading div#ayahs-container {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+/* إخفاء زر الترويج ومنطقة التحكم العائمة في fullscreen */
+body.fullscreen-reading #image-mushaf-promo {
+    display: none !important;
+}
+
+/* إخفاء أزرار التحكم العائمة (خروج + وضع ليلي) في المصحف العادي */
+body:not(.fullscreen-reading) #quran-floating-controls {
+    display: none !important;
+}
+
+/* في الوضع العادي: إخفاء حاوية الصور وإظهار حاوية النص */
+body:not(.fullscreen-reading) div#quran-pages-track-wrapper {
+    display: none !important;
+}
+
+/* ── إجبار المصحف الأساسي على عدم التمدد أو الانكماش ── */
+div#quran-book {
+    width: 100% !important; 
+    box-sizing: border-box !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+}
+
+/* ── حاوية التقليب - في الوضع العادي تأخذ ارتفاع معقول ── */
+div#quran-pages-track-wrapper {
+    /* 🔥 في الوضع العادي: ارتفاع يناسب المحتوى وليس الشاشة كاملة 🔥 */
+    width: 100% !important; 
+    max-width: 100% !important;
+    height: calc(100vh - 190px) !important; 
+    min-height: 60vh !important;
+    overflow: hidden !important; 
+    position: relative;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    touch-action: pan-y !important; 
+    box-sizing: border-box !important;
+    /* في الوضع العادي: لا تخرج من حدود quran-book */
+    display: none !important;
+}
+
+/* الشاشة الكاملة تأخذ 100vw بأمان - وتُظهر الـ wrapper */
+body.fullscreen-reading div#quran-pages-track-wrapper {
+    display: block !important;
+    height: 100dvh !important; 
+    min-height: 100dvh !important;
+    width: 100vw !important; 
+    max-width: 100vw !important;
+}
+
+div#quran-pages-track {
+    display: flex;
+    flex-wrap: nowrap !important;
+    flex-direction: row-reverse; 
+    align-items: flex-start; 
+    width: 100% !important;
+    height: 100% !important;
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    will-change: transform;
+    box-sizing: border-box !important;
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+}
+
+div#quran-pages-track.no-transition {
+    transition: none !important;
+}
+
+/* ── تصميم الورقة (الصفحة) ── */
+.quran-swipe-page {
+    flex: 0 0 100% !important; 
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100%; 
+    margin: 0 !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+    
+    overflow-y: auto !important; 
+    overflow-x: hidden !important; 
+    scrollbar-width: none !important; 
+    -ms-overflow-style: none !important; 
+    
+    /* 🔥 الحل لمشكلة تغطية الـ Header: زيادة الـ padding العُلوي بشكل كبير 🔥 */
+    /* padding: 80px 10px 40px 10px !important;  */
+    /* flex-direction: column !important; */
+    display: flex !important;
+    justify-content: flex-start !important; 
+    -webkit-user-select: none;
+    user-select: none;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+.quran-swipe-page::-webkit-scrollbar {
+    display: none !important; 
+}
+
+/* في الشاشة الكاملة، الـ Header قد يكون أكبر، نزيد المساحة أكثر */
+/* body.fullscreen-reading .quran-swipe-page {
+    padding-top: 95px !important; 
+    padding-bottom: 50px !important;
+} */
+
+/* 🔥 1. في الوضع العادي: إلغاء التوسيط لتبدأ كل الصفحات من الأعلى بشكل متزن 🔥 */
+.quran-swipe-page[data-page="1"],
+.quran-swipe-page[data-page="2"] {
+    justify-content: flex-start !important;
+}
+/* .quran-swipe-page[data-page="1"] .swipe-page-content,
+.quran-swipe-page[data-page="2"] .swipe-page-content {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+} */
+
+/* 🔥 2. في وضع الشاشة الكاملة فقط: تفعيل التوسيط الملكي لصفحة 1 و 2 🔥 */
+body.fullscreen-reading .quran-swipe-page[data-page="1"],
+body.fullscreen-reading .quran-swipe-page[data-page="2"] {
+    justify-content: center !important;
+}
+/* body.fullscreen-reading .quran-swipe-page[data-page="1"] .swipe-page-content,
+body.fullscreen-reading .quran-swipe-page[data-page="2"] .swipe-page-content {
+    margin-top: auto !important;
+    margin-bottom: auto !important;
+} */
+
+/* ── تنسيق الآيات (مُحدث لمنع التآكل من الأطراف) ── */
+/* .swipe-page-content {
+    display: block !important; 
+    flex-shrink: 0 !important; 
+    font-family: 'Amiri', serif !important;
+    font-size: min(5.5vw, 3.2dvh, 26px) !important; 
+    line-height: 1.7 !important; 
+    direction: rtl;
+    text-align: center !important; 
+    text-align-last: center !important; 
+    word-spacing: 0px !important; 
+    letter-spacing: normal !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important; 
+    
+
+    padding: 0 18px !important; 
+    box-sizing: border-box !important;
+} */
+
+/* ── رقم الصفحة ── */
+/* .swipe-page-num {
+    flex-shrink: 0 !important;
+    margin-top: auto !important; 
+    padding-top: 15px !important;
+    text-align: center !important;
+    font-size: 1.1rem !important;
+    color: var(--main-green) !important;
+    font-family: sans-serif !important;
+    font-weight: bold !important;
+} */
+
+/* 🔥 منع أي تفاعل مع النص أثناء التقليب (يسرع الأداء جداً) 🔥 */
+body.swipe-nav-active .quran-swipe-page {
+    pointer-events: none; /* نوقف اللمس على النص مؤقتاً */
+}
+body.swipe-nav-active .quran-swipe-page.active-page {
+    pointer-events: auto; /* نرجعه للصفحة الحالية بس */
+}
+
+/* ======================================================
+   ─── Surah Header (Pro Islamic Style) ───────
+   ====================================================== */
+/* .surah-name-frame {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 290px;
+    padding: 8px 50px 16px 50px; 
+    margin: 10px auto 20px auto;
+    
+   
+    background: linear-gradient(to right, rgba(212, 175, 55, 0.02), rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.02));
+    border-top: 2px solid var(--gold, #d4af37);
+    border-bottom: 2px solid var(--gold, #d4af37);
+    border-radius: 8px; 
+} */
+
+/* الخطوط المنقطة الداخلية لزيادة الفخامة (مستوحى من طباعة المصاحف) */
+/* .surah-name-frame-inner {
+    position: absolute;
+    top: 4px; bottom: 4px; left: 0; right: 0;
+    border-top: 1px dashed var(--gold, #d4af37);
+    border-bottom: 1px dashed var(--gold, #d4af37);
+    opacity: 0.6;
+    pointer-events: none;
+} */
+
+/* span.surah-title-text, 
+div.surah-name-frame span.surah-title-text { 
+    font-family: 'Amiri', serif !important;
+    font-size: 1.9rem !important;
+    font-weight: bold !important;
+    color: var(--main-green, #1e5f31) !important;
+    position: relative;
+    z-index: 2;
+} */
+
+/* الزخرفة الجانبية */
+/* .surah-name-frame::before, 
+.surah-name-frame::after {
+    content: '❁'; 
+    position: absolute;
+    top: 55%;
+    transform: translateY(-50%);
+    color: var(--gold, #d4af37);
+    font-size: 1.6rem;
+}
+.surah-name-frame::before { right: 15px; }
+.surah-name-frame::after { left: 15px; } */
+
+/* ─── دائرة عدد الآيات المزدوجة ─── */
+/* .surah-ayah-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: 2px dotted var(--gold, #d4af37); 
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.95);
+    margin-right: 20px;
+    position: relative;
+    z-index: 2;
+} */
+
+/* الدائرة المتصلة الخارجية */
+/* .surah-ayah-badge::before {
+    content: '';
+    position: absolute;
+    top: -4px; bottom: -4px; left: -4px; right: -4px;
+    border: 1px solid var(--gold, #d4af37);
+    border-radius: 50%;
+    opacity: 0.8;
+} */
+
+/* .ayah-count-num {
+    font-family: sans-serif;
+    font-size: 0.85rem; 
+    font-weight: bold;
+    color: var(--main-green, #1e5f31);
+    margin-top: 4px;
+    line-height: 1;
+} */
+
+/* .ayah-count-label {
+    font-size: 0.65rem; 
+    color: var(--gold, #d4af37);
+    line-height: 1;
+    margin-top: 2px;
+} */
+
+/* ======================================================
+   ─── Dark Mode Support (دعم الوضع الليلي) ───────
+   ====================================================== */
+/* body.dark-mode .surah-name-frame {
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.2), rgba(212, 175, 55, 0.08), rgba(0, 0, 0, 0.2));
+    border-top-color: #aa8623;
+    border-bottom-color: #aa8623;
+}
+
+body.dark-mode span.surah-title-text, 
+body.dark-mode div.surah-name-frame span.surah-title-text {
+    color: #ffffff !important; 
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9) !important;
+}
+
+body.dark-mode .surah-name-frame-inner {
+    border-top-color: #aa8623;
+    border-bottom-color: #aa8623;
+    opacity: 0.4;
+}
+
+body.dark-mode .surah-name-frame::before, 
+body.dark-mode .surah-name-frame::after {
+    color: #aa8623;
+}
+
+body.dark-mode .surah-ayah-badge {
+    background-color: #1a221d;
+    border-color: #aa8623;
+}
+
+body.dark-mode .surah-ayah-badge::before {
+    border-color: #aa8623;
+}
+
+body.dark-mode .ayah-count-num {
+    color: #ffffff; 
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+body.dark-mode .ayah-count-label {
+    color: #aa8623;
+} */
+
+/* ======================================================
+   ─── الفاصل بين صفحات المصحف (تأثير طية الكتاب) ───────
+   ====================================================== */
+
+.quran-swipe-page {
+    position: relative; /* ضروري لكي يظهر الفاصل بداخلها */
+}
+
+/* رسم خط وظل على الحافة اليسرى لكل صفحة */
+.quran-swipe-page::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0; /* في اللغة العربية (RTL)، الصفحة التالية تكون على اليسار */
+    width: 15px; /* عرض الظل */
+    
+    /* تدرج لوني يعطي إحساس طية الورق الحقيقية */
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.08) 0%, rgba(0, 0, 0, 0) 100%);
+    
+    /* خط رفيع جداً يحدد الفاصل بوضوح */
+    border-left: 1px solid rgba(0, 0, 0, 0.06);
+    
+    z-index: 10;
+    pointer-events: none; /* مهم جداً: يمنع الظل من تعطيل لمس الشاشة (Swipe) */
+}
+
+/* ── دعم الوضع الليلي (Dark Mode) للفاصل ── */
+body.dark-mode .quran-swipe-page::after {
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0) 100%);
+    border-left: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+
+/* ─── تصميم مصحف الصور - ملء الشاشة الكاملة ─── */
+.quran-swipe-page {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+.quran-image-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.quran-bg-image {
+    display: block;
+    /* الصورة تملأ الارتفاع كاملاً وتحافظ على النسبة */
+    width: auto;
+    height: 100%;
+    max-width: 100vw;
+    max-height: 100dvh;
+    object-fit: contain;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.quran-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+/* في fullscreen: الـ overlay يغطي الصورة بالضبط */
+body.fullscreen-reading .quran-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+/* 🔥 الزرار السحري بعد التعديل (دائرة مثالية) 🔥 */
+.ayah-hotspot {
+    position: absolute;
+    width: 35px;  
+    height: 35px; 
+    background-color: transparent; /* 🔥 السحر: خلينا الزرار مخفي تماماً 🔥 */
+    border-radius: 50%; 
+    transform: translate(-50%, -50%); 
+    cursor: pointer;
+    z-index: 10;
+    -webkit-tap-highlight-color: transparent; /* إزالة المربع الأزرق بتاع الأندرويد */
+}
+
+/* إضافة تأثير خفيف جداً جداً عند لمس الآية (اختياري بس بيدي احساس حلو) */
+.ayah-hotspot:active {
+    background-color: rgba(212, 175, 55, 0.3); /* لون ذهبي خفيف وقت اللمس */
+}
+
+/* ======================================================
+   ─── وضع الشاشة الكاملة للمصحف (Immersive Mode) ───────
+   ====================================================== */
+
+/* 1. إخفاء الـ Nav Header فقط في وضع المصحف المصور (fullscreen + swipe) */
+body.fullscreen-reading.swipe-nav-active nav,
+body.fullscreen-reading.swipe-nav-active .navbar,
+body.fullscreen-reading.swipe-nav-active .top-bar,
+body.fullscreen-reading.swipe-nav-active header,
+body.fullscreen-reading.swipe-nav-active #main-navbar,
+body.fullscreen-reading.swipe-nav-active #scroll-to-top-btn, 
+body.fullscreen-reading.swipe-nav-active .scroll-to-top,
+body.fullscreen-reading.swipe-nav-active .scroll-btn {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+/* 2. إجبار حاوية المصحف المصور على ملء الشاشة - فقط في fullscreen + swipe */
+body.fullscreen-reading.swipe-nav-active div#quran-pages-track-wrapper {
+    display: block !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* 3. تنظيف أي Padding قديم من الصفحة نفسها */
+.quran-swipe-page {
+    padding: 0 !important; 
+    margin: 0 !important;
+}
+
+/* 4. إخفاء حاوية النصوص القديمة إن وجدت */
+/* #ayahs-container {
+    display: none !important;
+} */
+
+/* حاوية المصحف تأخذ 100dvh فقط في وضع المصحف المصور (fullscreen) */
+body.fullscreen-reading div#quran-pages-track-wrapper,
+body.image-mushaf-mode div#quran-pages-track-wrapper {
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    width: 100vw !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+body.fullscreen-reading div#quran-pages-track-wrapper {
+    height: 100dvh !important; 
+    min-height: 100dvh !important;
+    width: 100vw !important; 
+    max-width: 100vw !important;
+}
+
+/* ===================================================
+   ─── إصلاحات الشاشة الكاملة والوضع الليلي للصور ─── 
+   =================================================== */
+
+/* 1. إجبار حاوية المصحف على ملء الشاشة بدون أي هوامش أو حواف */
+body.fullscreen-reading #quran-book {
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: 100% !important;
+}
+
+/* 🔥 في وضع الشاشة الكاملة: الصفحة تملأ الشاشة 100% 🔥 */
+body.fullscreen-reading .quran-swipe-page {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background-color: #000 !important;
+}
+
+/* الغلاف يملأ الشاشة كاملاً */
+body.fullscreen-reading .quran-image-wrapper {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    background-color: #000 !important;
+}
+
+/* الصورة تملأ الارتفاع مع الحفاظ على نسب المصحف */
+body.fullscreen-reading .quran-bg-image {
+    width: auto !important;
+    height: 100dvh !important;
+    max-width: 100vw !important;
+    max-height: 100dvh !important;
+    object-fit: contain !important; 
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    display: block !important;
+}
+
+/* 2. 🔥 السحر: تفعيل الوضع الليلي لصور المصحف 🔥 */
+/* هذا الفلتر يعكس ألوان الصورة (الأبيض يصبح أسود) ثم يعيد تدرج الألوان (Hue) لطبيعته قدر الإمكان */
+[data-reading="night"] body.fullscreen-reading .quran-bg-image,
+[data-theme="dark"] body.fullscreen-reading .quran-bg-image {
+    filter: invert(1) hue-rotate(180deg) contrast(1.1) brightness(1.2) !important;
+    background-color: #000; /* عشان لو الصورة شفافة من تحت */
+}
+
+/* تأكيد لون خلفية الشاشة في الوضع الليلي لمنع أي حواف بيضاء */
+[data-reading="night"] body.fullscreen-reading,
+[data-theme="dark"] body.fullscreen-reading {
+    background-color: #000000 !important;
+    --quran-book-bg: #000000 !important;
+}
+
+/* ===================================================
+   ─── استعادة تصميم الواجهة الأساسية (النافبار والافتتاحية) ─── 
+   =================================================== */
+
+/* 1. النافبار السفلي (Bottom Nav) */
+.bottom-nav {
+    position: fixed !important; 
+    bottom: 0 !important; 
+    left: 0 !important; 
+    right: 0 !important; 
+    margin: 0 !important; 
+    z-index: 1050 !important; 
+    background-color: #ffffff !important; 
+    border-top: 1px solid rgba(25, 135, 84, 0.15) !important;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.08) !important;
+    display: flex !important; 
+    align-items: center !important; 
+    justify-content: space-between !important; 
+    height: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+    padding: 0 10px env(safe-area-inset-bottom, 0px) !important;
+}
+.bottom-nav-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; cursor: pointer; border: none; background: transparent; color: #9ca3af;
+    font-size: 0.65rem; font-weight: 600; border-radius: 12px;
+    height: 52px; text-decoration: none; transition: all 0.2s ease;
+}
+.bottom-nav-item i { font-size: 1.15rem; }
+.bottom-nav-item.active { color: #198754; background: rgba(25, 135, 84, 0.08); }
+.bottom-nav-item.nav-center-btn { flex: 1.2; }
+.bottom-nav-item.nav-center-btn .nav-icon-wrap {
+    width: 44px; height: 44px; border-radius: 14px;
+    background: linear-gradient(135deg, #1e5f31, #198754);
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 1.2rem; box-shadow: 0 4px 12px rgba(25, 135, 84, 0.4);
+}
+.bottom-nav-item.nav-center-btn.active { background: transparent; color: #198754; }
+
+/* الوضع الليلي للنافبار السفلي */
+[data-theme="dark"] .bottom-nav { background: #121212 !important; border-top-color: rgba(25, 135, 84, 0.25) !important; }
+[data-theme="dark"] .bottom-nav-item.active { color: #4ade80; background: rgba(74, 222, 128, 0.1); }
+[data-theme="dark"] .bottom-nav-item { color: #9ca3af; }
+
+/* مساحة التمرير في التطبيق لعدم تغطية المحتوى بالنافبار */
+body { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important; }
+
+
+/* 2. شاشات الافتتاحية الترحيبية (Onboarding) */
+#onboarding-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh;
+    background: #ffffff; z-index: 105000; display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+}
+.onboarding-container { width: 100%; height: 100%; max-width: 500px; position: relative; display: flex; flex-direction: column; background: #ffffff; }
+#skip-onboarding { position: absolute; top: calc(15px + env(safe-area-inset-top, 0px)); left: 20px; z-index: 10; font-weight: bold; border-radius: 20px;}
+.onboarding-slide { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; padding: 20px 40px 80px 40px; }
+.onboarding-icon-wrap { width: 120px; height: 120px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 3.5rem; margin-bottom: 30px; }
+.onboarding-slide h2 { font-family: 'Amiri Quran', 'Amiri', serif; color: #1e5f31; font-weight: bold; font-size: 2rem; margin-bottom: 15px; }
+.onboarding-slide p { color: #6c757d; font-family: 'Amiri', serif; font-size: 1.2rem; line-height: 1.8; }
+.onboarding-footer { padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background: #ffffff; position: absolute; bottom: 0; width: 100%; z-index: 10; }
+#onboardingCarousel .carousel-indicators { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); margin-bottom: 0; }
+#onboardingCarousel .carousel-indicators [data-bs-target] { width: 8px; height: 8px; border-radius: 50%; background-color: #198754; opacity: 0.3; margin: 0 5px; }
+#onboardingCarousel .carousel-indicators .active { opacity: 1; width: 24px; border-radius: 10px; }
+
+/* الوضع الليلي للافتتاحية */
+[data-theme="dark"] #onboarding-overlay, [data-theme="dark"] .onboarding-container, [data-theme="dark"] .onboarding-footer { background: #121212; }
+[data-theme="dark"] .onboarding-slide h2 { color: #4ade80; }
+[data-theme="dark"] .onboarding-slide p { color: #a5d6a7; }
+[data-theme="dark"] #skip-onboarding { color: #aaa; }
+
+
+/* 3. استعادة مربع بحث السور */
+.surah-search-box {
+    display: flex; align-items: center; background: #ffffff;
+    border: 2px solid #e8f5e9; border-radius: 16px; padding: 10px 16px; gap: 10px;
+    box-shadow: 0 4px 20px rgba(30,95,49,0.10);
+}
+.surah-search-input {
+    flex: 1; border: none; outline: none; background: transparent;
+    font-family: 'Amiri', serif; font-size: 1.05rem; direction: rtl; text-align: right;
+    min-width: 0 !important;
+}
+[data-theme="dark"] .surah-search-box { background: #1a1a1a; border-color: #2a3a2a; }
+[data-theme="dark"] .surah-search-input { color: #e0e0e0; }
+
+
+/* ===================================================
+   ─── استرجاع تصميم المصحف النصي العادي ─── 
+   =================================================== */
+
+/* حاوية النص */
+#ayahs-container {
+    display: block;
+    width: 100%;
+    padding: 10px;
+}
+
+
+/* تنسيق الآيات العادية */
+.quran-page-content {
+    font-family: 'Amiri Quran', 'Amiri', serif !important;
+    font-size: clamp(24px, 6vw, 36px) !important; 
+    line-height: 2.2 !important;
+    
+    /* 🔥 تغيير justify إلى center أو right يحل مشكلة المسافات المتباعدة 🔥 */
+    text-align: center !important; 
+    text-align-last: center !important;
+    
+    direction: rtl;
+    padding: 15px !important;
+    background-color: var(--quran-book-bg, #ffffff);
+    border-radius: 12px;
+    
+    /* ضمان عدم تمدد المسافات بين الكلمات */
+    word-spacing: normal !important;
+    letter-spacing: normal !important;
+}
+
+.ayah-text {
+    color: #1a1a1a;
+}
+[data-theme="dark"] .ayah-text { color: #e0e0e0; }
+
+/* الفواصل بين السور في الوضع النصي */
+.surah-separator {
+    text-align: center;
+    margin: 30px 0 20px 0;
+}
+.surah-separator h3 {
+    display: inline-block;
+    font-family: 'Amiri Quran', 'Amiri', serif;
+    font-size: 2rem;
+    color: #1e5f31;
+    padding: 10px 40px;
+    border: 2px solid #d4af37;
+    border-radius: 10px;
+    background: rgba(212, 175, 55, 0.05);
+}
+[data-theme="dark"] .surah-separator h3 { color: #4ade80; border-color: #b08d2b; }
+
+/* البسملة */
+.bismillah {
+    font-family: 'Amiri Quran', 'Amiri', serif;
+    font-size: 1.8rem;
+    color: #1e5f31;
+    text-align: center;
+    margin-bottom: 20px;
+}
+[data-theme="dark"] .bismillah { color: #4ade80; }
+
+/* 🌟 تصميم زر التبديل للمصحف المصور 🌟 */
+.switch-to-image-btn {
+    background: linear-gradient(135deg, #1e5f31, #145a28);
+    color: white;
+    border: 2px solid #d4af37;
+    border-radius: 50px;
+    padding: 12px 25px;
+    font-family: 'Tajawal', 'Amiri', serif;
+    font-size: 1.1rem;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(30, 95, 49, 0.3);
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin: 20px auto;
+    cursor: pointer;
+}
+.switch-to-image-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(30, 95, 49, 0.4);
+    color: #fdf8f0;
+}
+
+/* إخفاء حاوية النص فقط في وضع الشاشة الكاملة (المصحف المصور) */
+body.fullscreen-reading #ayahs-container {
+    display: none !important;
+}
+
+/* إظهار حاوية النص في الوضع العادي */
+body:not(.fullscreen-reading) #ayahs-container {
+    display: block !important;
+}
+
+/* 🔥 تفعيل الفلتر السحري لعكس ألوان صورة المصحف في الوضع الليلي 🔥 */
+/* الكود ده هيخلي الخلفية البيضاء سودة والنص أسود يبقى أبيض */
+html[data-theme="dark"] .quran-bg-image,
+body[data-theme="dark"] .quran-bg-image,
+html[data-reading="night"] .quran-bg-image,
+body[data-reading="night"] .quran-bg-image,
+.dark-mode .quran-bg-image {
+    filter: invert(1) hue-rotate(180deg) brightness(1.3) contrast(1.1) !important;
+}
+
+/* إخفاء أيقونة الحفظ السريع المزعجة */
+.double-tap-icon {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+
+/* ===================================================
+   ─── الانغماس التام لصور المصحف (مثل تطبيق آية) ─── 
+   =================================================== */
+
+/* 1. تلوين خلفية الشاشة بنفس لون ورق المصحف لدمج الحواف */
+body.fullscreen-reading {
+    background-color: #fcf4e5 !important; /* لون ورق مصحف المدينة */
+}
+
+/* 2. إجبار الحاويات على ملء الشاشة بدون أي هوامش */
+body.fullscreen-reading .quran-swipe-page,
+body.fullscreen-reading .quran-image-wrapper {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background-color: transparent !important;
+}
+
+/* 3. عرض الصورة بالكامل (Contain) لتجنب قص الآيات */
+body.fullscreen-reading .quran-bg-image {
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: 100vw !important;
+    max-height: 100dvh !important;
+    object-fit: contain !important;
+    border-radius: 0 !important;
+    padding-top: calc(70px + env(safe-area-inset-top, 0px)) !important;
+    box-sizing: border-box !important;
+}
+
+/* ===================================================
+   ─── الوضع الليلي (Dark Mode) لصور المصحف ─── 
+   =================================================== */
+
+/* 1. تحويل خلفية الشاشة للأسود الداكن */
+[data-reading="night"] body.fullscreen-reading,
+[data-theme="dark"] body.fullscreen-reading {
+    background-color: #000000 !important;
+}
+
+/* 2. عكس ألوان صورة المصحف (الورق أسود والنص أبيض/ذهبي) */
+[data-reading="night"] body.fullscreen-reading .quran-bg-image,
+[data-theme="dark"] body.fullscreen-reading .quran-bg-image {
+    filter: invert(1) hue-rotate(180deg) brightness(1.2) contrast(1.1) !important;
+}
+
+
+/* ===================================================
+   ─── 1. إصلاح الشاشة الكاملة للمصحف المصور (مثل تطبيق آية) ───
+   =================================================== */
+body.fullscreen-reading {
+    background-color: #fdf8f0 !important; /* لون ورق المصحف الافتراضي لدمج الحواف */
+    overflow: hidden !important;
+}
+
+/* إجبار كل الحاويات على أخذ 100% من الشاشة بدون أي هوامش */
+body.fullscreen-reading #quran-book,
+body.fullscreen-reading #quran-pages-track-wrapper,
+body.fullscreen-reading .quran-swipe-page,
+body.fullscreen-reading .quran-image-wrapper {
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background-color: transparent !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+/* عرض الصورة بأقصى حجم ممكن مع الحفاظ على أبعادها (Contain) */
+body.fullscreen-reading .quran-bg-image {
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: 100vw !important;
+    max-height: 100dvh !important;
+    object-fit: contain !important; /* يمنع القص تماماً */
+    border-radius: 0 !important;
+}
+
+/* ===================================================
+   ─── 2. إصلاح الوضع الليلي لصور المصحف ───
+   =================================================== */
+/* تلوين خلفية الشاشة بالأسود الداكن لمنع أي حواف بيضاء حول الصورة */
+[data-theme="dark"] body.fullscreen-reading,
+[data-reading="night"] body.fullscreen-reading {
+    background-color: #000000 !important;
+}
+
+/* عكس ألوان صورة المصحف فقط بدقة عالية */
+[data-theme="dark"] body.fullscreen-reading .quran-bg-image,
+[data-reading="night"] body.fullscreen-reading .quran-bg-image {
+    filter: invert(1) hue-rotate(180deg) brightness(1.2) contrast(1.2) !important;
+    background-color: #000000 !important;
+}
+
+/* ===================================================
+   ─── 3. إظهار أزرار التحكم العائمة في وضع الصور فقط ───
+   =================================================== */
+#quran-floating-controls {
+    display: none !important; /* مخفي في الوضع العادي */
+}
+body.fullscreen-reading #quran-floating-controls {
+    display: flex !important;
+    top: calc(15px + env(safe-area-inset-top, 0px)) !important;
+}
+
+/* ===================================================
+   ─── 4. إخفاء علامة الحفظ (Bookmark) العشوائية ───
+   =================================================== */
+.double-tap-icon {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+/* ===================================================
+   ─── بطاقة خيار المصحف المصور (تصميم جديد) ───
+   =================================================== */
+
+/* تأثير hover للبطاقة */
+#image-mushaf-promo button:hover {
+    background: linear-gradient(135deg, #fef3d0, #fdf0be) !important;
+    border-color: #c5a020 !important;
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3) !important;
+    transform: translateY(-1px);
+}
+
+#image-mushaf-promo button:active {
+    transform: translateY(0);
+}
+
+[data-theme="dark"] #image-mushaf-promo button {
+    background: linear-gradient(135deg, #1a2a1e, #1e3024) !important;
+    border-color: #c5a55a !important;
+}
+
+[data-theme="dark"] #image-mushaf-promo button div:first-child + div div:first-child {
+    color: #4ade80 !important;
+}
+
+[data-reading="night"] #image-mushaf-promo button {
+    background: linear-gradient(135deg, #0d1f10, #122016) !important;
+    border-color: #4a7c5a !important;
+}
+
+/* ─── إخفاء الزر القديم (switch-to-image-btn) ─── */
+.switch-to-image-btn {
+    display: none !important;
+}
+
+/* ─── زر الشاشة الكاملة: تمييز واضح في الوضع النشط ─── */
+#btn-fullscreen {
+    transition: all 0.2s ease !important;
+}
+
+[data-theme="dark"] .quran-page-content,
+[data-theme="dark"] .ayah-text,
+[data-theme="dark"] .verse-wrapper,
+[data-theme="dark"] #ayahs-container *,
+[data-reading="night"] .quran-page-content,
+[data-reading="night"] .ayah-text,
+[data-reading="night"] .verse-wrapper,
+[data-reading="night"] #ayahs-container * {
+    color: #ffffff !important;
+    text-shadow: 0px 1px 2px rgba(0,0,0,0.8) !important; /* ظل خفيف لزيادة وضوح الحروف */
+}
+
+/* استثناء الأيقونات والأرقام من التلوين بالأبيض */
+[data-theme="dark"] .ayah-end-symbol,
+[data-theme="dark"] .fa-bookmark,
+[data-theme="dark"] .fa-flag {
+    color: #f1c40f !important; /* تبقى ذهبية/خضراء */
+}
+
+/* ===================================================
+   ─── 1. إجبار النص على اللون الأبيض في الوضع الليلي ─── 
+   =================================================== */
+html[data-theme="dark"] #ayahs-container,
+body[data-theme="dark"] #ayahs-container {
+    background-color: #121212 !important;
+    background-image: none !important;
+    border-color: #333 !important;
+}
+
+html[data-theme="dark"] .ayah-text,
+body[data-theme="dark"] .ayah-text,
+html[data-theme="dark"] .bismillah,
+body[data-theme="dark"] .bismillah {
+    color: #ffffff !important;
+    text-shadow: 0px 1px 3px rgba(0,0,0,0.8) !important; /* ظل خفيف لزيادة الوضوح */
+}
+
+html[data-theme="dark"] .surah-separator h3,
+body[data-theme="dark"] .surah-separator h3 {
+    color: #f1c40f !important; /* أصفر ذهبي */
+    border-color: #aa8623 !important;
+    background: rgba(241, 196, 15, 0.05) !important;
+}
+
+/* ===================================================
+   ─── 2. إصلاح المسافات الواسعة بين الكلمات في الآيات ─── 
+   =================================================== */
+.quran-page-content {
+    text-align: center !important; /* إيقاف المط (Justify) الذي يسبب تباعد الكلمات */
+    text-align-last: center !important;
+    word-spacing: normal !important;
+    letter-spacing: normal !important;
+}
+
+/* ===================================================
+   ─── 3. السحر: جعل المصحف المصور يأخذ الشاشة بالكامل كالبرامج الكبرى ─── 
+   =================================================== */
+body.fullscreen-reading .quran-swipe-page {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    background-color: var(--quran-book-bg, #000) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* استخدام نسبة الأبعاد (Aspect Ratio) لصفحة المصحف الحقيقية */
+body.fullscreen-reading .quran-image-wrapper {
+    position: relative !important;
+    aspect-ratio: 611 / 955 !important; /* نسبة الطول والعرض الدقيقة لصفحات مجمع الملك فهد */
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100vw !important;
+    max-height: 100dvh !important;
+    display: flex !important;
+    margin: auto !important;
+}
+
+/* الآن الصورة تملأ الغلاف بالكامل بدون أي مط أو قص */
+body.fullscreen-reading .quran-bg-image {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: fill !important; /* آمن جداً هنا لأن الحاوية تحافظ على النسبة الأساسية */
+    display: block !important;
+}
+
+/* الغلاف الخاص بالضغطات يطابق الصورة 100% (لضمان دقة الإحداثيات) */
+body.fullscreen-reading .quran-overlay {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* ===================================================
+   ─── Debugging: إظهار إحداثيات الآيات (مؤقت) ─── 
+   =================================================== */
+
+/* .ayah-hotspot {
+    background-color: rgba(255, 0, 0, 0.4) !important;
+    border: 2px solid red !important;
+    
+    width: 60px !important;
+    height: 60px !important;
+    
+    position: absolute !important;
+    cursor: pointer !important;
+
+    transform: translate(-50%, -50%) !important;
+    
+    z-index: 100 !important;
+} */
+
+/* التأثير لما تقف عليها بالماوس أو تلمسها عشان تتأكد إنها شغالة */
+/* .ayah-hotspot:hover, .ayah-hotspot:active {
+    background-color: rgba(0, 255, 0, 0.5) !important; 
+    border-color: green !important;
+} */
+
+/* غلاف الأزرار الشفافة يجب أن يطابق الصورة تماماً */
+body.fullscreen-reading .quran-image-wrapper {
+    position: relative !important;
+    display: inline-block !important; /* هذا مهم ليحجم الغلاف على قد الصورة */
+    height: 100dvh !important;
+    max-width: 100vw !important;
+}
+
+body.fullscreen-reading .quran-bg-image {
+    height: 100% !important;
+    width: auto !important;
+    object-fit: contain !important; /* نعود للـ contain لضمان عدم تشويه الأبعاد */
+    display: block !important;
+}
+
+body.fullscreen-reading .quran-overlay {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    pointer-events: auto !important; /* السماح بالنقرات */
+}
+
+/* تعديل الـ hotspot لتتمدد بالنسب المئوية */
+/* .ayah-hotspot {
+    position: absolute !important;
+    cursor: pointer !important;
+    transform: translate(-50%, -50%) !important; 
+    z-index: 100 !important;
+    background-color: rgba(255, 0, 0, 0.4);
+    border-radius: 50%;
+} */
+
+/* ===================================================
+   ─── إصلاح ظهور نوافذ التفسير (SweetAlert) فوق الشاشة الكاملة ─── 
+   =================================================== */
+div.swal2-container {
+    z-index: 106000 !important;
+}
+/* ===================================================
+   ─── إصلاح ظهور نوافذ Bootstrap (مثل الإضاءات) فوق المصحف ─── 
+   =================================================== */
+.modal {
+    z-index: 106005 !important;
+}
+.modal-backdrop {
+    z-index: 106004 !important;
+}
+
+
+/* ===================================================
+   ─── السحر: ضبط مقاسات المصحف المصور وتطابق الإحداثيات ─── 
+   =================================================== */
+
+/* الغلاف الأساسي للصفحة */
+body.fullscreen-reading .quran-swipe-page {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    background-color: var(--quran-book-bg, #000) !important;
+    overflow: hidden !important;
+}
+
+/* غلاف الصورة الذي سيأخذ النسبة الدقيقة (Aspect Ratio) من الـ JS */
+body.fullscreen-reading .quran-image-wrapper {
+    position: relative !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    /* الطول والعرض هيتظبطوا أوتوماتيك من الـ Aspect Ratio */
+    height: auto !important; 
+    margin: auto !important;
+}
+
+/* الصورة تملأ الغلاف بالكامل */
+body.fullscreen-reading .quran-bg-image {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: fill !important; /* آمن جداً لأن الغلاف يحكم النسبة */
+    display: block !important;
+}
+
+/* الغلاف الشفاف اللي شايل المربعات يطابق الغلاف بالمللي */
+body.fullscreen-reading .quran-overlay {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    pointer-events: auto !important;
+}
+
+/* ===================================================
+   ─── مساحات الضغط على الآيات في المصحف المصور ─── 
+   =================================================== */
+
+/* الشكل الأساسي (مخفي تماماً وشفاف) */
+.ayah-hotspot {
+    position: absolute !important;
+    cursor: pointer !important;
+    transform: translate(-50%, -50%) !important;
+    z-index: 100 !important;
+    border-radius: 8px !important; /* زوايا دائرية ناعمة */
+    background-color: transparent !important; /* شفاف تماماً في الحالة العادية */
+    transition: background-color 0.15s ease !important; /* تأثير نعومة عند الضغط */
+}
+
+/* التأثير لما المستخدم يلمس الآية (Feedback بصري ممتاز) */
+.ayah-hotspot:active {
+    background-color: rgba(212, 175, 55, 0.3) !important; /* لون ذهبي خفيف وراقي جداً */
+}
+
+/* التأثير في الوضع الليلي */
+[data-theme="dark"] .ayah-hotspot:active,
+[data-reading="night"] .ayah-hotspot:active {
+    background-color: rgba(241, 196, 15, 0.25) !important; /* لون ذهبي أفتح للوضع الليلي */
+}
+
+/* ===================================================
+   ─── ضبط مقاسات المصحف المصور لملء الشاشة ─── 
+   =================================================== */
+
+body.fullscreen-reading .quran-swipe-page {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    background-color: var(--quran-book-bg, #000) !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+body.fullscreen-reading .quran-image-wrapper {
+    position: relative !important;
+    /* نأخذ عرض الشاشة بالكامل وطول الشاشة بالكامل */
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+body.fullscreen-reading .quran-bg-image {
+    /* السر هنا: fill سيجعل الصورة تملأ الشاشة بالكامل بدون الفراغات السوداء */
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: fill !important; 
+    display: block !important;
+}
+
+body.fullscreen-reading .quran-overlay {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important; /* يتطابق مع حجم الصورة المعروضة (والتي تملأ الشاشة) */
+    height: 100% !important;
+    pointer-events: auto !important;
+}
+
+.ayah-hotspot {
+    position: absolute !important;
+    cursor: pointer !important;
+    transform: translate(-50%, -50%) !important;
+    z-index: 100 !important;
+    border-radius: 8px !important;
+    background-color: transparent !important;
+    transition: background-color 0.15s ease !important;
+    /* مسح التعليق للون الأحمر للتأكد من المكان إذا أردت */
+    /* background-color: rgba(255, 0, 0, 0.4) !important; */
+}
+
+.ayah-hotspot:active {
+    background-color: rgba(212, 175, 55, 0.3) !important;
+}
+
+[data-theme="dark"] .ayah-hotspot:active,
+[data-reading="night"] .ayah-hotspot:active {
+    background-color: rgba(241, 196, 15, 0.25) !important;
+}
+
+/* ===================================================
+   ─── تحسين المظهر الجمالي للآيات وعلامات الوقف ─── 
+   =================================================== */
+
+/* 1. تحسين خط الآيات والمسافات (إحساس حبر المصحف) */
+.quran-page-content {
+    font-family: 'Amiri Quran', 'Amiri', serif !important;
+    font-size: clamp(26px, 6vw, 38px) !important;
+    line-height: 2.3 !important; /* إعطاء مساحة مريحة للعين بين السطور */
+    color: #1a2a1e !important; /* لون أخضر داكن مائل للسواد يشبه حبر المطابع */
+    text-align: center !important; 
+    text-align-last: center !important;
+}
+
+[data-theme="dark"] .quran-page-content,
+[data-reading="night"] .quran-page-content {
+    color: #f4f6f5 !important; /* أبيض هادئ للوضع الليلي */
+}
+
+/* 2. رسم العلامة المزخرفة الكلاسيكية حول رقم الآية باستخدام SVG مدمج */
+.ayah-marker {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin: 0 6px;
+    /* رسمة النجمة/الزهرة الإسلامية المفرغة باللون الذهبي */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50'%3E%3Cpath d='M25 2 A23 23 0 1 0 25 48 A23 23 0 1 0 25 2 Z' fill='none' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cpath d='M25 6 A19 19 0 1 0 25 44 A19 19 0 1 0 25 6 Z' fill='none' stroke='%23d4af37' stroke-width='1' stroke-dasharray='2 3'/%3E%3Cpath d='M25 0 L27 5 L33 3 L32 8 L38 9 L34 13 L39 16 L35 19 L40 25 L35 31 L39 34 L34 37 L38 41 L32 42 L33 47 L27 45 L25 50 L23 45 L17 47 L18 42 L12 41 L16 37 L11 34 L15 31 L10 25 L15 19 L11 16 L16 13 L12 9 L18 8 L17 3 L23 5 Z' fill='%23d4af37' opacity='0.25'/%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    vertical-align: middle;
+    position: relative;
+}
+
+/* 3. تنسيق الرقم العربي داخل الزخرفة */
+.ayah-end-symbol {
+    font-family: 'Amiri', serif;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #1e5f31; /* أخضر داكن متناسق مع التطبيق */
+    margin-top: 2px; /* ضبط دقيق لتوسيط الرقم رأسياً داخل الدائرة */
+}
+
+/* الألوان في الوضع الليلي */
+[data-theme="dark"] .ayah-end-symbol,
+[data-reading="night"] .ayah-end-symbol {
+    color: #d4af37; /* يقلب ذهبي في الوضع الليلي عشان ينور */
+}
+
+/* رسم العلامة المزخرفة الكلاسيكية حول رقم الآية باستخدام SVG مدمج */
+.ayah-marker {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin: 0 6px;
+    /* رسمة النجمة الإسلامية باللون الذهبي */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50'%3E%3Cpath d='M25 2 A23 23 0 1 0 25 48 A23 23 0 1 0 25 2 Z' fill='none' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cpath d='M25 6 A19 19 0 1 0 25 44 A19 19 0 1 0 25 6 Z' fill='none' stroke='%23d4af37' stroke-width='1' stroke-dasharray='2 3'/%3E%3Cpath d='M25 0 L27 5 L33 3 L32 8 L38 9 L34 13 L39 16 L35 19 L40 25 L35 31 L39 34 L34 37 L38 41 L32 42 L33 47 L27 45 L25 50 L23 45 L17 47 L18 42 L12 41 L16 37 L11 34 L15 31 L10 25 L15 19 L11 16 L16 13 L12 9 L18 8 L17 3 L23 5 Z' fill='%23d4af37' opacity='0.25'/%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    vertical-align: middle;
+    position: relative;
+}
+
+.ayah-end-symbol {
+    font-family: 'Amiri', serif;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #1e5f31;
+    margin-top: 2px;
+}
+
+/* ===================================================
+   ─── تنسيق مستطيل فاصل السور (البرواز) ─── 
+   =================================================== */
+
+.surah-separator {
+    display: flex;
+    flex-direction: column; /* يخلي الكلام فوق بعضه */
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    
+    /* تصميم المستطيل */
+    background: linear-gradient(135deg, #fdf8f0, #fefdfa); /* لون ورقي خفيف */
+    border: 1.5px solid #d4af37; /* برواز ذهبي */
+    border-radius: 12px;
+    
+    /* الأبعاد والمسافات */
+    width: 90%;
+    max-width: 400px;
+    margin: 30px auto 20px auto; /* توسيط المستطيل في الصفحة */
+    padding: 15px 10px;
+    
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+/* تنسيق اسم السورة داخل المستطيل */
+.surah-separator .surah-name {
+    font-family: 'Amiri', serif;
+    font-weight: bold;
+    font-size: 1.5rem;
+    color: #1e5f31; /* لون أخضر قرآني */
+    margin: 0;
+    line-height: 1.2;
+}
+
+/* تنسيق عدد الآيات تحت الاسم */
+.surah-separator .ayah-count {
+    font-family: 'Tajawal', sans-serif;
+    font-size: 0.8rem;
+    color: #a07828; /* لون ذهبي داكن */
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+/* ─── التوافق مع الوضع الليلي ─── */
+[data-theme="dark"] .surah-separator,
+[data-reading="night"] .surah-separator {
+    background: linear-gradient(135deg, #1a2420, #121a16) !important;
+    border-color: #aa8623 !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+}
+
+[data-theme="dark"] .surah-separator .surah-name,
+[data-reading="night"] .surah-separator .surah-name {
+    color: #f1c40f !important; /* اسم السورة ينور في الضلمة */
+}
+
+[data-theme="dark"] .surah-separator .ayah-count,
+[data-reading="night"] .surah-separator .ayah-count {
+    color: #ccc !important;
+}
+
+/* ===================================================
+   ─── تنسيق أزرار التبديل (آية اليوم / حديث اليوم) ─── 
+   =================================================== */
+
+/* إضافة حركة ناعمة للزرارين أثناء التبديل */
+#btn-show-ayah, 
+#btn-show-hadith {
+    transition: all 0.3s ease-in-out !important;
+}
+
+/* شكل التاب النشط (Active) */
+.active-toggle-btn {
+    background-color: #1e5f31 !important; /* نفس درجة الأخضر الفخم بتاعة التطبيق */
+    color: #ffffff !important; /* لون النص أبيض عشان يبان */
+    box-shadow: 0 4px 10px rgba(30, 95, 49, 0.3) !important; /* ظل خفيف يبرز الزرار */
+}
+
+/* شكل التاب في الوضع الليلي (اختياري لو التطبيق فيه وضع ليلي) */
+[data-theme="dark"] .active-toggle-btn,
+[data-reading="night"] .active-toggle-btn {
+    background-color: #d4af37 !important; /* نقلبه ذهبي في الوضع الليلي */
+    color: #121a16 !important;
+    box-shadow: 0 4px 10px rgba(212, 175, 55, 0.2) !important;
+}
+
+/* تنسيق الحاوية نفسها عشان تبان زي "حباية" شايلة التابات */
+#btn-show-ayah.parentElement {
+    background: #f8f9fa;
+    padding: 4px;
+    border-radius: 50px;
+}
+
+/* ===================================================
+   ─── دائرة التسبيح (Tasbeeh Circle) ───
+   =================================================== */
+.tasbeeh-circle {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1e5f31, #2d8a47);
+    color: #ffffff;
+    font-size: 3rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem auto;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    box-shadow: 0 8px 25px rgba(30, 95, 49, 0.35);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    z-index: 1;
+}
+ 
+.tasbeeh-circle:active {
+    transform: scale(0.93);
+    box-shadow: 0 4px 12px rgba(30, 95, 49, 0.25);
+}
+ 
+/* الوضع الليلي */
+[data-theme="dark"] .tasbeeh-circle,
+[data-reading="night"] .tasbeeh-circle {
+    background: linear-gradient(135deg, #d4af37, #b8960c);
+    box-shadow: 0 8px 25px rgba(212, 175, 55, 0.3);
 }
