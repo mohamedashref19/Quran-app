@@ -35,20 +35,25 @@ if (window.location.hostname !== 'localhost' && window.location.hostname !== '12
 // axios.defaults.baseURL = 'https://aqra-app.serveftp.com';
 //axios.defaults.baseURL = 'https://aqraapp.com';
 // axios.defaults.baseURL ='http://127.0.0.1:3000';
-const DEV_IP = '192.168.1.13';
+// تحديد هل نحن في بيئة التطوير أم الإنتاج
+// لو بتستخدم Webpack أو Create React App أو أداة مشابهة:
+const isDev = process.env.NODE_ENV !== 'production'; 
+// ملاحظة: لو بتستخدم Vite، استبدل السطر اللي فوق بـ: const isDev = import.meta.env.DEV;
+
+const DEV_IP = '192.168.1.8';
 
 const isNative = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform();
 const isLocalWeb = !isNative && (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost');
 
 // تحديد الـ Base URL بناءً على بيئة التشغيل
 if (isLocalWeb) {
-    // 🌐 لو بتفتح من المتصفح على جهازك
+    // 🌐 لو بتفتح من المتصفح على جهازك (تطوير)
     axios.defaults.baseURL = 'http://127.0.0.1:3000';
-} else if (isNative && DEV_IP !== '') {
-    // 📱 لو بتشغل الموبايل وعايزه يكلم سيرفر جهازك المحلي
+} else if (isNative && isDev && DEV_IP !== '') {
+    // 📱 لو بتشغل الموبايل في وضع (التطوير) فقط بيكلم جهازك المحلي
     axios.defaults.baseURL = `http://${DEV_IP}:3000`;
 } else {
-    // 🚀 الإنتاج (الويب المرفوع أو الموبايل الحقيقي للمستخدمين)
+    // 🚀 الإنتاج (الويب المرفوع + الموبايل الحقيقي للمستخدمين)
     axios.defaults.baseURL = 'https://aqraapp.com';
 }
 
@@ -210,6 +215,7 @@ window.addEventListener('online', async () => {
 // إتاحتهم على مستوى التطبيق بالكامل
 window.surahNames = surahNames;
 window.surahAyahCounts = surahAyahCounts;
+window.surahPageMap = surahPageMap;
 
 // ─── 2. دالة التحويل (مربوطة بـ window عشان ميديناش Error) ───
 window.getSurahAndAyahFromAbsolute = function(absoluteAyahNumber) {
@@ -860,7 +866,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.loadDailyQuiz = loadDailyQuiz;
     // setTimeout(() => { downloadEntireQuranOffline(); }, 3000);
     setTimeout(() => { window.downloadEntireTafseerOffline(); }, 10000);
-    setTimeout(() => { checkAndPromptNotifications(); }, 2000);
+    // setTimeout(() => { checkAndPromptNotifications(); }, 2000);
     // ─── تنظيف الإشعارات القديمة لمنع ظاهرة (انفجار الإشعارات) ─────────────────
  
 
@@ -2353,9 +2359,9 @@ window.toggleNightMode = function() {
 if (_nightModeActive) _applyNightMode(true);
 
 // ══════════════════════════════════════════════════════════════════════════════
-// ─── إحصائيات القراءة 📊 ─────────────────────────────────────────────────────
+// ─── إحصائيات القراءة 📊 (النسخة المطورة الذكية) ──────────────────────────────
 // ══════════════════════════════════════════════════════════════════════════════
-const STATS_KEY = 'aqra_reading_stats'; // { "2025-01-15": 5, "2025-01-16": 3, ... }
+const STATS_KEY = 'aqra_reading_stats';
 
 function _getTodayKey() {
   return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
@@ -2370,47 +2376,56 @@ function _saveStats(stats) {
   localStorage.setItem(STATS_KEY, JSON.stringify(stats));
 }
 
-// تسجيل صفحة مقروءة
-function _recordPageRead() {
+// 🌟 1. إضافة مانع التلاعب (Anti-cheat Cooldown)
+let _lastRecordTime = 0;
+let _lastRecordedPage = 0;
+
+// تسجيل صفحة مقروءة (معدلة)
+function _recordPageRead(pageNum) {
+  const now = Date.now();
+  // ⏳ لن نحسب الصفحة إلا إذا مرت 3 ثوانٍ على الأقل من تقليب آخر صفحة 
+  // (لتجاهل التقليب العشوائي السريع) أو إذا كانت نفس الصفحة
+  if (pageNum === _lastRecordedPage || (now - _lastRecordTime < 3000)) {
+      _lastRecordedPage = pageNum;
+      return; 
+  }
+  
+  _lastRecordTime = now;
+  _lastRecordedPage = pageNum;
+
   const stats = _getStats();
   const today = _getTodayKey();
   stats[today] = (stats[today] || 0) + 1;
   _saveStats(stats);
+  
   // تحديث الكارت في الهوم
   const el = document.getElementById('home-stats-today');
   if (el) el.textContent = stats[today] + ' صفحة اليوم';
 }
 
-// حساب الإحصائيات
+// حساب الإحصائيات الشاملة
 function _calcStats() {
   const stats  = _getStats();
   const today  = new Date();
   const todayK = _getTodayKey();
 
-  // اليوم
   const todayCount = stats[todayK] || 0;
 
-  // الأسبوع (آخر 7 أيام)
   let weekCount = 0;
   for (let i = 0; i < 7; i++) {
     const d = new Date(today); d.setDate(d.getDate() - i);
     weekCount += stats[d.toISOString().slice(0, 10)] || 0;
   }
 
-  // الشهر (آخر 30 يوم)
   let monthCount = 0;
   for (let i = 0; i < 30; i++) {
     const d = new Date(today); d.setDate(d.getDate() - i);
     monthCount += stats[d.toISOString().slice(0, 10)] || 0;
   }
 
-  // الإجمالي
   const total = Object.values(stats).reduce((a, b) => a + b, 0);
-
-  // أفضل يوم
   const best = Object.values(stats).length ? Math.max(...Object.values(stats)) : 0;
 
-  // أيام متتالية (streak)
   let streak = 0;
   for (let i = 0; i < 365; i++) {
     const d = new Date(today); d.setDate(d.getDate() - i);
@@ -2418,7 +2433,6 @@ function _calcStats() {
     else break;
   }
 
-  // آخر 7 أيام للرسم البياني
   const last7 = [];
   const last7Labels = [];
   const days = ['أحد','اثن','ثلا','أرب','خمي','جمع','سبت'];
@@ -2428,13 +2442,29 @@ function _calcStats() {
     last7Labels.push(days[d.getDay()]);
   }
 
-  return { todayCount, weekCount, monthCount, total, best, streak, last7, last7Labels };
+  // 🌟 2. حساب المستوى واللقب 🌟
+  let levelName = "بذرة الإيمان"; let levelIcon = "🌱"; let levelColor = "text-secondary";
+  if (total >= 604) { levelName = "تاج الوقار (خاتم)"; levelIcon = "👑"; levelColor = "text-warning"; }
+  else if (total >= 300) { levelName = "صاحب القرآن"; levelIcon = "🌟"; levelColor = "text-primary"; }
+  else if (total >= 100) { levelName = "القارئ المواظب"; levelIcon = "📘"; levelColor = "text-success"; }
+  else if (total >= 30) { levelName = "محب التلاوة"; levelIcon = "📖"; levelColor = "text-info"; }
+
+  // 🌟 3. توقع الختمة (Khatmah Predictor) 🌟
+  const avgPerDay = weekCount / 7;
+  let expectedDays = 0;
+  if (avgPerDay > 0) {
+      const remainingPages = 604 - (total % 604); // حساب المتبقي للختمة الحالية
+      expectedDays = Math.ceil(remainingPages / avgPerDay);
+  }
+
+  return { todayCount, weekCount, monthCount, total, best, streak, last7, last7Labels, levelName, levelIcon, levelColor, expectedDays };
 }
 
 // رسم الإحصائيات في الصفحة
 function _renderStats() {
   const s = _calcStats();
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  
   set('stat-today',  s.todayCount);
   set('stat-week',   s.weekCount);
   set('stat-month',  s.monthCount);
@@ -2442,11 +2472,29 @@ function _renderStats() {
   set('stat-streak', s.streak);
   set('stat-best',   s.best);
 
-  const pct = Math.round((s.total / 604) * 100);
-  const totalPct = document.getElementById('stat-total-pct');
-  if (totalPct) totalPct.textContent = `${pct}% من المصحف الكريم`;
+  // تحديث المستوى
+  const lvlNameEl = document.getElementById('stat-level-name');
+  const lvlIconEl = document.getElementById('stat-level-icon');
+  if (lvlNameEl) {
+      lvlNameEl.textContent = s.levelName;
+      lvlNameEl.className = `fw-bold mb-0 ${s.levelColor}`;
+  }
+  if (lvlIconEl) lvlIconEl.textContent = s.levelIcon;
 
-  // كارت الهوم
+  // تحديث التوقع
+  const predictEl = document.getElementById('stat-prediction');
+  if (predictEl) {
+      if (s.expectedDays > 0) {
+          predictEl.innerHTML = `بمعدلك الحالي، ستختم القرآن بعد <strong class="text-success">${s.expectedDays}</strong> يوماً إن شاء الله.`;
+      } else {
+          predictEl.innerHTML = `اقرأ يومياً لنتمكن من حساب موعد ختمتك المتوقع ⏳`;
+      }
+  }
+
+  const pct = Math.min(100, Math.round(((s.total % 604) / 604) * 100)); // نسبة الختمة الحالية
+  const totalPct = document.getElementById('stat-total-pct');
+  if (totalPct) totalPct.textContent = `${pct}% من الختمة الحالية`;
+
   const homeEl = document.getElementById('home-stats-today');
   if (homeEl) homeEl.textContent = s.todayCount + ' صفحة اليوم';
 
@@ -2474,7 +2522,6 @@ function _renderStats() {
     `;
     if (val > 0) {
       bar.title = `${s.last7Labels[i]}: ${val} صفحة`;
-      // رقم فوق البار
       const num = document.createElement('span');
       num.style.cssText = 'position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:0.65rem;color:#555;white-space:nowrap;';
       num.textContent = val;
@@ -2492,9 +2539,9 @@ function _renderStats() {
 // hook على loadQuranPage لتسجيل الصفحات
 const _origLoadForStats = window.loadQuranPage;
 if (_origLoadForStats) {
-  window.loadQuranPage = async function(...args) {
-    const res = await _origLoadForStats.apply(this, args);
-    _recordPageRead();
+  window.loadQuranPage = async function(pageNum, ...args) {
+    const res = await _origLoadForStats.apply(this, [pageNum, ...args]);
+    _recordPageRead(pageNum); // تمرير رقم الصفحة مهم لمنع التكرار
     return res;
   };
 }
@@ -2802,6 +2849,7 @@ window.changeScrollSpeed = function(dir) {
           #quran-pages-track {
             display: flex;
             flex-direction: row;
+            width: 300vw;
             height: 100%;
             will-change: transform;
             transition: transform 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -2910,215 +2958,301 @@ window.changeScrollSpeed = function(dir) {
     return div;
   }
 
+ // ─── بناء محتوى الصفحة مع خوارزمية اللمس الذكي (بدون نقاط تصحيح) ───
+  // ─── بناء محتوى الصفحة مع خوارزمية اللمس الذكي + وضع التصحيح الاختياري ───
   async function _loadPageContent(pageEl, pageNum) {
     if (!window._quranCoordinates) await _loadCoordinatesCSV();
     
     const pageCoords = window._quranCoordinates[pageNum] || [];
-    const imgSrc = `/assets/quran_images/${pageNum}.jpg`; 
+    const imgSrc = `/assets/quran_images/${pageNum}.webp`; 
 
     let html = `
-      <div class="quran-image-wrapper">
+      <div class="quran-image-wrapper" style="position: relative; width: 100%; height: 100%;">
         <img src="${imgSrc}" class="quran-bg-image" alt="صفحة ${pageNum}" />
-        <div class="quran-overlay">
-    `;
-
-    pageCoords.forEach(coord => {
-      html += `<div class="ayah-hotspot" 
-                    data-aya-id="${coord.aya_id}" 
-                    data-x="${coord.x}" 
-                    data-y="${coord.y}" 
-                    onclick="handleAyahClick(${coord.aya_id}, ${pageNum})">
-               </div>`;
-    });
-
-    html += `
-        </div>
+        <div class="quran-overlay" style="pointer-events: auto; cursor: pointer; position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden;"></div>
       </div>
     `;
 
     pageEl.innerHTML = html;
     pageEl.classList.remove('loading-page');
 
+    const overlay = pageEl.querySelector('.quran-overlay');
     const imgEl = pageEl.querySelector('.quran-bg-image');
-    
-    // 🌟 2. FIX BUG: حساب الأبعاد بدقة بغض النظر عن حجم الشاشة 🌟
-    const applyHotspots = () => {
-      const overlay = pageEl.querySelector('.quran-overlay');
-      const imgEl = pageEl.querySelector('.quran-bg-image');
-      const wrapper = pageEl.querySelector('.quran-image-wrapper');
-      
-      const CSV_REF_WIDTH = 640;
-      const CSV_REF_HEIGHT = 1136;
 
-      const updateHotspotsPosition = () => {
-          const currentWidth = wrapper.clientWidth;
-          const currentHeight = wrapper.clientHeight;
+    // 🌟 مفتاح تشغيل/إيقاف وضع التصحيح (Debug Mode) 🌟
+    // غير هذه القيمة إلى false عندما تنتهي من الاختبار لإخفاء النقاط الحمراء
+    const DEBUG_MODE = false; 
 
-          if (currentWidth === 0 || currentHeight === 0 || !imgEl.naturalWidth) return;
+    // 🔴 1. دالة رسم النقاط للتصحيح (تعمل فقط إذا كان DEBUG_MODE = true) 🔴
+    const drawDebugDots = () => {
+        if (!DEBUG_MODE) return; // الخروج فوراً إذا كان وضع التصحيح مغلقاً
 
-          // حساب الحجم الفعلي للصورة بعد object-fit: contain
-          const imgRatio = imgEl.naturalWidth / imgEl.naturalHeight;
-          const containerRatio = currentWidth / currentHeight;
-          
-          let renderWidth, renderHeight, offsetX, offsetY;
+        const wrapper = pageEl.querySelector('.quran-image-wrapper');
+        if (!wrapper || !imgEl.naturalWidth) return;
 
-          if (containerRatio > imgRatio) {
-              renderHeight = currentHeight;
-              renderWidth = renderHeight * imgRatio;
-              offsetX = (currentWidth - renderWidth) / 2;
-              offsetY = 0;
-          } else {
-              renderWidth = currentWidth;
-              renderHeight = renderWidth / imgRatio;
-              offsetX = 0;
-              offsetY = (currentHeight - renderHeight) / 2;
-          }
+        const currentWidth = wrapper.clientWidth;
+        const currentHeight = wrapper.clientHeight;
 
-          const scaleX = renderWidth / CSV_REF_WIDTH;
-          const scaleY = renderHeight / CSV_REF_HEIGHT;
+        if (currentWidth === 0 || currentHeight === 0) return;
 
-          const hotspots = overlay.querySelectorAll('.ayah-hotspot');
-          hotspots.forEach(spot => {
-            const x = parseFloat(spot.getAttribute('data-x'));
-            const y = parseFloat(spot.getAttribute('data-y'));
+        // تنظيف النقاط القديمة
+        overlay.querySelectorAll('.debug-dot').forEach(d => d.remove());
+
+        const imgRatio = imgEl.naturalWidth / imgEl.naturalHeight;
+        const containerRatio = currentWidth / currentHeight;
+
+        let renderWidth, renderHeight, offsetX, offsetY;
+
+        if (containerRatio > imgRatio) {
+            renderHeight = currentHeight;
+            renderWidth = renderHeight * imgRatio;
+            offsetX = (currentWidth - renderWidth) / 2;
+            offsetY = 0;
+        } else {
+            renderWidth = currentWidth;
+            renderHeight = renderWidth / imgRatio;
+            offsetX = 0;
+            offsetY = (currentHeight - renderHeight) / 2;
+        }
+
+        const CSV_REF_WIDTH = 640;
+        const CSV_REF_HEIGHT = 1136;
+        
+        const scaleX = renderWidth / CSV_REF_WIDTH;
+        const scaleY = renderHeight / CSV_REF_HEIGHT;
+
+        pageCoords.forEach(coord => {
+            const dot = document.createElement('div');
+            dot.className = 'debug-dot';
             
-            spot.style.left = `${(x * scaleX) + offsetX}px`;
-            spot.style.top = `${(y * scaleY) + offsetY}px`;
-            spot.style.width = `${renderWidth * 0.15}px`; 
-            spot.style.height = `${renderHeight * 0.05}px`; 
-          });
-      };
+            const finalX = (coord.x * scaleX) + offsetX;
+            const finalY = (coord.y * scaleY) + offsetY;
 
-      updateHotspotsPosition();
-      window.addEventListener('resize', updateHotspotsPosition);
+            dot.style.cssText = `
+                position: absolute;
+                width: 12px; height: 12px;
+                background-color: rgba(255, 0, 0, 0.6);
+                border: 2px solid yellow;
+                border-radius: 50%;
+                left: ${finalX - 6}px;
+                top: ${finalY - 6}px;
+                pointer-events: none; /* كي لا تمنع اللمس */
+                z-index: 100;
+            `;
+            
+            const lbl = document.createElement('span');
+            lbl.textContent = coord.aya_id;
+            lbl.style.cssText = 'position:absolute; top:-18px; left:-8px; font-size:11px; color:yellow; font-weight:bold; background:rgba(0,0,0,0.7); padding:1px 4px; border-radius:3px; pointer-events:none;';
+            dot.appendChild(lbl);
+
+            overlay.appendChild(dot);
+        });
     };
 
+    // رسم النقاط بمجرد تحميل الصورة (إذا كان Debug مفعلاً)
     if (imgEl.complete && imgEl.naturalWidth > 0) {
-      applyHotspots();
+        drawDebugDots();
     } else {
-      imgEl.onload = applyHotspots;
+        imgEl.onload = drawDebugDots;
     }
+    window.addEventListener('resize', drawDebugDots);
+
+
+    // 🌟 2. خوارزمية اللمس الذكي 🌟
+    overlay.addEventListener('click', (e) => {
+        if (pageCoords.length === 0 || !imgEl.naturalWidth) return;
+
+        const wrapper = pageEl.querySelector('.quran-image-wrapper');
+        const currentWidth = wrapper.clientWidth;
+        const currentHeight = wrapper.clientHeight;
+
+        if (currentWidth === 0 || currentHeight === 0) return;
+
+        const imgRatio = imgEl.naturalWidth / imgEl.naturalHeight;
+        const containerRatio = currentWidth / currentHeight;
+
+        let renderWidth, renderHeight, offsetX, offsetY;
+
+        if (containerRatio > imgRatio) {
+            renderHeight = currentHeight;
+            renderWidth = renderHeight * imgRatio;
+            offsetX = (currentWidth - renderWidth) / 2;
+            offsetY = 0;
+        } else {
+            renderWidth = currentWidth;
+            renderHeight = renderWidth / imgRatio;
+            offsetX = 0;
+            offsetY = (currentHeight - renderHeight) / 2;
+        }
+
+        const rect = wrapper.getBoundingClientRect();
+        const clickX = e.clientX - rect.left - offsetX;
+        const clickY = e.clientY - rect.top - offsetY;
+
+        if (clickX < 0 || clickX > renderWidth || clickY < 0 || clickY > renderHeight) return;
+
+        const CSV_REF_WIDTH = 640;
+        const CSV_REF_HEIGHT = 1136;
+        
+        const scaleX = CSV_REF_WIDTH / renderWidth;
+        const scaleY = CSV_REF_HEIGHT / renderHeight;
+
+        const realClickX = clickX * scaleX;
+        const realClickY = clickY * scaleY;
+
+        let closestAyah = null;
+        let minDistance = Infinity;
+
+        pageCoords.forEach(coord => {
+            let dx = coord.x - realClickX;
+            let dy = coord.y - realClickY;
+
+            if (dy < -20) dy = dy * 3; 
+            if (dx > 0 && Math.abs(dy) < 40) dx = dx * 2;
+
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestAyah = coord.aya_id;
+            }
+        });
+
+        // تأثير البصمة (Ripple Effect) الجميل
+        const ripple = document.createElement('div');
+        ripple.style.cssText = `
+            position: absolute; width: 50px; height: 50px;
+            background: rgba(25, 135, 84, 0.4); border-radius: 50%;
+            left: ${e.clientX - rect.left - 25}px; 
+            top: ${e.clientY - rect.top - 25}px;
+            pointer-events: none; transform: scale(0); 
+            transition: transform 0.3s ease-out, opacity 0.4s ease-out;
+            z-index: 10;
+        `;
+        overlay.appendChild(ripple);
+        
+        requestAnimationFrame(() => ripple.style.transform = 'scale(1.5)');
+        setTimeout(() => { ripple.style.opacity = '0'; setTimeout(() => ripple.remove(), 400); }, 200);
+
+        if (closestAyah) handleAyahClick(closestAyah, pageNum);
+    });
   }
 
-  // ─── كاش دائم للـ DOM elements بين التقليبات ───
+  // ═══════════════════════════════════════════════════════════════
+  // 🚀 نظام Virtual 3-Slot Carousel
+  //
+  // الفكرة: 3 slots ثابتة في الـ DOM دايمًا (يمين - وسط - يسار)
+  //   slot[0] = currentPage + 1  (الصفحة الأصغر رقمًا، على اليمين)
+  //   slot[1] = currentPage      (الصفحة الحالية، في المنتصف)  ← الـ track يتمركز عليها
+  //   slot[2] = currentPage - 1  (الصفحة الأكبر رقمًا، على اليسار)
+  //
+  // عند التقليب:
+  //   ✅ بنغير محتوى الـ slots فقط (appendChild لعناصر من الكاش)
+  //   ✅ الصور من الكاش تظهر فورًا بدون أي loading
+  //   ✅ الـ track يتحرك بـ CSS transition فقط على الـ GPU
+  //   ✅ مفيش innerHTML = '' أو removeChild في أثناء التقليب
+  // ═══════════════════════════════════════════════════════════════
+
+  // كاش الـ DOM: { pageNum → pageElement } — لا يُحذف طوال الجلسة
   const _domPageCache = {};
 
-  // ─── إعداد 3 صفحات في الشاشة فقط ───
-  async function _setupTrack(currentPage) {
+  // Preload صورة في كاش المتصفح بدون إضافتها للـ DOM
+  const _imgPreloadCache = {};
+  function _preloadImg(pageNum) {
+    if (pageNum < 1 || pageNum > TOTAL_PAGES || _imgPreloadCache[pageNum]) return;
+    _imgPreloadCache[pageNum] = true;
+    const img = new Image();
+    img.src = `/assets/quran_images/${pageNum}.jpg`;
+  }
+
+  // بناء أو استرجاع عنصر صفحة جاهز من الكاش
+  function _getPage(pageNum) {
+    if (_domPageCache[pageNum]) return _domPageCache[pageNum];
+    const el = _buildPageEl(pageNum);
+    _domPageCache[pageNum] = el;
+    _loadPageContent(el, pageNum);
+    if (!_pageCache[pageNum]) _fetchPageData(pageNum).catch(() => {});
+    return el;
+  }
+
+  // ─── إعداد الـ Track: أنشئ الـ 3 slots مرة واحدة فقط، ثم حدّث محتواها ───
+  function _setupTrack(currentPage) {
     if (!_swipeTrack) return;
-    _swipeTrack.classList.add('no-transition');
 
-    const domPages = [
-        currentPage + 1, // اليمين
-        currentPage,     // الحالي
-        currentPage - 1  // اليسار
-    ];
-
-    const prefetchPages = [currentPage + 2, currentPage - 2];
-
-    // 🌟 3. FIX BUG: تفريغ الشاشة بأسلوب يحافظ على الصور المخبأة (بدون innerHTML='') 🌟
-    while (_swipeTrack.firstChild) {
-        _swipeTrack.removeChild(_swipeTrack.firstChild);
+    // أنشئ الـ 3 slots إذا مش موجودين (أول مرة فقط)
+    if (_swipeTrack.children.length !== 3) {
+      _swipeTrack.innerHTML = '';
+      for (let i = 0; i < 3; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'quran-swipe-slot';
+        // CSS للـ slot: نفس عرض الشاشة تمامًا
+        slot.style.cssText = 'flex:0 0 100vw;width:100vw;height:100%;overflow:hidden;position:relative;';
+        _swipeTrack.appendChild(slot);
+      }
+      // عدّل عرض الـ track ليكون 300vw
+      _swipeTrack.style.width = '300vw';
     }
-    _pages = {};
 
-    domPages.forEach(p => {
+    const slots = _swipeTrack.children;
+    const pagesToShow = [currentPage + 1, currentPage, currentPage - 1];
+
+    pagesToShow.forEach((p, i) => {
+      const slot = slots[i];
+      // أزل العنصر القديم من الـ slot بدون حذفه (يبقى في الكاش)
+      while (slot.firstChild) slot.removeChild(slot.firstChild);
+
       if (p < 1 || p > TOTAL_PAGES) {
-        const placeholder = document.createElement('div');
-        placeholder.className = 'quran-swipe-page';
-        placeholder.style.visibility = 'hidden';
-        _swipeTrack.appendChild(placeholder);
+        slot.style.visibility = 'hidden';
         return;
       }
+      slot.style.visibility = '';
 
-      let el = _domPageCache[p];         
-
-      // 🌟 4. FIX BUG: الاعتماد على الكاش دائمًا وعدم انتظار dataReady لعدم تسبب الشاشة البيضاء 🌟
-      if (el && !el.classList.contains('loading-page')) {
-        el.scrollTop = 0;
-      } else {
-        el = _buildPageEl(p);
-        _domPageCache[p] = el;
-        _loadPageContent(el, p);
-      }
-
-      // تحميل بيانات النص في الخلفية بشكل منفصل
-      if (!_pageCache[p]) {
-          _fetchPageData(p).catch(() => {});
-      }
-
-      _pages[p] = el;
-
-      if (p === currentPage) {
-        el.classList.add('active-page');
-        el.classList.remove('peek-page');
-      } else {
-        el.classList.add('peek-page');
-        el.classList.remove('active-page');
-      }
-
-      _swipeTrack.appendChild(el);
+      const pageEl = _getPage(p);
+      pageEl.classList.toggle('active-page', p === currentPage);
+      pageEl.classList.toggle('peek-page',   p !== currentPage);
+      slot.appendChild(pageEl);
     });
 
-    requestAnimationFrame(() => {
-      _centerTrack(); 
-      _swipeTrack.classList.remove('no-transition');
-    });
+    // تمركز فوري على الـ slot الأوسط (index=1) بدون أنيميشن
+    _swipeTrack.classList.add('no-transition');
+    _centerTrack();
+    // إزالة no-transition في الـ frame التالي
+    requestAnimationFrame(() => _swipeTrack.classList.remove('no-transition'));
 
-    prefetchPages.forEach(p => {
-      if (p >= 1 && p <= TOTAL_PAGES && !_pageCache[p]) {
-        _fetchPageData(p).catch(() => {});
-      }
+    // Preload الصفحات المجاورة البعيدة (صور + بيانات)
+    [currentPage + 2, currentPage - 2, currentPage + 3, currentPage - 3].forEach(_preloadImg);
+    [currentPage + 2, currentPage - 2].forEach(p => {
+      if (p >= 1 && p <= TOTAL_PAGES && !_pageCache[p]) _fetchPageData(p).catch(() => {});
     });
   }
 
+  // الـ track دايمًا بيتمركز على الـ slot الأوسط = translateX(-100vw)
   function _centerTrack() {
     if (!_swipeTrack) return;
-    const wrapper = document.getElementById('quran-pages-track-wrapper');
-    if (!wrapper) return;
-    
-    const wrapperWidth = wrapper.offsetWidth;
-    const pageWidth = wrapperWidth;
-
-    const allPages = Array.from(_swipeTrack.children);
-    const activeIndex = allPages.findIndex(el => el.classList.contains('active-page'));
-    
-    const centerIndex = activeIndex >= 0 ? activeIndex : Math.floor(allPages.length / 2);
-
-    const offset = (wrapperWidth - pageWidth) / 2 - (pageWidth * centerIndex);
-    _swipeTrack.style.transform = `translateX(${offset}px)`;
+    const w = window.innerWidth;
+    _swipeTrack.style.transform = `translateX(${-w}px)`;
   }
 
-  // ─── الانتقال لصفحة ───
-  async function _swipeToPage(newPage) {
+  // ─── الانتقال لصفحة: synchronous تمامًا، بدون await ───
+  function _swipeToPage(newPage) {
     if (!_swipeTrack || newPage < 1 || newPage > TOTAL_PAGES) return;
-    window.currentPage = newPage;
-
+    window.currentPage  = newPage;
     window._navSurah     = null;
     window._navSurahPage = null;
 
-    await _setupTrack(newPage);
+    _setupTrack(newPage);
 
-    if (window.prefetchPage) {
-      window.prefetchPage(newPage + 1);
-      window.prefetchPage(newPage - 1);
-    }
-
+    // حدّث العنوان والجزء بدون إعادة رندر كاملة
     if (window.loadQuranPage) window.loadQuranPage(newPage);
   }
 
-  // ─── 1. تحديث Touch Swipe (تخفيف الـ Reflow والتعليق) ───
+// ─── 1. تحديث Touch Swipe (فصل منطق المصحف النصي عن المصور) ───
   (function() {
     let _tx = 0, _ty = 0, _tt = 0;
     let _dragging = false;
-    let _startTransform = 0;
+    let _startTransform = 0; 
     let _locked = false;
     let _rafId = null;
-
-    function _getTranslateX(el) {
-      const m = new DOMMatrix(getComputedStyle(el).transform);
-      return m.m41;
-    }
 
     document.addEventListener('touchstart', e => {
       const qs = document.getElementById('quran-section');
@@ -3131,8 +3265,9 @@ window.changeScrollSpeed = function(dir) {
       _tx = t.clientX; _ty = t.clientY; _tt = Date.now();
       _dragging = true;
 
-      if (_swipeTrack) {
-        _startTransform = _getTranslateX(_swipeTrack);
+      // 🌟 نهيئ حركة الـ CSS فقط لو إحنا في المصحف المصور
+      if (window._imageMushafActive && _swipeTrack) {
+        _startTransform = -window.innerWidth; // تمركز الخانة الوسطى دائماً
         _swipeTrack.classList.add('no-transition');
       }
     }, { passive: true });
@@ -3140,20 +3275,31 @@ window.changeScrollSpeed = function(dir) {
     document.addEventListener('touchmove', e => {
       if (!_dragging) return;
       const t = e.changedTouches[0];
-      const dx = t.clientX - _tx;
+      const dx = t.clientX - _tx; 
       const dy = t.clientY - _ty;
 
-      if (Math.abs(dy) > Math.abs(dx) + 10) {
-        _dragging = false;
-        if (_swipeTrack) _swipeTrack.classList.remove('no-transition');
-        return;
-      }
+      // 🌟 فصل المنطق: المصحف المصور يتفاعل، والمصحف النصي يُترك للسكرول الأصلي 🌟
+      if (window._imageMushafActive && _swipeTrack) {
+        // إلغاء السحب الأفقي لو المستخدم بيسحب الشاشة لفوق/لتحت بوضوح
+        if (Math.abs(dy) > Math.abs(dx) + 15) {
+          _dragging = false;
+          _swipeTrack.classList.remove('no-transition');
+          _centerTrack();
+          return;
+        }
 
-      if (_swipeTrack) {
         if (_rafId) cancelAnimationFrame(_rafId);
         _rafId = requestAnimationFrame(() => {
-          _swipeTrack.style.transform = `translateX(${_startTransform + dx}px)`;
+          let resistance = 1;
+          // إضافة مقاومة عند الوصول لأول أو آخر المصحف
+          if ((window.currentPage === 1 && dx > 0) || (window.currentPage === TOTAL_PAGES && dx < 0)) {
+              resistance = 0.3;
+          }
+          _swipeTrack.style.transform = `translateX(${_startTransform + (dx * resistance)}px)`;
         });
+      } else {
+        // 🛑 في المصحف النصي العادي: لا نفعل شيئاً هنا!
+        // هذا يسمح للمتصفح بالقيام بالسكرول العمودي (النزول والطلوع بالصفحة) بحرية تامة
       }
     }, { passive: true });
 
@@ -3161,6 +3307,7 @@ window.changeScrollSpeed = function(dir) {
       if (!_dragging) return;
       _dragging = false;
       if (_rafId) cancelAnimationFrame(_rafId);
+      
       if (_swipeTrack) _swipeTrack.classList.remove('no-transition');
 
       const t  = e.changedTouches[0];
@@ -3168,30 +3315,42 @@ window.changeScrollSpeed = function(dir) {
       const dy = t.clientY - _ty;
       const dt = Date.now() - _tt;
 
-      if (dt > 500 || Math.abs(dx) < 40 || Math.abs(dy) > Math.abs(dx) * 0.8) {
-        if (_swipeTrack) _centerTrack();
-        return;
-      }
-
+      // ─── 1. منطق المصحف المصور ───
       if (window._imageMushafActive && _swipeTrack) {
-        // ─── وضع المصحف المصور: Swipe بالصور ───
+        // الارتداد (رجوع الصفحة للمنتصف) لو السحب بطيء أو مسافته قصيرة
+        if (dt > 500 || Math.abs(dx) < 40 || Math.abs(dy) > Math.abs(dx) * 0.8) {
+          _centerTrack();
+          return;
+        }
+
         if (_locked) { _centerTrack(); return; }
-        _locked = true; setTimeout(() => { _locked = false; }, 450);
-        if (dx < 0) {
+        _locked = true; 
+        setTimeout(() => { _locked = false; }, 300); 
+        
+        if (dx < 0) { // سحب لليسار (يقلب للصفحة التالية في المصحف)
           if (window.currentPage > 1) _swipeToPage(window.currentPage - 1);
           else _centerTrack();
-        } else {
+        } else { // سحب لليمين (يقلب للصفحة السابقة)
           if (window.currentPage < TOTAL_PAGES) _swipeToPage(window.currentPage + 1);
           else _centerTrack();
         }
-      } else {
-        // ─── وضع المصحف النصي: تنقل بسيط بالسحب ───
+      } 
+      // ─── 2. منطق المصحف النصي العادي ───
+      else {
+        // نتأكد إنها سحبة أفقية سريعة ومقصودة (مش سكرول لتحت ولا مجرد كليك)
+        if (dt > 600 || Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx)) {
+            return; 
+        }
+
         if (_locked) return;
-        _locked = true; setTimeout(() => { _locked = false; }, 400);
-        if (dx < 0) {
-          _normalPageNav(-1);
-        } else {
-          _normalPageNav(+1);
+        _locked = true; 
+        setTimeout(() => { _locked = false; }, 350);
+
+        // التقليب في المصحف النصي
+        if (dx < 0) { // سحب لليسار
+            _normalPageNav(-1); 
+        } else { // سحب لليمين
+            _normalPageNav(+1); 
         }
       }
     }, { passive: true });
@@ -3224,7 +3383,7 @@ window.changeScrollSpeed = function(dir) {
       const result = await _origLoad.call(this, targetPage, surahNum, ayahNum, ...rest);
       
       if (isImageMushafMode && document.body.classList.contains('swipe-nav-active') && typeof _setupTrack === 'function') {
-        await _setupTrack(targetPage);
+        _setupTrack(targetPage);
 
         if (surahNum) {
           setTimeout(() => {
@@ -4068,10 +4227,20 @@ window.shareDailyContent = async function() {
         ? 'تطبيق اقرأ — نور يومك بالقرآن الكريم' 
         : 'تطبيق اقرأ — استضئ بنور السنة النبوية';
 
-    // 🌟 تنسيق المحتوى (الآية تأخذ أقواس قرآنية، والحديث يأخذ أقواس عادية في سطر جديد)
+    // 🌟 التعديل هنا: تم فصل اسم السورة والآية في سطر جديد (div) 🌟
     const contentHtml = isAyah 
-        ? `${textToShare} <span style="display: inline-block; margin-right: 15px; color: var(--ayah-color); font-size: 3.2rem;">﴿${sourceToShare}﴾</span>`
-        : `${textToShare} <div style="margin-top: 30px; color: var(--ayah-color); font-size: 2.2rem; font-weight: bold; font-family: 'Amiri', serif;">[ ${sourceToShare} ]</div>`;
+        ? `
+            <div style="margin-bottom: 25px;">${textToShare}</div>
+            <div style="color: var(--ayah-color); font-size: 2.8rem; font-weight: bold; font-family: 'Amiri', serif;">
+                ﴿ ${sourceToShare} ﴾
+            </div>
+          `
+        : `
+            <div style="margin-bottom: 25px;">${textToShare}</div>
+            <div style="color: var(--ayah-color); font-size: 2.2rem; font-weight: bold; font-family: 'Amiri', serif;">
+                [ ${sourceToShare} ]
+            </div>
+          `;
 
     // 🌟 ١. اكتشاف حالة التطبيق
     const isDarkMode = document.body.getAttribute('data-theme') === 'dark' || 
@@ -4199,7 +4368,7 @@ window.shareDailyContent = async function() {
             </div>
 
             <div style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 0 10px;">
-                <div style="font-family: 'Amiri Quran', 'Amiri', serif; font-size: 4rem; line-height: 2.3; color: ${theme.textMain}; text-align: center; width: 100%;">
+                <div style="font-family: 'Amiri Quran', 'Amiri', serif; font-size: 4rem; line-height: 2.3; color: ${theme.textMain}; text-align: center; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15px;">
                     ${contentHtml}
                 </div>
             </div>
@@ -5758,11 +5927,15 @@ document.addEventListener('DOMContentLoaded', setWelcomeGreeting);
 setWelcomeGreeting();
 
 
-// ─── منطق شاشات الافتتاحية (Onboarding) ───
 
+//  منطق شاشات الافتتاحية (Onboarding) 
 document.addEventListener('DOMContentLoaded', () => {
     const onboardingOverlay = document.getElementById('onboarding-overlay');
-    if (!onboardingOverlay) return;
+    if (!onboardingOverlay) {
+        // لو مفيش شاشة افتتاحية في الـ HTML أساساً، شغل الإشعارات بعد 3 ثواني
+        setTimeout(() => { if(typeof checkAndPromptNotifications === 'function') checkAndPromptNotifications(); }, 3000);
+        return;
+    }
 
     // التحقق من التخزين المحلي (هل هذه أول زيارة؟)
     const hasSeenIntro = localStorage.getItem('aqra_has_seen_intro');
@@ -5776,7 +5949,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const skipBtn = document.getElementById('skip-onboarding');
         const carouselElement = document.getElementById('onboardingCarousel');
         
-        // 🔥 التعديل هنا: تفعيل الـ Carousel الخاص بـ Bootstrap مع دعم اللمس (touch: true) 🔥
+        // 🔥 تفعيل الـ Carousel الخاص بـ Bootstrap مع دعم اللمس (touch: true) 🔥
         const carousel = new bootstrap.Carousel(carouselElement, {
             interval: false, // تعطيل التقليب التلقائي
             wrap: false,     // تعطيل الدوران للبداية عند الوصول للنهاية
@@ -5811,12 +5984,24 @@ document.addEventListener('DOMContentLoaded', () => {
             
             setTimeout(() => {
                 onboardingOverlay.classList.add('d-none');
+                
+                // 🌟 طلب صلاحية الإشعارات بعد اختفاء الافتتاحية بنصف ثانية 🌟
+                setTimeout(() => { 
+                    if(typeof checkAndPromptNotifications === 'function') checkAndPromptNotifications(); 
+                }, 500);
+
             }, 400); // نفس مدة الـ transition في الـ CSS
         };
 
         // تفعيل أزرار التخطي والبدء
         startBtn.addEventListener('click', finishOnboarding);
         skipBtn.addEventListener('click', finishOnboarding);
+    } else {
+        // 🌟 لو المستخدم شاف الافتتاحية قبل كده (زيارة عادية للتطبيق) 🌟
+        // نطلب الإشعارات بعد 3.5 ثواني من فتح التطبيق (عشان ياخد فرصته يقرأ آية اليوم براحته)
+        setTimeout(() => { 
+            if(typeof checkAndPromptNotifications === 'function') checkAndPromptNotifications(); 
+        }, 3500);
     }
 });
 
@@ -5979,3 +6164,51 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener(eventType, returnPopupToBody);
     });
 });
+// ─── دوال الانتقال السريع في المصحف المصور ───
+
+window.toggleQuickJump = function() {
+    const jumpMenu = document.getElementById('mushaf-quick-jump');
+    jumpMenu.classList.toggle('d-none');
+    
+    // تعبئة قائمة السور لأول مرة
+    const select = document.getElementById('quick-surah-select');
+    
+    // استخدام surahNames الموجودة في constants
+    const namesArray = typeof surahNames !== 'undefined' ? surahNames : window.surahNames;
+    
+    if (select && select.options.length <= 1 && namesArray) {
+        namesArray.forEach((name, i) => {
+            const opt = document.createElement('option');
+            opt.value = i + 1; // رقم السورة الفعلي (من 1 إلى 114)
+            opt.textContent = `${i + 1}. ${name}`;
+            select.appendChild(opt);
+        });
+    }
+};
+
+window.jumpToSurah = function(surahNum) {
+    if (!surahNum) return;
+    
+    const sNum = parseInt(surahNum);
+    
+    // 🌟 الإصلاح هنا: استخدام surahPageMap الخاصة بك، وطرح 1 لأن الاندكس يبدأ من 0 🌟
+    const pageMapArray = typeof surahPageMap !== 'undefined' ? surahPageMap : window.surahPageMap;
+    const page = pageMapArray ? pageMapArray[sNum - 1] : null; 
+    
+    if (page && window.loadQuranPage) {
+        window.loadQuranPage(page, sNum); // تحميل الصفحة وإغلاق النافذة
+        
+        document.getElementById('mushaf-quick-jump').classList.add('d-none');
+        document.getElementById('quick-surah-select').value = '';
+    }
+};
+
+window.jumpToPage = function() {
+    const p = parseInt(document.getElementById('quick-page-input').value);
+    if (p >= 1 && p <= 604 && window.loadQuranPage) {
+        window.loadQuranPage(p);
+        
+        document.getElementById('mushaf-quick-jump').classList.add('d-none');
+        document.getElementById('quick-page-input').value = '';
+    }
+};
