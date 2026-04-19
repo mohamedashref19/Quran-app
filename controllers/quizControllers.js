@@ -3,25 +3,20 @@ const Leaderboard = require('../models/leaderboardModel');
 const QuestionBank = require('../models/QuestionBank');
 const catchAsync = require('../utils/catchAsync');
 
-// ─── 1. جلب مسابقة اليوم (بشكل ذكي وعشوائي) ───
 exports.getTodayQuiz = catchAsync(async (req, res, next) => {
    const tz = req.query.tz || 'UTC';
   
-  // السيرفر يحسب التاريخ بناءً على timezone المستخدم
   const today = new Date().toLocaleDateString('en-CA', { timeZone: tz });
-  // النتيجة: "2026-04-13" بتوقيت المستخدم الفعلي
 
   let quiz = await DailyQuiz.findOne({ date: today });
 
   if (!quiz) {
-    // 🌟 السحر الجديد: سحب 5 أسئلة عشوائية من الأسئلة التي لم تُستخدم بعد
     let bankQuestions = await QuestionBank.aggregate([
-      { $match: { lastUsed: null } }, // هات اللي متسألش خالص الأول
-      { $sample: { size: 5 } }        // اختار منهم 5 بشكل عشوائي تماماً
+      { $match: { lastUsed: null } }, 
+      { $sample: { size: 5 } }        
     ]);
 
-    // لو الأسئلة اللي متسألتش خلصت (بعد ما الـ 135 يخلصوا)
-    // السيرفر هيجيب أقدم 50 سؤال اتسألوا من زمان، ويخلطهم ويختار 5 عشوائي!
+
     if (bankQuestions.length < 5) {
       bankQuestions = await QuestionBank.aggregate([
         { $sort: { lastUsed: 1 } },
@@ -37,7 +32,6 @@ exports.getTodayQuiz = catchAsync(async (req, res, next) => {
       });
     }
 
-    // تجهيز الأسئلة للمسابقة
     const selectedQuestions = bankQuestions.map(q => ({
       question: q.question,
       options: q.options,
@@ -45,13 +39,11 @@ exports.getTodayQuiz = catchAsync(async (req, res, next) => {
       explanation: q.explanation
     }));
 
-    // حفظها كمسابقة اليوم
     quiz = await DailyQuiz.create({
       date: today,
       questions: selectedQuestions
     });
 
-    // تحديث تاريخ الاستخدام عشان ميتسألوش تاني قريب
     const questionIds = bankQuestions.map(q => q._id);
     await QuestionBank.updateMany(
       { _id: { $in: questionIds } },
@@ -62,7 +54,7 @@ exports.getTodayQuiz = catchAsync(async (req, res, next) => {
   res.status(200).json({ status: 'success', data: { quiz } });
 });
 
-// ─── 2. إضافة أسئلة جديدة للبنك (للأدمن فقط) ───
+
 exports.addToBank = catchAsync(async (req, res, next) => {
   const questions = req.body.questions;
   
@@ -70,7 +62,6 @@ exports.addToBank = catchAsync(async (req, res, next) => {
       return res.status(400).json({ status: 'fail', message: 'لم يتم إرسال أي أسئلة' });
   }
 
-  // إدخال الأسئلة للبنك دفعة واحدة
   await QuestionBank.insertMany(questions);
 
   res.status(201).json({
@@ -80,7 +71,6 @@ exports.addToBank = catchAsync(async (req, res, next) => {
 });
 
 
-// ─── 3. إحصائيات البنك للأدمن ───
 exports.getBankStats = catchAsync(async (req, res, next) => {
   const totalQuestions = await QuestionBank.countDocuments();
   const unusedQuestions = await QuestionBank.countDocuments({ lastUsed: null });
@@ -94,7 +84,6 @@ exports.getBankStats = catchAsync(async (req, res, next) => {
   });
 });
 
-// ─── 4. جلب كل الأسئلة من البنك (للأدمن فقط) ───
 exports.getAllBank = catchAsync(async (req, res, next) => {
   const questions = await QuestionBank.find().sort({ createdAt: -1 });
   res.status(200).json({
@@ -103,7 +92,6 @@ exports.getAllBank = catchAsync(async (req, res, next) => {
   });
 });
 
-// ─── 5. تعديل سؤال من البنك ───
 exports.updateBankQuestion = catchAsync(async (req, res, next) => {
   const { question, options, correctAnswer, explanation } = req.body;
   const updated = await QuestionBank.findByIdAndUpdate(
@@ -115,14 +103,12 @@ exports.updateBankQuestion = catchAsync(async (req, res, next) => {
   res.status(200).json({ status: 'success', data: { question: updated } });
 });
 
-// ─── 6. حذف سؤال من البنك ───
 exports.deleteBankQuestion = catchAsync(async (req, res, next) => {
   const deleted = await QuestionBank.findByIdAndDelete(req.params.id);
   if (!deleted) return res.status(404).json({ status: 'fail', message: 'السؤال مش موجود' });
   res.status(200).json({ status: 'success', message: 'تم حذف السؤال بنجاح' });
 });
 
-// 1. تسجيل نتيجة جديدة
 exports.submitScore = catchAsync(async (req, res, next) => {
   const { name, score, total, date } = req.body;
 
@@ -130,7 +116,6 @@ exports.submitScore = catchAsync(async (req, res, next) => {
     return next(new AppError('بيانات غير مكتملة', 400));
   }
 
-  // حفظ النتيجة في الداتابيز
   const newEntry = await Leaderboard.create({
     name,
     score,
@@ -146,28 +131,29 @@ exports.submitScore = catchAsync(async (req, res, next) => {
   });
 });
 
-// 2. جلب لوحة الشرف ليوم معين
 exports.getDailyLeaderboard = catchAsync(async (req, res, next) => {
-  const { date } = req.query;
+  const { date, tz } = req.query; 
+  const userTimeZone = tz || 'Africa/Cairo';
 
   if (!date) {
     return next(new AppError('يرجى تحديد التاريخ', 400));
   }
 
-  // نجيب أفضل 10 متسابقين لليوم ده
-  // الترتيب: -score (الأعلى أولاً)، ثم createdAt (الأقدم/الأسرع أولاً في حالة التعادل)
   const leaders = await Leaderboard.find({ date })
     .sort({ score: -1, createdAt: 1 })
     .limit(10)
-    .select('name score total createdAt -_id'); // بنجيب الحقول دي بس عشان نوفر داتا
+    .select('name score total createdAt -_id'); 
 
-  // تنسيق الوقت عشان يظهر للفرونت إيند زي (10:00 ص)
   const formattedLeaders = leaders.map(leader => {
     return {
       name: leader.name,
       score: leader.score,
       total: leader.total,
-      time: leader.createdAt.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
+      time: leader.createdAt.toLocaleTimeString('ar-EG', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        timeZone: userTimeZone 
+      })
     };
   });
 

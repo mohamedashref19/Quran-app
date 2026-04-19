@@ -355,7 +355,7 @@ export const shareAyah = async (ayahText, surahName, ayahNum) => {
 
       <div style="margin-top: 40px; text-align: center;">
         <span style="font-family: 'Amiri', serif; font-size: 1.8rem; color: ${theme.watermark};">
-           تطبيق اقرأ — نور يومك بالقرآن الكريم
+          اقرأ - رفيقك لختم القرآن
         </span>
       </div>
 
@@ -383,8 +383,9 @@ export const shareAyah = async (ayahText, surahName, ayahNum) => {
     document.body.removeChild(card);
 
     const shareTitle = `سورة ${cleanSurahName} - آية ${ayahNum}`;
-    const shareMessage = `${cleanAyahText} ﴿${toArabicNum(ayahNum)}﴾\n\n✨ تمت المشاركة عبر تطبيق اقرأ`;
-
+    const defaultLink = "https://play.google.com/store/apps/details?id=com.mohamedashraf.aqra";
+    const dynamicShareLink = localStorage.getItem('dynamic_share_url') || defaultLink;
+const shareMessage = `﴿ ${cleanAyahText} ﴾\n[سورة ${cleanSurahName} : ${toArabicNum(ayahNum)}]\n\n✨ شارك في الأجر وحمل تطبيق "اقرأ":\n${dynamicShareLink}`;
     if (window.Capacitor && window.Capacitor.isNativePlatform()) {
       const Filesystem = window.Capacitor.Plugins.Filesystem;
       const Share = window.Capacitor.Plugins.Share;
@@ -4238,17 +4239,11 @@ export const loadDailyQuiz = async () => {
   // 🌟 التعديل هنا: جلب التاريخ بالتوقيت المحلي للمستخدم (عشان تتحدث 12 بليل بالظبط عنده)
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const today = new Date().toLocaleDateString('en-CA', { timeZone: timezone });
-// const mockLeaders = [
-//       { name: 'محمد أشرف', score: 5, total: 5, time: '10:00 ص' },
-//       { name: 'محب القرآن', score: 4, total: 5, time: '11:30 ص' },
-//       { name: 'فاعل خير', score: 4, total: 5, time: '01:15 م' },
-//       { name: 'أحمد', score: 3, total: 5, time: '09:00 ص' },
-//       { name: 'ضيف', score: 2, total: 5, time: '02:00 م' }
-//   ];
+
 try {
       // إظهار اللوحة بشكل فارغ أو Loading (اختياري) قبل ما الداتا تيجي
       
-      const leaderRes = await axios.get(`/api/v1/quiz/leaderboard?date=${today}`);
+     const leaderRes = await axios.get(`/api/v1/quiz/leaderboard?date=${today}&tz=${timezone}`);
       const realLeaders = leaderRes.data.data.leaders;
       
       renderLeaderboard(realLeaders);

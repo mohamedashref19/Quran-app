@@ -211,6 +211,18 @@ window.addEventListener('online', async () => {
   setTimeout(() => processOfflineQueue(), 2000);
 });
 
+// دالة لجلب الإعدادات الديناميكية من السيرفر
+const fetchDynamicSettings = async () => {
+    try {
+        // بنضيف وقت عشان نمنع الكاش القديم
+        const res = await axios.get(`/version.json?t=${new Date().getTime()}`);
+        if (res.data && res.data.shareUrl) {
+            localStorage.setItem('dynamic_share_url', res.data.shareUrl);
+        }
+    } catch (e) {
+        console.log("لم يتم تحديث الرابط الديناميكي، سيتم استخدام الرابط الافتراضي");
+    }
+};
 
 // إتاحتهم على مستوى التطبيق بالكامل
 window.surahNames = surahNames;
@@ -861,6 +873,7 @@ window.submitToLeaderboard = async (score, total, dateStr) => {
     }
 };
 document.addEventListener('DOMContentLoaded', () => {
+  fetchDynamicSettings();
   loadRadioStations();
    loadAppVersion()
   window.loadDailyQuiz = loadDailyQuiz;
@@ -4216,7 +4229,11 @@ window.shareDailyContent = async function() {
     let sourceToShare = document.getElementById(sourceId).innerText.trim();
     
     sourceToShare = toArabicNum(sourceToShare);
-    const shareMessage = `"${textToShare}"\n\n[ ${sourceToShare} ]\n\n✨ تمت المشاركة عبر تطبيق اقرأ`;
+
+    // 🌟 التعديل هنا: سحب الرابط الديناميكي وإضافته للرسالة 🌟
+    const defaultLink = "https://play.google.com/store/apps/details?id=com.mohamedashraf.aqra";
+    const dynamicShareLink = localStorage.getItem('dynamic_share_url') || defaultLink;
+    const shareMessage = `"${textToShare}"\n\n[ ${sourceToShare} ]\n\n✨ شارك في الأجر وحمل تطبيق "اقرأ":\n${dynamicShareLink}`;
 
     // 🌟 إعداد النصوص المتغيرة
     const preText = isAyah 
@@ -4227,7 +4244,6 @@ window.shareDailyContent = async function() {
         ? 'تطبيق اقرأ — نور يومك بالقرآن الكريم' 
         : 'تطبيق اقرأ — استضئ بنور السنة النبوية';
 
-    // 🌟 التعديل هنا: تم فصل اسم السورة والآية في سطر جديد (div) 🌟
     const contentHtml = isAyah 
         ? `
             <div style="margin-bottom: 25px;">${textToShare}</div>
@@ -4346,7 +4362,7 @@ window.shareDailyContent = async function() {
         top: 0;
         direction: rtl;
         box-sizing: border-box;
-        --ayah-color: ${theme.ayahNum}; /* لتمريرها كمتغير */
+        --ayah-color: ${theme.ayahNum};
     `;
     
     card.innerHTML = `
@@ -4425,7 +4441,7 @@ window.shareDailyContent = async function() {
             
             await Share.share({
                 title: isAyah ? 'آية اليوم' : 'حديث اليوم',
-                text: shareMessage,
+                text: shareMessage, // تم تمرير الرسالة بالرابط الجديد
                 url: uri,
                 dialogTitle: 'مشاركة',
             });
@@ -4439,7 +4455,7 @@ window.shareDailyContent = async function() {
             if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                 await navigator.share({
                     title: 'تطبيق اقرأ 📖',
-                    text: shareMessage,
+                    text: shareMessage, // تم تمرير الرسالة بالرابط الجديد
                     files: [file]
                 });
             } else {
@@ -4448,7 +4464,7 @@ window.shareDailyContent = async function() {
                 link.href = imgData;
                 link.click();
                 
-                await navigator.clipboard.writeText(shareMessage);
+                await navigator.clipboard.writeText(shareMessage); // تم تمرير الرسالة بالرابط الجديد
                 Swal.fire({
                     icon: 'success',
                     title: 'تم الحفظ بنجاح!',
