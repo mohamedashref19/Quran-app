@@ -4,7 +4,7 @@ node_modules/
 # Environment Variables (IMPORTANT!)
 .env
 config.env
-
+config/
 # Parcel Cache & Build
 .cache/
 .parcel-cache/

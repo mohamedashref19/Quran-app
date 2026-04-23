@@ -7,6 +7,7 @@ import { Preferences } from '@capacitor/preferences';
 import localforage from 'localforage';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Browser } from '@capacitor/browser';
+import { PushNotifications } from '@capacitor/push-notifications';
 
 
 import axios from 'axios';
@@ -3807,6 +3808,59 @@ document.body.addEventListener('click', (e) => {
   }
 });
 
+const initPushNotifications = async () => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    try {
+        // 1. طلب التسجيل في Firebase
+        await PushNotifications.register();
+
+        // 2. استلام الـ Token وإرساله للسيرفر
+        PushNotifications.addListener('registration', async (token) => {
+            console.log('✅ FCM Token:', token.value);
+            
+            try {
+                // جلب الـ ID الخاص بالمستخدم من التخزين المحلي
+                const loggedInUserId = localStorage.getItem('userId'); 
+
+                const payload = {
+                    token: token.value,
+                    device: Capacitor.getPlatform()
+                };
+
+                // إذا كان المستخدم مسجلاً دخوله، نربط التوكن بحسابه
+                if (loggedInUserId) {
+                    payload.userId = loggedInUserId;
+                }
+
+                // إرسال البيانات للباك إند الخاص بك (AWS)
+                await axios.post('/api/v1/notification/save-token', payload);
+                console.log('✅ تم تحديث توكن الإشعارات على السيرفر');
+
+            } catch (err) {
+                console.error('❌ فشل إرسال التوكن للسيرفر:', err);
+            }
+        });
+
+        PushNotifications.addListener('registrationError', (error) => {
+            console.error('❌ خطأ في التسجيل:', error);
+        });
+
+        PushNotifications.addListener('pushNotificationReceived', (notification) => {
+            console.log('🔔 إشعار مستلم:', notification);
+        });
+
+        PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+            const data = action.notification.data;
+            if (data && data.url) {
+                window.open(data.url, '_system');
+            }
+        });
+
+    } catch (e) {
+        console.error('خطأ في تهيئة إشعارات الدفع:', e);
+    }
+};
 // ─── 1. Native Init & Cache Management ─────────────────────────────────────────
 const initNativeFeatures = async () => {
   if (!Capacitor.isNativePlatform()) return;
@@ -3931,12 +3985,13 @@ const initNativeFeatures = async () => {
           console.log('⚠️ [PRAYERS] لا توجد مواقيت محفوظة، سيتم الجدولة عند فتح صفحة الصلاة');
       }
       console.log('✅ [NOTIFICATIONS] تم جدولة جميع التنبيهات بنجاح');
+      await initPushNotifications();
     }
     try { await Geolocation.requestPermissions(); } catch (e) { console.log('Geo permission:', e); }
   } catch (err) { console.error('Native Init Error:', err); }
 };
 
-// ─── 2. Update Checker 🔄 ────────────────────────────────────────────────────────
+// ─── 2. Update Checker 🔄 
 const checkForUpdates = async () => {
   if (!Capacitor.isNativePlatform() || !navigator.onLine) return;
 
@@ -3948,29 +4003,13 @@ const checkForUpdates = async () => {
     const data = await res.json();
     const serverBuild = parseInt(data.versionCode);
 
+    // لو مفيش تحديث، اخرج من الدالة
     if (serverBuild <= currentBuild) return;
 
-    const lastNotifiedVersion = localStorage.getItem('last_notified_update');
-    if (lastNotifiedVersion !== String(serverBuild)) {
-      // ✅ تأخير بسيط عشان الـ channel يكون جاهز
-      setTimeout(async () => {
-        try {
-          await LocalNotifications.schedule({
-            notifications: [{
-              title: "تحديث جديد متاح! 🎉",
-              body: `إصدار ${data.version} متوفر الآن بمميزات جديدة. اضغط للتحميل.`,
-              id: 102,
-              extra: { type: 'update', url: data.downloadUrl },
-              smallIcon: 'ic_notification',
-              channelId: 'khatmah-channel'
-            }]
-          });
-        } catch(e) { console.warn('Update notification failed:', e); }
-      }, 2000);
+    // 🌟 تم إزالة جزء جدولة الـ Local Notification 
+    // لأنك أصبحت تعتمد على الـ Push Notifications في لفت انتباه المستخدم من خارج التطبيق
 
-      localStorage.setItem('last_notified_update', String(serverBuild));
-    }
-
+    // عرض رسالة التحديث (الـ Modal) داخل التطبيق فقط
     const isForce = data.forceUpdate;
     const modalHtml = `
       <div class="modal fade" id="modal-update" tabindex="-1" data-bs-backdrop="${isForce ? 'static' : 'true'}" dir="rtl">
@@ -4013,44 +4052,7 @@ const checkForUpdates = async () => {
   } catch (err) { console.warn('Update check failed:', err); }
 };
 
-// const scheduleWebFridayReminder = () => {
-//   const now = new Date();
-//   const isFriday = now.getDay() === 5;
-//   const hour = now.getHours();
 
-//   if (isFriday && hour < 12) {
-//     const lastShown = localStorage.getItem('kahf_reminder_shown');
-//     const today     = now.toDateString();
-
-//     if (lastShown !== today) {
-//       setTimeout(() => {
-//         Swal.fire({
-//           title: '📖 يوم الجمعة المبارك',
-//           html: `
-//             <div style="font-family:'Amiri'; direction:rtl; text-align:right;">
-//               <p style="font-size:1.1rem; line-height:1.8;">
-//                 <strong>من قرأ سورة الكهف يوم الجمعة أضاء له النور ما بين الجمعتين</strong>
-//               </p>
-//               <p class="text-muted small">رواه البيهقي والحاكم</p>
-//             </div>`,
-//           confirmButtonText: '📖 اقرأ سورة الكهف الآن',
-//           cancelButtonText:  'لاحقاً',
-//           showCancelButton:   true,
-//           confirmButtonColor: '#198754',
-//           cancelButtonColor:  '#6c757d',
-//           imageUrl: null,
-//         }).then(result => {
-//           if (result.isConfirmed) {
-//             // سورة الكهف رقم 18 - الصفحة 293
-//             window.showSection('quran');
-//             window.loadQuranPage(293);
-//           }
-//         });
-//         localStorage.setItem('kahf_reminder_shown', today);
-//       }, 5000);
-//     }
-//   }
-// };
 
 // ─── منطق آية اليوم ──────────────────────────────
 const dailyAyahs = [

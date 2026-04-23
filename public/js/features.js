@@ -4586,7 +4586,24 @@ export const scheduleDailyQuizNotification = async () => {
 // دالة جلب الإذاعات من الباك إيند
 export async function loadRadioStations() {
     const select = document.getElementById('radio-station-select');
+    const playButton = document.getElementById('radio-play-btn'); // افترض إن ده ID زرار التشغيل
+    const statusText = document.getElementById('radio-status');
+    const radioContainer = document.getElementById('radio-card-body'); // الحاوية اللي فيها الإذاعة
+
     if (!select) return;
+
+    // 🌟 التعديل ١: التحقق من وجود إنترنت أولاً
+    if (!navigator.onLine) {
+        if(select) select.innerHTML = '<option value="" disabled selected>تتطلب الإذاعة اتصالاً بالإنترنت</option>';
+        if(select) select.disabled = true;
+        if(playButton) playButton.disabled = true;
+        if(statusText) statusText.innerHTML = '<i class="fas fa-wifi-slash text-danger me-1"></i> لا يوجد اتصال بالإنترنت';
+        return;
+    }
+
+    // لو فيه إنترنت، نرجع نفعلهم
+    if(select) select.disabled = false;
+    if(playButton) playButton.disabled = false;
 
     try {
         const res = await axios.get('/api/v1/radio'); // اللينك اللي عملناه في الباك
@@ -4602,7 +4619,7 @@ export async function loadRadioStations() {
         });
 
         // 2. بناء الـ HTML ديناميكياً
-        let html = '<option value="" disabled selected>اختر المحطة الإذاعية</option>';
+        let html = '';
         
         for (const category in groups) {
             html += `<optgroup label="${category}">`;
@@ -4614,9 +4631,19 @@ export async function loadRadioStations() {
 
         // 3. حقن البيانات في السليكت
         select.innerHTML = html;
+        
+        // لو مفيش محطة متحددة، نحدد أول محطة في أول مجموعة تلقائياً
+        if (select.options.length > 0) {
+            select.selectedIndex = 0;
+            statusText.innerText = 'جاهز للتشغيل';
+        }
 
     } catch (err) {
         console.error("❌ Error loading radio stations:", err);
-        select.innerHTML = '<option value="" disabled>فشل تحميل الإذاعات</option>';
+        // 🌟 التعديل ٢: رسالة شيك لو السيرفر فيه مشكلة بس فيه نت
+        select.innerHTML = '<option value="" disabled selected>عذراً، الإذاعة غير متاحة الآن</option>';
+        select.disabled = true;
+        if(playButton) playButton.disabled = true;
+        if(statusText) statusText.innerHTML = '<i class="fas fa-exclamation-circle text-warning me-1"></i> السيرفر لا يستجيب';
     }
 }
