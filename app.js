@@ -18,6 +18,7 @@ const khatmahRoutes = require("./routes/khatmahRoutes")
 const prayerRoutes = require("./routes/prayerRoutes")
 const viewRoutes = require("./routes/viewRoutes")
 const quizRoutes = require('./routes/quizRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 const radioRoutes = require('./routes/radioRoutes');
 const AppError = require("./utils/appError");
 const globalErrorHandler = require("./controllers/errorControllers");
@@ -249,6 +250,7 @@ app.use("/api/v1/khatmah", khatmahRoutes);
 app.use("/api/v1/prayers", prayerRoutes); 
 app.use('/api/v1/quiz', quizRoutes);
 app.use('/api/v1/radio', radioRoutes);
+app.use('/api/v1/notification', notificationRoutes);
 
 // 10. Handle Unhandled Routes
 app.all(/(.*)/, (req, res, next) => {

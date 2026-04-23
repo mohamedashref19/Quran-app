@@ -48,7 +48,6 @@ export const login = async (email, password) => {
       if (Capacitor.isNativePlatform()) {
         await Preferences.set({ key: 'auth_token', value: token });
       } else {
-        // ✅ في الـ web، احفظه في localStorage
         localStorage.setItem('auth_token', token);
       }
     }
@@ -57,9 +56,17 @@ export const login = async (email, password) => {
     if (user) {
       localStorage.setItem('user', JSON.stringify(user));
       if (user.name) localStorage.setItem('name', user.name);
+      
+      // 🌟 إضافة الـ userId ليكون متاحاً لدالة الإشعارات
+      localStorage.setItem('userId', user._id); 
     }
 
     if (res.data.status === 'success') {
+      // 🌟 تفعيل إشعارات الدفع وربطها باليوزر الجديد فوراً
+      if (Capacitor.isNativePlatform() && typeof initPushNotifications === 'function') {
+        await initPushNotifications();
+      }
+
       showAlert('success', 'تم تسجيل الدخول بنجاح!');
       window.setTimeout(() => {
         if (Capacitor.isNativePlatform()) {
@@ -71,11 +78,9 @@ export const login = async (email, password) => {
       }, 1000);
     }
   } catch (err) {
-    // 🌟 التعديل هنا: التقاط حالة الحساب غير المفعل (403)
     if (err.response?.status === 403 && err.response?.data?.actionRequired === "VERIFY_OTP") {
       const pendingEmail = err.response.data.email || email;
 
-      // 1. حفظ الإيميل مؤقتاً للخطوات القادمة
       if (Capacitor.isNativePlatform()) {
         Preferences.set({ key: 'verify_email', value: pendingEmail });
       } else {
@@ -83,11 +88,8 @@ export const login = async (email, password) => {
       }
 
       showAlert('warning', 'حسابك غير مفعل، سيتم تحويلك لإدخال كود التحقق.');
-
-      // 2. إرسال كود جديد تلقائياً
       resendOTP(pendingEmail);
 
-      // 3. توجيه المستخدم لصفحة التحقق
       window.setTimeout(() => {
         if (Capacitor.isNativePlatform()) {
           const emailInput = document.getElementById('verify-email');
@@ -178,16 +180,21 @@ export const logout = async () => {
         await localforage.removeItem('latest_khatmah');
         await localforage.removeItem('khatmah_meta');
         await localforage.removeItem('offline_actions_queue');
-        // console.log('✅ تم مسح بيانات الحساب من الجهاز بنجاح (السبحة والأذكار ما زالت محفوظة)');
       } catch (cacheErr) {
         console.warn('⚠️ خطأ في مسح الكاش أثناء الخروج:', cacheErr);
       }
 
+      // 🌟 مسح بيانات الهوية والتوكن
       if (Capacitor.isNativePlatform()) {
         await Preferences.remove({ key: 'auth_token' });
       } else {
         localStorage.removeItem('auth_token');
       }
+      
+      localStorage.removeItem('userId'); // مسح معرف المستخدم
+      localStorage.removeItem('user');
+      localStorage.removeItem('name');
+
       delete axios.defaults.headers.common['Authorization'];
       
       if (Capacitor.isNativePlatform()) {
