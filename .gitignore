@@ -24,3 +24,7 @@ DevFolder/
 
 public/audio/uploads/*
 !public/audio/uploads/.gitkeep
+
+# Firebase configuration
+android/app/google-services.json
+ios/App/App/GoogleService-Info.plist

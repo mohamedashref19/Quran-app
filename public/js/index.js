@@ -36,29 +36,21 @@ if (window.location.hostname !== 'localhost' && window.location.hostname !== '12
 // axios.defaults.baseURL = 'https://aqra-app.serveftp.com';
 //axios.defaults.baseURL = 'https://aqraapp.com';
 // axios.defaults.baseURL ='http://127.0.0.1:3000';
-// تحديد هل نحن في بيئة التطوير أم الإنتاج
-// لو بتستخدم Webpack أو Create React App أو أداة مشابهة:
-const isDev = process.env.NODE_ENV !== 'production'; 
-// ملاحظة: لو بتستخدم Vite، استبدل السطر اللي فوق بـ: const isDev = import.meta.env.DEV;
 
+const isDev = false; 
 const DEV_IP = '192.168.1.8';
-
 const isNative = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform();
 const isLocalWeb = !isNative && (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost');
 
 // تحديد الـ Base URL بناءً على بيئة التشغيل
 if (isLocalWeb) {
-    // 🌐 لو بتفتح من المتصفح على جهازك (تطوير)
     axios.defaults.baseURL = 'http://127.0.0.1:3000';
 } else if (isNative && isDev && DEV_IP !== '') {
-    // 📱 لو بتشغل الموبايل في وضع (التطوير) فقط بيكلم جهازك المحلي
     axios.defaults.baseURL = `http://${DEV_IP}:3000`;
 } else {
-    // 🚀 الإنتاج (الويب المرفوع + الموبايل الحقيقي للمستخدمين)
     axios.defaults.baseURL = 'https://aqraapp.com';
 }
 
-// إرسال الـ Cookies مع الموبايل (للـ Authentication إن وُجد)
 axios.defaults.withCredentials = Capacitor.isNativePlatform();
 const OFFLINE_HANDLED_URLS = [
   '/api/v1/bookmarks',
