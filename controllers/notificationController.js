@@ -54,8 +54,7 @@ exports.sendGlobalNotification = catchAsync(async (req, res, next) => {
         tokens: tokens 
     };
 
-    const response = await admin.messaging().sendMulticast(message);
-
+const response = await admin.messaging().sendEachForMulticast(message);
     
     res.status(200).json({
         status: 'success',
