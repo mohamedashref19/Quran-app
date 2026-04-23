@@ -7,7 +7,7 @@ import {  Capacitor } from '@capacitor/core';
 import { StatusBar } from '@capacitor/status-bar';
 import axios from 'axios';
 import { showAlert } from './auth';
-import { surahNames, surahStartPages, juzData, getJuzByPage, getHizbByPage, getSurahNameByPage , SAJDAH_WORDS, SAJDAH_AYAH_END, UTHMANI_FIXES,surahAyahCounts} from './constants';
+import { surahNames, surahStartPages, juzData, getJuzByPage, getHizbByPage, getSurahNameByPage , SAJDAH_WORDS, SAJDAH_AYAH_END, UTHMANI_FIXES,surahAyahCounts,AZKAR_DATA,surahsListMyRecitations} from './constants';
 
 
 
@@ -1693,7 +1693,25 @@ export async function loadReciters() {
   } catch (err) {
     console.error("Error loading reciters:", err);
     const container = document.getElementById('reciters-container');
-    if (container) container.innerHTML = '<p class="text-danger text-center">حدث خطأ في تحميل القراء.</p>';
+    if (container) {
+      container.innerHTML = `
+        <div class="col-12 py-5">
+          <div class="text-center p-4 mx-auto shadow-sm" style="max-width: 90%; background: #fff5f5; border: 1px solid #ffcdd2; border-radius: 16px; direction: rtl;">
+            <div class="mb-3">
+              <div style="width: 60px; height: 60px; background: rgba(220, 53, 69, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+              </div>
+            </div>
+            <h5 class="fw-bold text-danger mb-2" style="font-family:'Amiri', serif; font-size: 1.2rem;">عذراً، تعذر تحميل القراء</h5>
+            <p class="text-muted mb-4" style="font-size: 0.9rem;">
+              يبدو أن هناك مشكلة مؤقتة في الاتصال بالخادم. يرجى التحقق من الإنترنت والمحاولة مجدداً.
+            </p>
+            <button onclick="location.reload()" class="btn btn-danger rounded-pill px-4 py-2 fw-bold shadow-sm" style="font-size: 0.95rem;">
+              <i class="fas fa-redo-alt me-2"></i> إعادة المحاولة
+            </button>
+          </div>
+        </div>`;
+    }
   }
 }
 
@@ -1799,10 +1817,8 @@ export async function renderReciters(recitersList, container) {
     }
 
     // 🌟 [تعديل] تجهيز وتفريغ قائمة اختيار القراء (Select)
-    const searchSelect = document.getElementById('reciter-search-select');
-    if (searchSelect) {
-        searchSelect.innerHTML = '<option value="" disabled selected>-- اضغط هنا لفتح قائمة القراء --</option>'; 
-    }
+   const modalList = document.getElementById('modal-reciters-list');
+if (modalList) modalList.innerHTML = '';
 
     // 2. التأكد من وجود ستايلات المشغل المخصص
     if (!document.getElementById('custom-audio-styles')) {
@@ -1830,9 +1846,13 @@ export async function renderReciters(recitersList, container) {
         const displayName = reciter.nameAr || reciter.name;
         
         // 🌟 [تعديل] إضافة اسم القارئ لقائمة الاختيار (Select)
-        if (searchSelect) {
-            searchSelect.insertAdjacentHTML('beforeend', `<option value="${displayName}">${displayName}</option>`);
-        }
+        if (modalList) {
+    modalList.insertAdjacentHTML('beforeend', `
+        <button type="button" class="list-group-item list-group-item-action rounded-3 border mb-2 modal-reciter-item shadow-sm" data-name="${displayName}" style="color: #1e5f31; font-weight: 600; text-align: right; background: #f8f9fa; font-family: 'Amiri', serif; font-size: 1.1rem; transition: 0.3s;">
+            <i class="fas fa-microphone-alt me-2 text-success opacity-75"></i> ${displayName}
+        </button>
+    `);
+}
 
         const imageUrl = reciter.image; 
         const fallbackImage = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=198754&color=fff&size=128&font-size=0.33`;
@@ -2020,44 +2040,71 @@ export async function renderReciters(recitersList, container) {
 }
 
 
-// 🌟 دوال التمرير (Scroll) عند اختيار القارئ من الـ Select
-
 function initReciterSearch() {
-    const searchSelect = document.getElementById('reciter-search-select');
-    if (searchSelect) {
-        // نستخدم حدث 'change' بدلاً من 'input' لأننا نتعامل مع Select
-        searchSelect.removeEventListener('change', handleReciterSearch);
-        searchSelect.addEventListener('change', handleReciterSearch);
-    }
-}
+    const oldSearchInput = document.getElementById('modal-reciter-search-input');
+    const oldModalList = document.getElementById('modal-reciters-list');
 
-function handleReciterSearch(e) {
-    const selectedName = e.target.value;
-    if (!selectedName) return;
+    if (!oldSearchInput || !oldModalList) return;
 
-    // العثور على الكرت الذي يحمل اسم القارئ المختار
-    const targetWrapper = document.querySelector(`[data-reciter-name="${selectedName}"]`);
+    // 1. استنساخ العناصر أولاً لمسح أي أحداث (Events) قديمة
+    const searchInput = oldSearchInput.cloneNode(true);
+    oldSearchInput.parentNode.replaceChild(searchInput, oldSearchInput);
 
-    if (targetWrapper) {
-        // 1. النزول بسلاسة لمكان الكرت
-        targetWrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const modalList = oldModalList.cloneNode(true);
+    oldModalList.parentNode.replaceChild(modalList, oldModalList);
+
+    // 2. منطق الفلترة (البحث السريع عند الكتابة)
+    searchInput.addEventListener('input', function(e) {
+        const term = e.target.value.replace(/[أإآٱ]/g, 'ا').toLowerCase();
         
-        // 2. عمل وميض (Highlight) للكرت لتمييزه
-        const cardInner = targetWrapper.querySelector('.reciter-card');
-        const originalBg = cardInner.style.backgroundColor;
+        // البحث بيتم جوه النسخة الجديدة (modalList)
+        const items = modalList.querySelectorAll('.modal-reciter-item');
         
-        cardInner.style.backgroundColor = 'rgba(25, 135, 84, 0.15)'; // لون أخضر فاتح
-        
-        setTimeout(() => {
-            cardInner.style.backgroundColor = originalBg;
-        }, 1500);
+        items.forEach(item => {
+            const text = item.getAttribute('data-name').replace(/[أإآٱ]/g, 'ا').toLowerCase();
+            if (text.includes(term)) {
+                // استخدام setProperty لضمان التغلب على كلاسات البوتستراب
+                item.style.setProperty('display', 'block', 'important');
+            } else {
+                item.style.setProperty('display', 'none', 'important');
+            }
+        });
+    });
 
-        // 3. إعادة القائمة للوضع الافتراضي عشان يقدر يختار نفس الشيخ تاني لو حب
-        setTimeout(() => {
-            e.target.value = ""; 
-            e.target.blur(); // إخفاء الفوكس
-        }, 800);
-    }
+    // 3. منطق اختيار القارئ من القائمة
+    modalList.addEventListener('click', function(e) {
+        const btn = e.target.closest('.modal-reciter-item');
+        if (!btn) return;
+
+        const selectedName = btn.getAttribute('data-name');
+        
+        // أ. إغلاق النافذة المنبثقة
+        const modalEl = document.getElementById('reciterSearchModal');
+        const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        modalInstance.hide();
+
+        // ب. تصفير حقل البحث وإظهار كل القراء للمرة القادمة
+        searchInput.value = '';
+        modalList.querySelectorAll('.modal-reciter-item').forEach(i => {
+            i.style.setProperty('display', 'block', 'important');
+        });
+
+        // ج. النزول بسلاسة لكرت القارئ المختار وعمل وميض
+        const targetWrapper = document.querySelector(`[data-reciter-name="${selectedName}"]`);
+        if (targetWrapper) {
+            setTimeout(() => {
+                targetWrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const cardInner = targetWrapper.querySelector('.reciter-card');
+                const originalBg = cardInner.style.backgroundColor;
+                
+                cardInner.style.backgroundColor = 'rgba(25, 135, 84, 0.15)'; 
+                
+                setTimeout(() => {
+                    cardInner.style.backgroundColor = originalBg;
+                }, 1500);
+            }, 300);
+        }
+    });
 }
 
 // ─── الجدولة الدقيقة لجميع الصلوات ──────────────────────────────────────────
@@ -2768,277 +2815,7 @@ window.initQibla = async () => {
 // ─── ✅ الأذكار - Azkar Data & Loader 
 
 
-const AZKAR_DATA = {
- morning: {
-    title: 'أذكار الصباح',
-    icon: 'fas fa-sun',
-    color: '#f59e0b',
-    items: [
-      { 
-        text: 'أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ، اللَّهُ لاَ إِلَـهَ إِلاَّ هُوَ الْحَيُّ الْقَيُّومُ لاَ تَأْخُذُهُ سِنَةٌ وَلاَ نَوْمٌ، لَّهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الأَرْضِ، مَن ذَا الَّذِي يَشْفَعُ عِنْدَهُ إِلاَّ بِإِذْنِهِ، يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ، وَلاَ يُحِيطُونَ بِشَيْءٍ مِّنْ عِلْمِهِ إِلاَّ بِمَا شَاء، وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالأَرْضَ، وَلاَ يَؤُودُهُ حِفْظُهُمَا، وَهُوَ الْعَلِيُّ الْعَظِيمُ', 
-        count: 1, 
-        label: 'آية الكرسي' 
-      },
-      { 
-        text: 'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيم، قُلْ هُوَ اللَّهُ أَحَدٌ، اللَّهُ الصَّمَدُ، لَمْ يَلِدْ وَلَمْ يُولَدْ، وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ', 
-        count: 3, 
-        label: 'سورة الإخلاص' 
-      },
-      { 
-        text: 'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيم، قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ، مِن شَرِّ مَا خَلَقَ، وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ، وَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ، وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ', 
-        count: 3, 
-        label: 'سورة الفلق' 
-      },
-      { 
-        text: 'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيم، قُلْ أَعُوذُ بِرَبِّ النَّاسِ، مَلِكِ النَّاسِ، إِلَـهِ النَّاسِ، مِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ، الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ، مِنَ الْجِنَّةِ وَالنَّاسِ', 
-        count: 3, 
-        label: 'سورة الناس' 
-      },
-      { 
-        text: 'أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لاَ إِلَهَ إِلاَّ اللَّهُ وَحْدَهُ لاَ شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ، رَبِّ أَسْأَلُكَ خَيْرَ مَا فِي هَذَا الْيَوْمِ وَخَيْرَ مَا بَعْدَهُ، وَأَعُوذُ بِكَ مِنْ شَرِّ مَا فِي هَذَا الْيَوْمِ وَشَرِّ مَا بَعْدَهُ، رَبِّ أَعُوذُ بِكَ مِنَ الْكَسَلِ وَسُوءِ الْكِبَرِ، رَبِّ أَعُوذُ بِكَ مِنْ عَذَابٍ فِي النَّارِ وَعَذَابٍ فِي الْقَبْرِ', 
-        count: 1, 
-        label: 'دعاء الصباح' 
-      },
-      { 
-        text: 'اللَّهُمَّ بِكَ أَصْبَحْنَا، وَبِكَ أَمْسَيْنَا، وَبِكَ نَحْيَا، وَبِكَ نَمُوتُ، وَإِلَيْكَ النُّشُورُ', 
-        count: 1, 
-        label: '' 
-      },
-      { 
-        text: 'اللَّهُمَّ أَنْتَ رَبِّي لاَ إِلَهَ إِلاَّ أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَى عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ، وَأَبُوءُ بِذَنْبِي، فَاغْفِرْ لِي فَإِنَّهُ لاَ يَغْفِرُ الذُّنُوبَ إِلاَّ أَنْتَ', 
-        count: 1, 
-        label: 'سيد الاستغفار' 
-      },
-      { 
-        text: 'اللَّهُمَّ إِنِّي أَسْأَلُكَ الْعَفْوَ وَالْعَافِيَةَ فِي الدُّنْيَا وَالآخِرَةِ، اللَّهُمَّ إِنِّي أَسْأَلُكَ الْعَفْوَ وَالْعَافِيَةَ فِي دِينِي وَدُنْيَايَ وَأَهْلِي وَمَالِي، اللَّهُمَّ اسْتُرْ عَوْرَاتِي وَآمِنْ رَوْعَاتِي، اللَّهُمَّ احْفَظْنِي مِنْ بَيْنِ يَدَيَّ، وَمِنْ خَلْفِي، وَعَنْ يَمِينِي، وَعَنْ شِمَالِي، وَمِنْ فَوْقِي، وَأَعُوذُ بِعَظَمَتِكَ أَنْ أُغْتَالَ مِنْ تَحْتِي', 
-        count: 1, 
-        label: '' 
-      },
-      { 
-        text: 'اللَّهُمَّ عَافِنِي فِي بَدَنِي، اللَّهُمَّ عَافِنِي فِي سَمْعِي، اللَّهُمَّ عَافِنِي فِي بَصَرِي، لاَ إِلَهَ إِلاَّ أَنْتَ. اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْكُفْرِ وَالْفَقْرِ، وَأَعُوذُ بِكَ مِنْ عَذَابِ الْقَبْرِ، لاَ إِلَهَ إِلاَّ أَنْتَ', 
-        count: 3, 
-        label: '' 
-      },
-      { 
-        text: 'بِسْمِ اللَّهِ الَّذِي لاَ يَضُرُّ مَعَ اسْمِهِ شَيْءٌ فِي الأَرْضِ وَلاَ فِي السَّمَاءِ وَهُوَ السَّمِيعُ الْعَلِيمُ', 
-        count: 3, 
-        label: '' 
-      },
-      { 
-        text: 'رَضِيتُ بِاللَّهِ رَبًّا، وَبِالإِسْلاَمِ دِينًا، وَبِمُحَمَّدٍ ﷺ نَبِيًّا', 
-        count: 3, 
-        label: '' 
-      },
-      { 
-        text: 'يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ، أَصْلِحْ لِي شَأْنِي كُلَّهُ، وَلاَ تَكِلْنِي إِلَى نَفْسِي طَرْفَةَ عَيْنٍ', 
-        count: 1, 
-        label: '' 
-      },
-      { 
-        text: 'أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ رَبِّ الْعَالَمِينَ، اللَّهُمَّ إِنِّي أَسْأَلُكَ خَيْرَ هَذَا الْيَوْمِ: فَتْحَهُ، وَنَصْرَهُ، وَنُورَهُ، وَبَرَكَتَهُ، وَهُدَاهُ، وَأَعُوذُ بِكَ مِنْ شَرِّ مَا فِيهِ وَشَرِّ مَا بَعْدَهُ', 
-        count: 1, 
-        label: '' 
-      },
-      { 
-        text: 'أَصْبَحْنَا عَلَى فِطْرَةِ الإِسْلاَمِ، وَعَلَى كَلِمَةِ الإِخْلاَصِ، وَعَلَى دِينِ نَبِيِّنَا مُحَمَّدٍ ﷺ، وَعَلَى مِلَّةِ أَبِينَا إِبْرَاهِيمَ حَنِيفًا مُسْلِمًا وَمَا كَانَ مِنَ الْمُشْرِكِينَ', 
-        count: 1, 
-        label: '' 
-      },
-      { 
-        text: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ عَدَدَ خَلْقِهِ، وَرِضَا نَفْسِهِ، وَزِنَةَ عَرْشِهِ، وَمِدَادَ كَلِمَاتِهِ', 
-        count: 3, 
-        label: '' 
-      },
-      { 
-        text: 'اللَّهُمَّ مَا أَصْبَحَ بِي مِنْ نِعْمَةٍ أَوْ بِأَحَدٍ مِنْ خَلْقِكَ، فَمِنْكَ وَحْدَكَ لاَ شَرِيكَ لَكَ، فَلَكَ الْحَمْدُ وَلَكَ الشُّكْرُ', 
-        count: 1, 
-        label: '' 
-      },
-      { 
-        text: 'حَسْبِيَ اللَّهُ لاَ إِلَهَ إِلاَّ هُوَ عَلَيْهِ تَوَكَّلْتُ وَهُوَ رَبُّ الْعَرْشِ الْعَظِيمِ', 
-        count: 7, 
-        label: '' 
-      },
-      { 
-        text: 'اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا، وَرِزْقًا طَيِّبًا، وَعَمَلاً مُتَقَبَّلاً', 
-        count: 1, 
-        label: '' 
-      },
-      { 
-        text: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ', 
-        count: 100, 
-        label: '' 
-      },
-      { 
-        text: 'لاَ إِلَهَ إِلاَّ اللَّهُ وَحْدَهُ لاَ شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ', 
-        count: 10, 
-        label: '' 
-      },
-      { 
-        text: 'أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ', 
-        count: 100, 
-        label: '' 
-      },
-      { 
-        text: 'اللَّهُمَّ صَلِّ وَسَلِّمْ عَلَى نَبِيِّنَا مُحَمَّدٍ', 
-        count: 10, 
-        label: '' 
-      }
-    ]
-  },
-evening: {
-    title: 'أذكار المساء',
-    icon: 'fas fa-moon',
-    color: '#1e293b',
-    items: [
-      {
-        text: 'أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ، اللَّهُ لاَ إِلَـهَ إِلاَّ هُوَ الْحَيُّ الْقَيُّومُ لاَ تَأْخُذُهُ سِنَةٌ وَلاَ نَوْمٌ لَّهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الأَرْضِ مَن ذَا الَّذِي يَشْفَعُ عِنْدَهُ إِلاَّ بِإِذْنِهِ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ وَلاَ يُحِيطُونَ بِشَيْءٍ مِّنْ عِلْمِهِ إِلاَّ بِمَا شَاءَ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالأَرْضَ وَلاَ يَؤُودُهُ حِفْظُهُمَا وَهُوَ الْعَلِيُّ الْعَظِيمُ',
-        count: 1,
-        label: 'آية الكرسي'
-      },
-        { 
-        text: 'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيم، قُلْ هُوَ اللَّهُ أَحَدٌ، اللَّهُ الصَّمَدُ، لَمْ يَلِدْ وَلَمْ يُولَدْ، وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ', 
-        count: 3, 
-        label: 'سورة الإخلاص' 
-      },
-      { 
-        text: 'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيم، قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ، مِن شَرِّ مَا خَلَقَ، وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ، وَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ، وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ', 
-        count: 3, 
-        label: 'سورة الفلق' 
-      },
-      { 
-        text: 'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيم، قُلْ أَعُوذُ بِرَبِّ النَّاسِ، مَلِكِ النَّاسِ، إِلَـهِ النَّاسِ، مِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ، الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ، مِنَ الْجِنَّةِ وَالنَّاسِ', 
-        count: 3, 
-        label: 'سورة الناس' 
-      },
-      {
-        text: 'أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لاَ إِلَهَ إِلاَّ اللَّهُ وَحْدَهُ لاَ شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ، رَبِّ أَسْأَلُكَ خَيْرَ مَا فِي هَذِهِ اللَّيْلَةِ وَخَيْرَ مَا بَعْدَهَا، وَأَعُوذُ بِكَ مِنْ شَرِّ مَا فِي هَذِهِ اللَّيْلَةِ وَشَرِّ مَا بَعْدَهَا، رَبِّ أَعُوذُ بِكَ مِنَ الْكَسَلِ وَسُوءِ الْكِبَرِ، رَبِّ أَعُوذُ بِكَ مِنْ عَذَابٍ فِي النَّارِ وَعَذَابٍ فِي الْقَبْرِ',
-        count: 1,
-        label: 'دعاء المساء'
-      },
-      {
-        text: 'اللَّهُمَّ بِكَ أَمْسَيْنَا، وَبِكَ أَصْبَحْنَا، وَبِكَ نَحْيَا، وَبِكَ نَمُوتُ، وَإِلَيْكَ الْمَصِيرُ',
-        count: 1,
-        label: ''
-      },
-      {
-        text: 'اللَّهُمَّ أَنْتَ رَبِّي لاَ إِلَهَ إِلاَّ أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَى عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ، وَأَبُوءُ بِذَنْبِي، فَاغْفِرْ لِي فَإِنَّهُ لاَ يَغْفِرُ الذُّنُوبَ إِلاَّ أَنْتَ',
-        count: 1,
-        label: 'سيد الاستغفار'
-      },
-      {
-        text: 'اللَّهُمَّ عَافِنِي فِي بَدَنِي، اللَّهُمَّ عَافِنِي فِي سَمْعِي، اللَّهُمَّ عَافِنِي فِي بَصَرِي، لاَ إِلَهَ إِلاَّ أَنْتَ',
-        count: 3,
-        label: ''
-      },
-      {
-        text: 'اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْكُفْرِ وَالْفَقْرِ، وَأَعُوذُ بِكَ مِنْ عَذَابِ الْقَبْرِ، لاَ إِلَهَ إِلاَّ أَنْتَ',
-        count: 3,
-        label: ''
-      },
-      {
-        text: 'اللَّهُمَّ إِنِّي أَسْأَلُكَ الْعَفْوَ وَالْعَافِيَةَ فِي الدُّنْيَا وَالآخِرَةِ، اللَّهُمَّ إِنِّي أَسْأَلُكَ الْعَفْوَ وَالْعَافِيَةَ فِي دِينِي وَدُنْيَايَ وَأَهْلِي وَمَالِي، اللَّهُمَّ اسْتُرْ عَوْرَاتِي وَآمِنْ رَوْعَاتِي، اللَّهُمَّ احْفَظْنِي مِنْ بَيْنِ يَدَيَّ وَمِنْ خَلْفِي وَعَنْ يَمِينِي وَعَنْ شِمَالِي وَمِنْ فَوْقِي، وَأَعُوذُ بِعَظَمَتِكَ أَنْ أُغْتَالَ مِنْ تَحْتِي',
-        count: 1,
-        label: 'دعاء العافية'
-      },
-      {
-        text: 'اللَّهُمَّ عَالِمَ الْغَيْبِ وَالشَّهَادَةِ فَاطِرَ السَّمَاوَاتِ وَالأَرْضِ، رَبَّ كُلِّ شَيْءٍ وَمَلِيكَهُ، أَشْهَدُ أَنْ لاَ إِلَهَ إِلاَّ أَنْتَ، أَعُوذُ بِكَ مِنْ شَرِّ نَفْسِي وَمِنْ شَرِّ الشَّيْطَانِ وَشِرْكِهِ وَأَنْ أَقْتَرِفَ عَلَى نَفْسِي سُوءًا أَوْ أَجُرَّهُ إِلَى مُسْلِمٍ',
-        count: 1,
-        label: ''
-      },
-      {
-        text: 'بِسْمِ اللَّهِ الَّذِي لاَ يَضُرُّ مَعَ اسْمِهِ شَيْءٌ فِي الأَرْضِ وَلاَ فِي السَّمَاءِ وَهُوَ السَّمِيعُ الْعَلِيمُ',
-        count: 3,
-        label: ''
-      },
-      {
-        text: 'رَضِيتُ بِاللَّهِ رَبًّا، وَبِالإِسْلاَمِ دِينًا، وَبِمُحَمَّدٍ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ نَبِيًّا',
-        count: 3,
-        label: ''
-      },
-      {
-        text: 'يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ أَصْلِحْ لِي شَأْنِي كُلَّهُ وَلاَ تَكِلْنِي إِلَى نَفْسِي طَرْفَةَ عَيْنٍ',
-        count: 1,
-        label: ''
-      },
-      {
-        text: 'أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ رَبِّ الْعَالَمِينَ، اللَّهُمَّ إِنِّي أَسْأَلُكَ خَيْرَ هَذِهِ اللَّيْلَةِ فَتْحَهَا وَنَصْرَهَا وَنُورَهَا وَبَرَكَتَهَا وَهُدَاهَا، وَأَعُوذُ بِكَ مِنْ شَرِّ مَا فِيهَا وَشَرِّ مَا بَعْدَهَا',
-        count: 1,
-        label: ''
-      },
-      {
-        text: 'أَمْسَيْنَا عَلَى فِطْرَةِ الإِسْلاَمِ، وَعَلَى كَلِمَةِ الإِخْلاَصِ، وَعَلَى دِينِ نَبِيِّنَا مُحَمَّدٍ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ، وَعَلَى مِلَّةِ أَبِينَا إِبْرَاهِيمَ حَنِيفًا مُسْلِمًا وَمَا كَانَ مِنَ الْمُشْرِكِينَ',
-        count: 1,
-        label: ''
-      },
-      {
-        text: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ',
-        count: 100,
-        label: ''
-      },
-      {
-        text: 'لاَ إِلَهَ إِلاَّ اللَّهُ وَحْدَهُ لاَ شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ',
-        count: 10, 
-        label: ''
-      },
-      {
-        text: 'أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ',
-        count: 3,
-        label: ''
-      },
-      {
-        text: 'اللَّهُمَّ صَلِّ وَسَلِّمْ وَبَارِكْ عَلَى نَبِيِّنَا مُحَمَّدٍ',
-        count: 10,
-        label: 'الصلاة على النبي'
-      }
-    ]
-  },
-post_prayer: {
-    title: 'أذكار بعد الصلاة',
-    icon: 'fas fa-mosque',
-    color: '#1d4ed8',
-    items: [
-      { text: 'أَسْتَغْفِرُ اللَّهَ', count: 3, label: '' },
-      { text: 'اللَّهُمَّ أَنْتَ السَّلاَمُ، وَمِنْكَ السَّلاَمُ، تَبَارَكْتَ يَا ذَا الْجَلاَلِ وَالإِكْرَامِ', count: 1, label: '' },
-      { text: 'لاَ إِلَهَ إِلاَّ اللَّهُ وَحْدَهُ لاَ شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ، اللَّهُمَّ لاَ مَانِعَ لِمَا أَعْطَيْتَ، وَلاَ مُعْطِيَ لِمَا مَنَعْتَ، وَلاَ يَنْفَعُ ذَا الْجَدِّ مِنْكَ الْجَدُّ', count: 1, label: '' },
-      { text: 'لاَ إِلَهَ إِلاَّ اللَّهُ وَحْدَهُ لاَ شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ، لاَ حَوْلَ وَلاَ قُوَّةَ إِلاَّ بِاللَّهِ، لاَ إِلَهَ إِلاَّ اللَّهُ، وَلاَ نَعْبُدُ إِلاَّ إِيَّاهُ، لَهُ النِّعْمَةُ وَلَهُ الْفَضْلُ وَلَهُ الثَّنَاءُ الْحَسَنُ، لاَ إِلَهَ إِلاَّ اللَّهُ مُخْلِصِينَ لَهُ الدِّينَ وَلَوْ كَرِهَ الْكَافِرُونَ', count: 1, label: '' },
-      { text: 'سُبْحَانَ اللَّهِ', count: 33, label: '' },
-      { text: 'الْحَمْدُ لِلَّهِ', count: 33, label: '' },
-      { text: 'اللَّهُ أَكْبَرُ', count: 33, label: '' },
-      { text: 'لاَ إِلَهَ إِلاَّ اللَّهُ وَحْدَهُ لاَ شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ', count: 1, label: 'تتمة المائة' },
-      { text: 'اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ، وَشُكْرِكَ، وَحُسْنِ عِبَادَتِكَ', count: 1, label: 'دعاء معاذ بن جبل' },
-      { text: 'أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ، اللَّهُ لاَ إِلَـهَ إِلاَّ هُوَ الْحَيُّ الْقَيُّومُ لاَ تَأْخُذُهُ سِنَةٌ وَلاَ نَوْمٌ، لَّهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الأَرْضِ، مَن ذَا الَّذِي يَشْفَعُ عِنْدَهُ إِلاَّ بِإِذْنِهِ، يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ، وَلاَ يُحِيطُونَ بِشَيْءٍ مِّنْ عِلْمِهِ إِلاَّ بِمَا شَاء، وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالأَرْضَ، وَلاَ يَؤُودُهُ حِفْظُهُمَا، وَهُوَ الْعَلِيُّ الْعَظِيمُ', count: 1, label: 'آية الكرسي' },
-      { text: 'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ، قُلْ هُوَ اللَّهُ أَحَدٌ، اللَّهُ الصَّمَدُ، لَمْ يَلِدْ وَلَمْ يُولَدْ، وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ', count: 1, label: 'سورة الإخلاص' },
-      { text: 'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ، قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ، مِن شَرِّ مَا خَلَقَ، وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ، وَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ، وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ', count: 1, label: 'سورة الفلق' },
-      { text: 'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ، قُلْ أَعُوذُ بِرَبِّ النَّاسِ، مَلِكِ النَّاسِ، إِلَـهِ النَّاسِ، مِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ، الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ، مِنَ الْجِنَّةِ وَالنَّاسِ', count: 1, label: 'سورة الناس' },
-      { text: 'اللَّهُمَّ أَجِرْنِي مِنَ النَّارِ', count: 7, label: 'بعد صلاة الفجر والمغرب' },
-      { text: 'اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا، وَرِزْقًا طَيِّبًا، وَعَمَلاً مُتَقَبَّلاً', count: 1, label: 'بعد صلاة الفجر' }
-    ]
-  },
-  sleep: {
-    title: 'أذكار النوم',
-    icon: 'fas fa-bed',
-    color: '#6b7280',
-    items: [
-      { text: 'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ، قُلْ هُوَ اللَّهُ أَحَدٌ، اللَّهُ الصَّمَدُ، لَمْ يَلِدْ وَلَمْ يُولَدْ، وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ. (يجمع كفيه وينفث فيهما ثم يمسح بهما ما استطاع من جسده)', count: 3, label: 'سورة الإخلاص' },
-      { text: 'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ، قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ، مِن شَرِّ مَا خَلَقَ، وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ، وَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ، وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ.', count: 3, label: 'سورة الفلق' },
-      { text: 'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ، قُلْ أَعُوذُ بِرَبِّ النَّاسِ، مَلِكِ النَّاسِ، إِلَـهِ النَّاسِ، مِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ، الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ، مِنَ الْجِنَّةِ وَالنَّاسِ.', count: 3, label: 'سورة الناس' },
-      { text: 'أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ، اللَّهُ لاَ إِلَـهَ إِلاَّ هُوَ الْحَيُّ الْقَيُّومُ لاَ تَأْخُذُهُ سِنَةٌ وَلاَ نَوْمٌ، لَّهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الأَرْضِ، مَن ذَا الَّذِي يَشْفَعُ عِنْدَهُ إِلاَّ بِإِذْنِهِ، يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ، وَلاَ يُحِيطُونَ بِشَيْءٍ مِّنْ عِلْمِهِ إِلاَّ بِمَا شَاء، وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالأَرْضَ، وَلاَ يَؤُودُهُ حِفْظُهُمَا، وَهُوَ الْعَلِيُّ الْعَظِيمُ', count: 1, label: 'آية الكرسي' },
-      { text: 'ءَامَنَ ٱلرَّسُولُ بِمَا أُنزِلَ إِلَيْهِ مِن رَّبِّهِ وَٱلْمُؤْمِنُونَ ۚ كُلٌّ ءَامَنَ بِٱللَّهِ وَمَلَائِكَتِهِ وَكُتُبِهِ وَرُسُلِهِ لَا نُفَرِّقُ بَيْنَ أَحَدٍ مِّن رَّسُلِهِ ۚ وَقَالُوا سَمِعْنَا وَأَطَعْنَا ۖ غُفْرَانَكَ رَبَّنَا وَإِلَيْكَ ٱلْمَصِيرُ * لَا يُكَلِّفُ ٱللَّهُ نَفْسًا إِلَّا وُسْعَهَا ۚ لَهَا مَا كَسَبَتْ وَعَلَيْهَا مَا ٱكْتَسَبَتْ ۗ رَبَّنَا لَا تُؤَاخِذْنَا إِن نَّسِينَا أَوْ أَخْطَأْنَا ۚ رَبَّنَا وَلَا تَحْمِلْ عَلَيْنَا إِصْرًا كَمَا حَمَلْتَهُ عَلَى ٱلَّذِينَ مِن قَبْلِنَا ۚ رَبَّنَا وَلَا تُحَمِّلْنَا مَا لَا طَاقَةَ لَنَا بِهِ ۖ وَٱعْفُ عَنَّا وَٱغْفِرْ لَنَا وَٱرْحَمْنَا ۚ أَنتَ مَوْلَانَا فَٱنصُرْنَا عَلَى ٱلْقَوْمِ ٱلْكَافِرِينَ', count: 1, label: 'خواتيم سورة البقرة' },
-      { text: 'بِاسْمِكَ رَبِّي وَضَعْتُ جَنْبِي، وَبِكَ أَرْفَعُهُ، فَإِنْ أَمْسَكْتَ نَفْسِي فَارْحَمْهَا، وَإِنْ أَرْسَلْتَهَا فَاحْفَظْهَا، بِمَا تَحْفَظُ بِهِ عِبَادَكَ الصَّالِحِينَ', count: 1, label: '' },
-      { text: 'اللَّهُمَّ إِنَّكَ خَلَقْتَ نَفْسِي وَأَنْتَ تَوَفَّاهَا، لَكَ مَمَاتُهَا وَمَحْيَاهَا، إِنْ أَحْيَيْتَهَا فَاحْفَظْهَا، وَإِنْ أَمَتَّهَا فَاغْفِرْ لَهَا. اللَّهُمَّ إِنِّي أَسْأَلُكَ الْعَافِيَةَ', count: 1, label: '' },
-      { text: 'اللَّهُمَّ قِنِي عَذَابَكَ يَوْمَ تَبْعَثُ عِبَادَكَ', count: 3, label: '' },
-      { text: 'بِسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا', count: 1, label: '' },
-      { text: 'سُبْحَانَ اللَّهِ', count: 33, label: '' },
-      { text: 'الْحَمْدُ لِلَّهِ', count: 33, label: '' },
-      { text: 'اللَّهُ أَكْبَرُ', count: 34, label: '' },
-      { text: 'اللَّهُمَّ رَبَّ السَّمَاوَاتِ السَّبْعِ وَرَبَّ الأَرْضِ، وَرَبَّ الْعَرْشِ الْعَظِيمِ، رَبَّنَا وَرَبَّ كُلِّ شَيْءٍ، فَالِقَ الْحَبِّ وَالنَّوَى، وَمُنْزِلَ التَّوْرَاةِ وَالإِنْجِيلِ، وَالْفُرْقَانِ، أَعُوذُ بِكَ مِنْ شَرِّ كُلِّ شَيْءٍ أَنْتَ آخِذٌ بِنَاصِيَتِهِ. اللَّهُمَّ أَنْتَ الأَوَّلُ فَلَيْسَ قَبْلَكَ شَيْءٌ، وَأَنْتَ الآخِرُ فَلَيْسَ بَعْدَكَ شَيْءٌ، وَأَنْتَ الظَّاهِرُ فَلَيْسَ فَوْقَكَ شَيْءٌ، وَأَنْتَ الْبَاطِنُ فَلَيْسَ دُونَكَ شَيْءٌ، اقْضِ عَنَّا الدَّيْنَ وَأَغْنِنَا مِنَ الْفَقْرِ', count: 1, label: '' },
-      { text: 'الْحَمْدُ لِلَّهِ الَّذِي أَطْعَمَنَا وَسَقَانَا، وَكَفَانَا، وَآوَانَا، فَكَمْ مِمَّنْ لاَ كَافِيَ لَهُ وَلاَ مُؤْوِيَ', count: 1, label: '' },
-      { text: 'اللَّهُمَّ عَالِمَ الغَيْبِ وَالشَّهَادَةِ فَاطِرَ السَّمَاوَاتِ وَالْأَرْضِ، رَبَّ كُلِّ شَيْءٍ وَمَلِيكَهُ، أَشْهَدُ أَنْ لاَ إِلَهَ إِلاَّ أَنْتَ، أَعُوذُ بِكَ مِنْ شَرِّ نَفْسِي، وَمِنْ شَرِّ الشَّيْطَانِ وَشِرْكِهِ، وَأَنْ أَقْتَرِفَ عَلَى نَفْسِي سُوءاً أَوْ أَجُرَّهُ إِلَى مُسْلِمٍ', count: 1, label: '' },
-      { text: 'اللَّهُمَّ أَسْلَمْتُ نَفْسِي إِلَيْكَ، وَفَوَّضْتُ أَمْرِي إِلَيْكَ، وَوَجَّهْتُ وَجْهِي إِلَيْكَ، وَأَلْجَأْتُ ظَهْرِي إِلَيْكَ، رَغْبَةً وَرَهْبَةً إِلَيْكَ، لاَ مَلْجَأَ وَلاَ مَنْجَأَ مِنْكَ إِلاَّ إِلَيْكَ، آمَنْتُ بِكِتَابِكَ الَّذِي أَنْزَلْتَ، وَبِنَبِيِّكَ الَّذِي أَرْسَلْتَ', count: 1, label: 'يُجعل هذا الدعاء آخر ما يقال قبل النوم' },
-    ]
-  },
-};
+
 
 /**
  * تحميل وعرض قائمة أذكار بالتصميم الجديد
@@ -4000,25 +3777,7 @@ window.loadMyRecitations = async function() {
         return;
     }
 
-    const surahsList = [
-        '', 'الفاتحة', 'البقرة', 'آل عمران', 'النساء', 'المائدة', 'الأنعام',
-        'الأعراف', 'الأنفال', 'التوبة', 'يونس', 'هود', 'يوسف', 'الرعد',
-        'إبراهيم', 'الحجر', 'النحل', 'الإسراء', 'الكهف', 'مريم', 'طه',
-        'الأنبياء', 'الحج', 'المؤمنون', 'النور', 'الفرقان', 'الشعراء',
-        'النمل', 'القصص', 'العنكبوت', 'الروم', 'لقمان', 'السجدة', 'الأحزاب',
-        'سبأ', 'فاطر', 'يس', 'الصافات', 'ص', 'الزمر', 'غافر', 'فصلت',
-        'الشورى', 'الزخرف', 'الدخان', 'الجاثية', 'الأحقاف', 'محمد', 'الفتح',
-        'الحجرات', 'ق', 'الذاريات', 'الطور', 'النجم', 'القمر', 'الرحمن',
-        'الواقعة', 'الحديد', 'المجادلة', 'الحشر', 'الممتحنة', 'الصف',
-        'الجمعة', 'المنافقون', 'التغابن', 'الطلاق', 'التحريم', 'الملك',
-        'القلم', 'الحاقة', 'المعارج', 'نوح', 'الجن', 'المزمل', 'المدثر',
-        'القيامة', 'الإنسان', 'المرسلات', 'النبأ', 'النازعات', 'عبس',
-        'التكوير', 'الانفطار', 'المطففين', 'الانشقاق', 'البروج', 'الطارق',
-        'الأعلى', 'الغاشية', 'الفجر', 'البلد', 'الشمس', 'الليل', 'الضحى',
-        'الشرح', 'التين', 'العلق', 'القدر', 'البينة', 'الزلزلة', 'العاديات',
-        'القارعة', 'التكاثر', 'العصر', 'الهمزة', 'الفيل', 'قريش', 'الماعون',
-        'الكوثر', 'الكافرون', 'النصر', 'المسد', 'الإخلاص', 'الفلق', 'الناس'
-    ];
+    
 
     container.innerHTML = `
         <div class="text-center w-100 py-5">
@@ -4041,7 +3800,7 @@ window.loadMyRecitations = async function() {
         }
 
         const html = recitations.map(r => {
-            const surahName = surahsList[r.surah] || `سورة ${r.surah}`;
+            const surahName = surahsListMyRecitations[r.surah] || `سورة ${r.surah}`;
             const date = new Date(r.createdAt).toLocaleDateString('ar-EG', {
                 year: 'numeric', month: 'short', day: 'numeric'
             });
@@ -4585,65 +4344,77 @@ export const scheduleDailyQuizNotification = async () => {
 
 // دالة جلب الإذاعات من الباك إيند
 export async function loadRadioStations() {
-    const select = document.getElementById('radio-station-select');
-    const playButton = document.getElementById('radio-play-btn'); // افترض إن ده ID زرار التشغيل
+    const fakeBtn = document.getElementById('fake-select-btn');
+    const stationNameSpan = document.getElementById('selected-station-name');
+    const hiddenInput = document.getElementById('radio-station-url');
+    const modalList = document.getElementById('radio-modal-list');
+    const playButton = document.getElementById('btn-toggle-radio');
     const statusText = document.getElementById('radio-status');
-    const radioContainer = document.getElementById('radio-card-body'); // الحاوية اللي فيها الإذاعة
 
-    if (!select) return;
+    if (!fakeBtn || !modalList) return;
 
-    // 🌟 التعديل ١: التحقق من وجود إنترنت أولاً
     if (!navigator.onLine) {
-        if(select) select.innerHTML = '<option value="" disabled selected>تتطلب الإذاعة اتصالاً بالإنترنت</option>';
-        if(select) select.disabled = true;
-        if(playButton) playButton.disabled = true;
-        if(statusText) statusText.innerHTML = '<i class="fas fa-wifi-slash text-danger me-1"></i> لا يوجد اتصال بالإنترنت';
+        stationNameSpan.innerText = 'تتطلب الإذاعة اتصالاً بالإنترنت';
+        fakeBtn.disabled = true;
+        playButton.disabled = true;
+        statusText.innerHTML = '<i class="fas fa-wifi-slash text-danger me-1"></i> لا يوجد اتصال بالإنترنت';
         return;
     }
 
-    // لو فيه إنترنت، نرجع نفعلهم
-    if(select) select.disabled = false;
-    if(playButton) playButton.disabled = false;
+    fakeBtn.disabled = false;
+    playButton.disabled = false;
 
     try {
-        const res = await axios.get('/api/v1/radio'); // اللينك اللي عملناه في الباك
+        const res = await axios.get('/api/v1/radio');
         const stations = res.data.data.stations;
 
-        // 1. تجميع المحطات حسب الفئة (Category)
+        // تجميع المحطات
         const groups = {};
         stations.forEach(station => {
-            if (!groups[station.category]) {
-                groups[station.category] = [];
-            }
+            if (!groups[station.category]) groups[station.category] = [];
             groups[station.category].push(station);
         });
 
-        // 2. بناء الـ HTML ديناميكياً
+        // بناء الـ HTML الخاص بالنافذة المنبثقة
         let html = '';
-        
         for (const category in groups) {
-            html += `<optgroup label="${category}">`;
+            html += `<h6 class="fw-bold mt-3 mb-2 text-muted small"><i class="fas fa-layer-group me-1"></i> ${category}</h6>`;
+            html += `<div class="list-group border-0 gap-2 mb-3">`;
             groups[category].forEach(s => {
-                html += `<option value="${s.url}" data-backup="${s.backupUrl || ''}">${s.name}</option>`;
+                html += `
+                <button type="button" class="list-group-item list-group-item-action rounded-3 border station-item" 
+                        data-url="${s.url}" data-backup="${s.backupUrl || ''}" data-name="${s.name}"
+                        style="color: #1e5f31; font-weight: 600; text-align: right; background: #f8f9fa;">
+                    <i class="fas fa-broadcast-tower me-2 text-success opacity-75"></i> ${s.name}
+                </button>`;
             });
-            html += `</optgroup>`;
+            html += `</div>`;
         }
 
-        // 3. حقن البيانات في السليكت
-        select.innerHTML = html;
-        
-        // لو مفيش محطة متحددة، نحدد أول محطة في أول مجموعة تلقائياً
-        if (select.options.length > 0) {
-            select.selectedIndex = 0;
+        modalList.innerHTML = html;
+
+        // اختيار أول محطة افتراضياً
+        if (stations.length > 0) {
+            const firstStation = stations[0];
+            stationNameSpan.innerText = firstStation.name;
+            hiddenInput.value = firstStation.url;
+            hiddenInput.setAttribute('data-backup', firstStation.backupUrl || '');
             statusText.innerText = 'جاهز للتشغيل';
+            
+            // تلوين أول محطة كمختارة
+            const firstBtn = modalList.querySelector('.station-item');
+            if(firstBtn) {
+                firstBtn.classList.add('bg-success', 'text-white');
+                firstBtn.style.color = 'white';
+                firstBtn.querySelector('i').classList.replace('text-success', 'text-white');
+            }
         }
 
     } catch (err) {
         console.error("❌ Error loading radio stations:", err);
-        // 🌟 التعديل ٢: رسالة شيك لو السيرفر فيه مشكلة بس فيه نت
-        select.innerHTML = '<option value="" disabled selected>عذراً، الإذاعة غير متاحة الآن</option>';
-        select.disabled = true;
-        if(playButton) playButton.disabled = true;
-        if(statusText) statusText.innerHTML = '<i class="fas fa-exclamation-circle text-warning me-1"></i> السيرفر لا يستجيب';
+        stationNameSpan.innerText = 'عذراً، الإذاعة غير متاحة';
+        fakeBtn.disabled = true;
+        playButton.disabled = true;
+        statusText.innerHTML = '<i class="fas fa-exclamation-circle text-warning me-1"></i> السيرفر لا يستجيب';
     }
 }
