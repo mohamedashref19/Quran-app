@@ -3168,8 +3168,9 @@ window.changeScrollSpeed = function(dir) {
     if (pageNum < 1 || pageNum > TOTAL_PAGES || _imgPreloadCache[pageNum]) return;
     _imgPreloadCache[pageNum] = true;
     const img = new Image();
-    img.src = `/assets/quran_images/${pageNum}.jpg`;
+    img.src = `/assets/quran_images/${pageNum}.webp`;
   }
+  
 
   // بناء أو استرجاع عنصر صفحة جاهز من الكاش
   function _getPage(pageNum) {
@@ -3248,8 +3249,31 @@ window.changeScrollSpeed = function(dir) {
 
     _setupTrack(newPage);
 
-    // حدّث العنوان والجزء بدون إعادة رندر كاملة
-    if (window.loadQuranPage) window.loadQuranPage(newPage);
+    // ─── تحديث العنوان والجزء في الخلفية بدون إعادة رندر ───
+    // في وضع المصحف المصور: الـ DOM بيتحدث من الكاش فوراً بدون أي re-render
+    // بنحدث بس العنوان والمعلومات الظاهرة للمستخدم (الجزء ورقم الصفحة)
+    requestAnimationFrame(() => {
+      // تحديث عنوان الصفحة في شريط التنقل (لو موجود)
+      const pageLabel = document.getElementById('mushaf-page-label') || document.querySelector('[data-page-label]');
+      if (pageLabel) pageLabel.textContent = `صفحة ${newPage}`;
+
+      // تحديث اسم السورة/الجزء لو موجود
+      const surahLabel = document.getElementById('mushaf-surah-label');
+      if (surahLabel && window.getSurahNameByPage) {
+        const name = window.getSurahNameByPage(newPage);
+        if (name) surahLabel.textContent = name;
+      }
+
+      // تحميل بيانات JSON في الخلفية للصفحة الجديدة (للـ bookmark والتفسير)
+      // بدون أي تأثير على الواجهة
+      if (!_pageCache[newPage]) {
+        _fetchPageData(newPage).catch(() => {});
+      }
+      
+      // ✅ تحديث رقم الصفحة في الخلفية (بدون re-render للمصحف المصور)
+      // هذا يضمن عند الخروج من المصحف المصور يفتح المصحف النصي على نفس الصفحة
+      window._currentImageMushafPage = newPage;
+    });
   }
 
 // ─── 1. تحديث Touch Swipe (فصل منطق المصحف النصي عن المصور) ───
@@ -3843,11 +3867,50 @@ const initPushNotifications = async () => {
         });
 
         PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-            const data = action.notification.data;
-            if (data && data.url) {
-                window.open(data.url, '_system');
-            }
-        });
+    const data = action.notification.data || {};
+    console.log('🎯 المستخدم ضغط على إشعار السيرفر، الداتا:', data);
+
+    // 1. لو الإشعار مبعوت معاه رابط خارجي (زي تحديث من المتجر)
+    if (data.url) {
+        window.open(data.url, '_system');
+        return; // نوقف التنفيذ هنا عشان ميفتحش حاجة جوه التطبيق
+    }
+
+    // 2. لو الإشعار مبعوت معاه توجيه لقسم معين جوه التطبيق (زي مواقيت الصلاة)
+    if (data.section) {
+        if (typeof window.showSection === 'function') {
+            window.showSection(data.section); // مثلاً: data.section = 'prayers'
+        }
+
+        // 3. حالة خاصة: لو التوجيه للمصحف وعايزين نفتح سورة معينة (زي البقرة)
+        if (data.section === 'quran' && data.surah) {
+            // بنعمل setTimeout بسيط عشان ندي فرصة لـ showSection تخلص رسم الشاشة
+            setTimeout(() => {
+                if (typeof window.loadQuranPage === 'function') {
+                    // السيرفر هيبعت رقم الصفحة، والسورة، والآية
+                    window.loadQuranPage(
+                        parseInt(data.page || 2), 
+                        parseInt(data.surah), 
+                        parseInt(data.ayah || 1)
+                    );
+                } else if (typeof loadQuranPage === 'function') {
+                    loadQuranPage(
+                        parseInt(data.page || 2), 
+                        parseInt(data.surah), 
+                        parseInt(data.ayah || 1)
+                    );
+                }
+            }, 400); 
+        }
+        
+        // 4. حالة خاصة: لو التوجيه لصفحة المسابقة
+        if (data.section === 'quiz') {
+            setTimeout(() => {
+                if (typeof loadDailyQuiz === 'function') loadDailyQuiz();
+            }, 400);
+        }
+    }
+});
 
     } catch (e) {
         console.error('خطأ في تهيئة إشعارات الدفع:', e);
@@ -5481,7 +5544,7 @@ liveStream = await navigator.mediaDevices.getUserMedia({
                 <i class="fas fa-microphone-alt fa-pulse text-danger me-2"></i> جاري الاستماع لتلاوتك... اقرأ الآن
               </span>
               <span class="text-muted bg-light px-3 py-1 rounded-pill" style="font-size: 0.85rem; border: 1px solid #e9ecef;">
-                <i class="fas fa-robot text-secondary me-1"></i> المعلم الذكي يتابعك (يستغرق التحديث حوالي 3 ثوانٍ ⏳)
+                <i class="fas fa-robot text-secondary me-1"></i> المعلم الذكي يتابعك (يستغرق التحديث حوالي 3 الى 5  ثوانٍ ⏳)
               </span>
             </div>`;
         }
@@ -5846,6 +5909,9 @@ window.startImageMushaf = function() {
     window._imageMushafActive = true;
     window.history.pushState({ isImageMushaf: true }, '', window.location.pathname);
 
+    // ✅ حفظ الصفحة الحالية لمزامنتها عند الخروج
+    window._currentImageMushafPage = window.currentPage || 1;
+
     // 1. إخفاء زر الترويج
     const promoBtn = document.getElementById('image-mushaf-promo');
     if (promoBtn) promoBtn.style.display = 'none';
@@ -5916,6 +5982,11 @@ window.exitQuranMode = function() {
     if (quranSec) {
         quranSec.classList.remove('d-none');
         quranSec.scrollTop = 0;
+    }
+
+    // ✅ مزامنة المصحف النصي مع آخر صفحة في المصحف المصور
+    if (window._currentImageMushafPage && window.loadQuranPage) {
+        window.loadQuranPage(window._currentImageMushafPage);
     }
 
     // ✅ الإصلاح: نستنى frame واحد عشان الـ DOM يتحدث الأول، ثم نعمل scroll للأعلى
