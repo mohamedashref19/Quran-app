@@ -4,7 +4,7 @@ android {
     namespace = "com.aqra.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.mohamedashraf.aqra.debug"
+        applicationId "com.mohamedashraf.aqra"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 23
