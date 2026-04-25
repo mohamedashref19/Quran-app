@@ -24,7 +24,7 @@ exports.saveToken = catchAsync(async (req, res, next) => {
     await PushToken.findOneAndUpdate(
         { token: token },
         updateData,
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: 'after' } 
     );
 
     res.status(200).json({ 
@@ -34,7 +34,7 @@ exports.saveToken = catchAsync(async (req, res, next) => {
 });
 
 exports.sendGlobalNotification = catchAsync(async (req, res, next) => {
-    const { title, body, url } = req.body;
+    const { title, body, url, section, surah, page, ayah } = req.body;
 
     const tokens = await PushToken.find().distinct('token');
 
@@ -42,19 +42,26 @@ exports.sendGlobalNotification = catchAsync(async (req, res, next) => {
         return res.status(404).json({ status: 'fail', message: 'لا توجد أجهزة مسجلة لإرسال الإشعارات' });
     }
 
+    const notificationData = { 
+        type: 'update'
+    };
+    
+    if (url) notificationData.url = String(url);
+    if (section) notificationData.section = String(section);
+    if (surah) notificationData.surah = String(surah);
+    if (page) notificationData.page = String(page);
+    if (ayah) notificationData.ayah = String(ayah);
+
     const message = {
         notification: { 
             title: title || 'إشعار جديد', 
             body: body || '' 
         },
-        data: { 
-            type: 'update', 
-            url: url || ''  
-        }, 
+        data: notificationData, 
         tokens: tokens 
     };
 
-const response = await admin.messaging().sendEachForMulticast(message);
+    const response = await admin.messaging().sendEachForMulticast(message);
     
     res.status(200).json({
         status: 'success',
