@@ -52,5 +52,12 @@
 	<string>نحتاج صلاحية الميكروفون للاستماع لتلاوتك وتصحيحها عبر تقنية الذكاء الاصطناعي في المصحح الذكي.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>نحتاج صلاحية الموقع لتحديد اتجاه القبلة بدقة وعرض مواقيت الصلاة حسب مدينتك الحالية.</string>
+	<key>UIBackgroundModes</key>
+    <array>
+        <string>audio</string>
+        <string>remote-notification</string>
+    </array>
+	
 	</dict>
+
 </plist>
