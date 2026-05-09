@@ -7,7 +7,6 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.mohamedashraf.aqra
-        automatic_code_signing: true
 
       xcode: latest
 
