@@ -17,26 +17,18 @@ workflows:
         - pattern: main
           include: true
 
-scripts:
-  - name: Install dependencies
-    script: |
-      if [ -f "pubspec.yaml" ]; then
-        flutter pub get
-      fi
+    scripts:
+      - name: Install dependencies
+        script: |
+          flutter pub get
 
-  - name: Set up code signing
-    script: |
-      xcode-project use-profiles
+      - name: Set up code signing
+        script: |
+          xcode-project use-profiles
 
-  - name: Build iOS IPA
-    script: |
-      if [ -f "pubspec.yaml" ]; then
-        flutter build ipa --release
-      else
-        xcode-project build-ipa \
-          --project "ios/Runner.xcodeproj" \
-          --scheme "Runner"
-      fi
+      - name: Build iOS IPA
+        script: |
+          flutter build ipa --release
 
     artifacts:
       - build/ios/ipa/*.ipa
@@ -45,7 +37,7 @@ scripts:
       app_store_connect:
         api_key: |
           -----BEGIN PRIVATE KEY-----
-          MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgIbkl1SHZSleyEWsva2dcTfpAqtr2KT9Fz48YZvlDEbugCgYIKoZIzj0DAQehRANCAARHoDBjk2VTUa3seDIa0w/NYKBTZzVcbc13mjmBsfsXEeQiiriSdnqXG78v0aoFSBpAvQfZcC2hkGI5gzOnlltG
+          YOUR_KEY
           -----END PRIVATE KEY-----
         key_id: 2WZZPVD7N2
         issuer_id: 31c5c3e7-22bb-499b-8d0f-df7e49582ae1
