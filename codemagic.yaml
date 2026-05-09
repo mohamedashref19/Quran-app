@@ -2,37 +2,39 @@ workflows:
   ios-release:
     name: iOS Release Build
     max_build_duration: 120
-
     environment:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.mohamedashraf.aqra
-
       xcode: latest
-
     triggering:
       events:
         - push
       branch_patterns:
         - pattern: main
           include: true
-
     scripts:
       - name: Install dependencies
         script: |
           flutter pub get
-
       - name: Set up code signing
         script: |
+          app-store-connect fetch-signing-files \
+            com.mohamedashraf.aqra \
+            --type IOS_APP_STORE \
+            --create \
+            --private-key "-----BEGIN PRIVATE KEY-----
+          MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgIbkl1SHZSleyEWsva2dcTfpAqtr2KT9Fz48YZvlDEbugCgYIKoZIzj0DAQehRANCAARHoDBjk2VTUa3seDIa0w/NYKBTZzVcbc13mjmBsfsXEeQiiriSdnqXG78v0aoFSBpAvQfZcC2hkGI5gzOnlltG
+          -----END PRIVATE KEY-----" \
+            --key-id 2WZZPVD7N2 \
+            --issuer-id 31c5c3e7-22bb-499b-8d0f-df7e49582ae1
+          keychain initialize
           xcode-project use-profiles
-
       - name: Build iOS IPA
         script: |
           flutter build ipa --release
-
     artifacts:
       - build/ios/ipa/*.ipa
-
     publishing:
       app_store_connect:
         api_key: |
@@ -41,6 +43,5 @@ workflows:
           -----END PRIVATE KEY-----
         key_id: 2WZZPVD7N2
         issuer_id: 31c5c3e7-22bb-499b-8d0f-df7e49582ae1
-
         submit_to_testflight: true
         submit_to_app_store: false
