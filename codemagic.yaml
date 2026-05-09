@@ -17,22 +17,26 @@ workflows:
         - pattern: main
           include: true
 
-    scripts:
-      - name: Install dependencies
-        script: |
-          if [ -f "pubspec.yaml" ]; then
-            flutter pub get
-          fi
+scripts:
+  - name: Install dependencies
+    script: |
+      if [ -f "pubspec.yaml" ]; then
+        flutter pub get
+      fi
 
-      - name: Build iOS IPA
-        script: |
-          if [ -f "pubspec.yaml" ]; then
-            flutter build ipa --release
-          else
-            xcode-project build-ipa \
-              --project "ios/Runner.xcodeproj" \
-              --scheme "Runner"
-          fi
+  - name: Set up code signing
+    script: |
+      xcode-project use-profiles
+
+  - name: Build iOS IPA
+    script: |
+      if [ -f "pubspec.yaml" ]; then
+        flutter build ipa --release
+      else
+        xcode-project build-ipa \
+          --project "ios/Runner.xcodeproj" \
+          --scheme "Runner"
+      fi
 
     artifacts:
       - build/ios/ipa/*.ipa
