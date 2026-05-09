@@ -1,22 +1,50 @@
 workflows:
-  ios-capacitor-build:
-    name: iOS Build (Capacitor)
+  ios-release:
+    name: iOS Release Build
     max_build_duration: 120
-    instance_type: mac_mini_m2
+
     environment:
-      node: latest
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.mohamedashraf.aqra
+
       xcode: latest
+
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+
     scripts:
       - name: Install dependencies
         script: |
-          npm install
-      - name: Build Web App
+          if [ -f "pubspec.yaml" ]; then
+            flutter pub get
+          fi
+
+      - name: Build iOS IPA
         script: |
-          npm run build:js
-      - name: Capacitor Sync
-        script: |
-          npx cap sync ios
-      - name: Test iOS Build (Without Code Signing)
-        script: |
-          cd ios/App
-          xcodebuild build -project App.xcodeproj -scheme App -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
+          if [ -f "pubspec.yaml" ]; then
+            flutter build ipa --release
+          else
+            xcode-project build-ipa \
+              --project "ios/Runner.xcodeproj" \
+              --scheme "Runner"
+          fi
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+
+    publishing:
+      app_store_connect:
+        api_key: |
+          -----BEGIN PRIVATE KEY-----
+          MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgIbkl1SHZSleyEWsva2dcTfpAqtr2KT9Fz48YZvlDEbugCgYIKoZIzj0DAQehRANCAARHoDBjk2VTUa3seDIa0w/NYKBTZzVcbc13mjmBsfsXEeQiiriSdnqXG78v0aoFSBpAvQfZcC2hkGI5gzOnlltG
+          -----END PRIVATE KEY-----
+        key_id: 2WZZPVD7N2
+        issuer_id: 31c5c3e7-22bb-499b-8d0f-df7e49582ae1
+
+        submit_to_testflight: true
+        submit_to_app_store: false
