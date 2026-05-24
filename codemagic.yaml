@@ -1,22 +1,39 @@
 workflows:
-  ios-capacitor-build:
-    name: iOS Build (Capacitor)
+  ios-app-store-build:
+    name: iOS Build for App Store (Capacitor)
     max_build_duration: 120
     instance_type: mac_mini_m2
+
     environment:
       node: latest
       xcode: latest
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.mohamedashraf.aqra
+
     scripts:
       - name: Install dependencies
-        script: |
-          npm install
+        script: npm install
+
       - name: Build Web App
-        script: |
-          npm run build:js
+        script: npm run build:js
+
       - name: Capacitor Sync
-        script: |
-          npx cap sync ios
-      - name: Test iOS Build (Without Code Signing)
+        script: npx cap sync ios
+
+      - name: Set up code signing settings on Xcode project
+        script: xcode-project use-profiles
+
+      - name: Build IPA for App Store
         script: |
           cd ios/App
-          xcodebuild build -project App.xcodeproj -scheme App -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
+          xcode-project build-ipa --project "App.xcodeproj" --scheme "App"
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
