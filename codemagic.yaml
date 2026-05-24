@@ -3,34 +3,39 @@ workflows:
     name: iOS Build for App Store (Capacitor)
     max_build_duration: 120
     instance_type: mac_mini_m2
+
+    integrations:
+      app_store_connect: "AppStore Key Quran"
+
     environment:
       node: latest
       xcode: latest
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.mohamedashraf.aqra
+
     scripts:
       - name: Install dependencies
         script: npm install
-      
+
       - name: Build Web App
         script: npm run build:js
-      
+
       - name: Capacitor Sync
         script: npx cap sync ios
-      
+
       - name: Set up code signing settings on Xcode project
         script: xcode-project use-profiles
-      
+
       - name: Build IPA for App Store
         script: |
           cd ios/App
           xcode-project build-ipa --project "App.xcodeproj" --scheme "App"
-          
+
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
-      
+
     publishing:
       app_store_connect:
         auth: integration
